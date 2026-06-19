@@ -32,9 +32,9 @@
     --input: 0 0% 13%;
     --ring: 25 95% 53%;
     --radius: 0.75rem;
-    --gradient-orange: linear-gradient(135deg, hsl(25 95% 53%), hsl(38 92% 50%));
-    --shadow-glow: 0 0 24px hsl(25 95% 53% / 0.25);
-    --shadow-glow-strong: 0 0 32px hsl(25 95% 53% / 0.4);
+    --gradient-orange: linear-gradient(135deg, hsl(25 92% 55%), hsl(34 88% 53%));
+    --shadow-glow: 0 0 28px hsl(25 95% 53% / 0.28);
+    --shadow-glow-strong: 0 0 48px hsl(25 95% 53% / 0.5);
     --sidebar-background: 0 0% 6.7%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 25 95% 53%;
@@ -206,3 +206,125 @@
              breathe-line 4s ease-in-out 2.5s infinite;
   transform-origin: left center;
 }
+
+/* Additional liquid glass & motion system ------------------------------------------------- */
+
+@layer components {
+  /* Floating glass topbar */
+  .glass-topbar {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    box-shadow: 0 10px 30px rgba(8,8,8,0.6), 0 2px 8px rgba(249,115,22,0.06) inset;
+    border-radius: 14px;
+    transition: box-shadow 220ms ease, transform 220ms ease, background 220ms ease;
+  }
+
+  .glass-topbar:focus-within, .glass-topbar:hover {
+    box-shadow: 0 16px 40px rgba(8,8,8,0.6), 0 6px 18px rgba(249,115,22,0.10);
+  }
+
+  /* Sidebar as a floating dock */
+  .glass-sidebar {
+    margin: 18px 12px;
+    padding: 12px;
+    border-radius: 16px;
+    min-height: calc(100vh - 36px);
+    box-shadow: 0 18px 40px rgba(6,6,6,0.65), 0 6px 22px rgba(249,115,22,0.04) inset;
+    transition: width 280ms cubic-bezier(.2,.9,.2,1), transform 220ms ease;
+    backdrop-filter: blur(20px) saturate(120%);
+  }
+
+  /* Compact/mini sidebar (icon-only) */
+  .glass-sidebar-mini { width: 72px; }
+  .glass-sidebar-expanded { width: 260px; }
+
+  /* Card reflection and soft elevation */
+  .card-surface {
+    transition-property: transform, box-shadow, border-color, background;
+    transition-duration: 220ms;
+    transition-timing-function: cubic-bezier(.2,.9,.2,1);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    backdrop-filter: blur(18px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    box-shadow: 0 12px 30px rgba(6,6,6,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.00));
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    transform: translateY(-50%);
+    opacity: 0.42;
+  }
+
+  .card-surface:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 60px rgba(6,6,6,0.68), 0 12px 36px rgba(249,115,22,0.08) inset;
+    border-color: rgba(249,115,22,0.14);
+  }
+
+  /* Strong glass button appearance */
+  .glass-button {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.10);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    box-shadow: 0 6px 18px rgba(6,6,6,0.6);
+    transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    position: relative; overflow: hidden;
+  }
+
+  .glass-button::after {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(400px 120px at 10% 10%, rgba(249,115,22,0.06), transparent 8%);
+    opacity: 0; transition: opacity 180ms ease;
+  }
+  .glass-button:hover::after { opacity: 1; }
+  .glass-button:active { transform: translateY(1px) scale(0.995); }
+
+  /* Inputs with frosted glass focus glow */
+  .glass-input:focus {
+    box-shadow: 0 6px 30px rgba(249,115,22,0.07), 0 0 0 4px rgba(249,115,22,0.06) inset;
+    border-color: rgba(249,115,22,0.5);
+    outline: none;
+  }
+
+  /* Toasts as glass chips */
+  .toast-glass {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    box-shadow: 0 12px 32px rgba(6,6,6,0.6);
+  }
+
+  /* Smooth global animations */
+  .animate-fade-in { animation: fade-in 260ms ease both; }
+  .animate-modal-in { animation: modal-in 260ms cubic-bezier(.2,.9,.2,1) both; }
+  .animate-slide-up { animation: slide-up 260ms cubic-bezier(.2,.9,.2,1) both; }
+
+  @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes modal-in { from { opacity: 0; transform: scale(.985) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes slide-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Page transition helper */
+  .page-panel {
+    border-radius: 14px;
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.008));
+    border: 1px solid rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px) saturate(120%);
+  }
+}
+
+/* End additional design system ------------------------------------------------------------ */

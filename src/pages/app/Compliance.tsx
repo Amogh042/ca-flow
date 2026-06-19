@@ -1,42 +1,41 @@
 import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, CheckCircle2, UserPlus, Calendar, List } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, CheckCircle2, UserPlus, Calendar, List, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const ALL_FILINGS = [
-  { name: "GSTR-3B", date: "2026-04-20", status: "overdue" as const },
-  { name: "GSTR-1", date: "2026-04-11", status: "filed" as const },
-  { name: "TDS Return Q4", date: "2026-05-31", status: "pending" as const },
-  { name: "Advance Tax Q1 FY27", date: "2026-06-15", status: "pending" as const },
-  { name: "GSTR-1", date: "2026-05-11", status: "pending" as const },
-  { name: "GSTR-3B", date: "2026-05-20", status: "pending" as const },
-  { name: "ITR Filing", date: "2026-07-31", status: "pending" as const },
-  { name: "TDS Return Q1", date: "2026-07-31", status: "pending" as const },
-  { name: "Advance Tax Q2 FY27", date: "2026-09-15", status: "pending" as const },
-];
+import { useFilings, useCreateFiling, useUpdateFiling } from "@/hooks/useFilings";
+import { useClients } from "@/hooks/useClients";
+import { useCreateActivity } from "@/hooks/useActivities";
+import { toast } from "@/hooks/use-toast";
+import type { Filing } from "@/data/workspace";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December"
 ];
 
+type ViewMode = "list" | "calendar";
+type StatTone = "text-success" | "text-warning" | "text-destructive";
+type DotTone = "bg-success" | "bg-warning" | "bg-destructive";
+
 const statusStyles: Record<string, { dot: string; badge: string }> = {
   overdue: { dot: "bg-destructive", badge: "bg-destructive/15 text-destructive" },
   pending: { dot: "bg-warning",     badge: "bg-warning/15 text-warning" },
+  in_progress: { dot: "bg-warning", badge: "bg-warning/15 text-warning" },
+  in_review: { dot: "bg-sky-500", badge: "bg-sky-500/15 text-sky-300" },
   filed:   { dot: "bg-success",     badge: "bg-success/15 text-success" },
 };
 
-function groupFilings(filings: typeof ALL_FILINGS) {
+function groupFilings(filings: Filing[]) {
   const today = new Date();
   const weekLater = new Date(today); weekLater.setDate(today.getDate() + 7);
   const monthLater = new Date(today); monthLater.setDate(today.getDate() + 30);
 
-  const overdue: typeof ALL_FILINGS = [];
-  const thisWeek: typeof ALL_FILINGS = [];
-  const thisMonth: typeof ALL_FILINGS = [];
-  const later: typeof ALL_FILINGS = [];
+  const overdue: Filing[] = [];
+  const thisWeek: Filing[] = [];
+  const thisMonth: Filing[] = [];
+  const later: Filing[] = [];
 
   filings.forEach((f) => {
-    const d = new Date(f.date);
+    const d = new Date(f.dueDate);
     if (f.status === "filed") return;
     if (d < today) overdue.push(f);
     else if (d <= weekLater) thisWeek.push(f);
@@ -53,30 +52,99 @@ function formatDate(dateStr: string) {
 }
 
 export default function Compliance() {
+  const filingsQuery = useFilings();
+  const createFiling = useCreateFiling();
+  const updateFiling = useUpdateFiling();
+  const createActivity = useCreateActivity();
+  const clientsQuery = useClients();
+  const clients = clientsQuery.data ?? [];
+
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [formTitle, setFormTitle] = useState("");
+  const [formClientId, setFormClientId] = useState("");
+  const [formType, setFormType] = useState("GST Return");
+  const [formDueDate, setFormDueDate] = useState("");
+  const [formAssignee, setFormAssignee] = useState("");
+  const [formNotes, setFormNotes] = useState("");
+  const [assigningFilingId, setAssigningFilingId] = useState<string | null>(null);
+  const [assignValue, setAssignValue] = useState("");
+
+  function resetForm() {
+    setFormTitle("");
+    setFormClientId("");
+    setFormType("GST Return");
+    setFormDueDate("");
+    setFormAssignee("");
+    setFormNotes("");
+  }
+
+  function handleCreateFiling(e: React.FormEvent) {
+    e.preventDefault();
+    if (!formTitle.trim() || !formDueDate) return;
+    createFiling.mutate(
+      {
+        clientId: formClientId,
+        title: formTitle.trim(),
+        dueDate: formDueDate,
+        owner: formAssignee.trim() || "Unassigned",
+        status: "pending",
+        entity: formType,
+        blocker: formNotes.trim() || undefined,
+      },
+      {
+        onSuccess() {
+          toast({ title: "Filing created", description: formTitle.trim() });
+          resetForm();
+          setShowDrawer(false);
+        },
+      },
+    );
+  }
+
+  function handleAssign(filingId: string, newOwner: string) {
+    if (!newOwner.trim()) return;
+    updateFiling.mutate([filingId, { owner: newOwner.trim() }], {
+      onSuccess(updated) {
+        createActivity.mutate({
+          id: `activity-${Date.now()}`,
+          clientId: updated.clientId,
+          title: `${updated.title} reassigned`,
+          detail: `Assigned to ${newOwner.trim()}`,
+          actor: updated.owner,
+          time: "Just now",
+          kind: "filing",
+        });
+        toast({ title: "Assignee updated", description: `${updated.title} → ${newOwner.trim()}` });
+      },
+    });
+    setAssigningFilingId(null);
+    setAssignValue("");
+  }
+
   const now = new Date();
-  const [view, setView] = useState<"list" | "calendar">("list");
+  const [view, setView] = useState<ViewMode>("list");
   const [year, setYear]   = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
-  const [filings, setFilings] = useState(ALL_FILINGS);
+
+  if (filingsQuery.isLoading) return <div className="max-w-7xl mx-auto py-8">Loading filings...</div>;
+  if (filingsQuery.error) return <div className="max-w-7xl mx-auto py-8 text-red-400">Failed to load filings.</div>;
+
+  const filings = filingsQuery.data ?? [];
 
   const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); };
   const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); };
 
-  const markFiled = (name: string, date: string) => {
-    setFilings(prev => prev.map(f => f.name === name && f.date === date ? { ...f, status: "filed" as const } : f));
-  };
-
   const visibleFilings = filings.filter(f => {
-    const d = new Date(f.date);
+    const d = new Date(f.dueDate);
     return d.getFullYear() === year && d.getMonth() === month;
   });
 
   const allGrouped = groupFilings(filings);
 
   const filed   = filings.filter(f => f.status === "filed").length;
-  const pending = filings.filter(f => f.status === "pending").length;
+  const pending = filings.filter(f => f.status === "pending" || f.status === "in_progress" || f.status === "in_review").length;
   const overdue = filings.filter(f => {
-    return f.status !== "filed" && new Date(f.date) < new Date();
+    return f.status !== "filed" && new Date(f.dueDate) < new Date();
   }).length;
 
   return (
@@ -88,7 +156,7 @@ export default function Compliance() {
             Never miss a filing deadline again.
           </p>
         </div>
-        <button className="px-4 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all flex items-center gap-2">
+        <button onClick={() => setShowDrawer(true)} className="px-4 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all flex items-center gap-2">
           <Plus className="h-4 w-4" /> Add Filing
         </button>
       </div>
@@ -114,12 +182,12 @@ export default function Compliance() {
 
         <div className="grid grid-cols-2 p-1 rounded-lg bg-card border border-white/10">
           {[
-            { v: "list",     icon: List,     label: "List" },
-            { v: "calendar", icon: Calendar, label: "Calendar" },
+            { v: "list" as const,     icon: List,     label: "List" },
+            { v: "calendar" as const, icon: Calendar, label: "Calendar" },
           ].map((o) => (
             <button
               key={o.v}
-              onClick={() => setView(o.v as any)}
+              onClick={() => setView(o.v)}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
                 view === o.v
@@ -159,32 +227,59 @@ export default function Compliance() {
                         <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.dot}`} />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm" style={{ color: "rgba(255,255,255,0.90)" }}>
-                            {f.name}
+                            {f.title}
                           </div>
                           <div className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>
-                            Unassigned
+                            {f.owner}
                           </div>
                         </div>
                         <div className="text-xs hidden sm:block" style={{ color: "rgba(255,255,255,0.65)" }}>
-                          {formatDate(f.date)}
+                          {formatDate(f.dueDate)}
                         </div>
                         <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-pill capitalize", s.badge)}>
                           {f.status}
                         </span>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => markFiled(f.name, f.date)}
+                            onClick={() => {
+                              updateFiling.mutate([f.id, { status: "filed" }], {
+                                onSuccess(updated) {
+                                  createActivity.mutate({
+                                    id: `activity-${Date.now()}`,
+                                    clientId: updated.clientId,
+                                    title: `${updated.title} updated`,
+                                    detail: `Status moved to ${updated.status.replace("_", " ")} for ${updated.entity}.`,
+                                    actor: updated.owner,
+                                    time: "Just now",
+                                    kind: "filing",
+                                  });
+                                },
+                              });
+                            }}
                             className="text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary flex items-center gap-1"
                             style={{ color: "rgba(255,255,255,0.65)" }}
                           >
                             <CheckCircle2 className="h-3 w-3" /> Mark Filed
                           </button>
-                          <button
-                            className="text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary flex items-center gap-1"
-                            style={{ color: "rgba(255,255,255,0.65)" }}
-                          >
-                            <UserPlus className="h-3 w-3" /> Assign
-                          </button>
+                          {assigningFilingId === f.id ? (
+                            <input
+                              autoFocus
+                              value={assignValue}
+                              onChange={(e) => setAssignValue(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") handleAssign(f.id, assignValue); if (e.key === "Escape") { setAssigningFilingId(null); setAssignValue(""); } }}
+                              onBlur={() => { if (assignValue.trim()) handleAssign(f.id, assignValue); else { setAssigningFilingId(null); setAssignValue(""); } }}
+                              placeholder="Assignee name…"
+                              className="text-xs px-2 py-1 rounded-md border border-primary/40 bg-white/5 text-white outline-none w-28"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => { setAssigningFilingId(f.id); setAssignValue(f.owner); }}
+                              className="text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary flex items-center gap-1"
+                              style={{ color: "rgba(255,255,255,0.65)" }}
+                            >
+                              <UserPlus className="h-3 w-3" /> Assign
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -208,11 +303,124 @@ export default function Compliance() {
       ) : (
         <CalendarView month={month} year={year} filings={visibleFilings} />
       )}
+
+      {showDrawer && (
+        <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
+          <div onClick={() => setShowDrawer(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "#111111" }}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-white">New Filing</h3>
+              <button onClick={() => setShowDrawer(false)} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/5 text-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFiling} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-secondary mb-1">Title *</label>
+                <input
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  required
+                  placeholder="e.g. GST 3B — April 2026"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-primary/60 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-secondary mb-1">Client</label>
+                <select
+                  value={formClientId}
+                  onChange={(e) => setFormClientId(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white focus:border-primary/60 outline-none"
+                >
+                  <option value="">— No client —</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-secondary mb-1">Filing Type</label>
+                <select
+                  value={formType}
+                  onChange={(e) => setFormType(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white focus:border-primary/60 outline-none"
+                >
+                  {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-secondary mb-1">Due Date *</label>
+                <input
+                  type="date"
+                  value={formDueDate}
+                  onChange={(e) => setFormDueDate(e.target.value)}
+                  required
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white focus:border-primary/60 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
+                <input
+                  value={formAssignee}
+                  onChange={(e) => setFormAssignee(e.target.value)}
+                  placeholder="Team member name"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-primary/60 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-secondary mb-1">Notes / Blocker</label>
+                <textarea
+                  value={formNotes}
+                  onChange={(e) => setFormNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Optional notes or blockers…"
+                  className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-primary/60 outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={createFiling.status === "pending"}
+                  className="flex-1 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all disabled:opacity-50"
+                >
+                  {createFiling.status === "pending" ? "Creating…" : "Create Filing"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDrawer(false)}
+                  className="h-10 px-4 rounded-pill border border-white/10 text-sm text-secondary hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-const Stat = ({ label, value, color, dot }: any) => (
+const Stat = ({
+  label,
+  value,
+  color,
+  dot,
+}: {
+  label: string;
+  value: number;
+  color: StatTone;
+  dot: DotTone;
+}) => (
   <div className="flex items-center gap-2">
     <span className={`h-2 w-2 rounded-full ${dot}`} />
     <span style={{ color: "rgba(255,255,255,0.40)" }}>{label}</span>
@@ -221,7 +429,7 @@ const Stat = ({ label, value, color, dot }: any) => (
 );
 
 const CalendarView = ({ month, year, filings }: {
-  month: number; year: number; filings: typeof ALL_FILINGS;
+  month: number; year: number; filings: Filing[];
 }) => {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -229,10 +437,10 @@ const CalendarView = ({ month, year, filings }: {
 
   const dotMap: Record<number, string> = {};
   filings.forEach(f => {
-    const d = new Date(f.date).getDate();
-    if (f.status === "overdue" || (f.status !== "filed" && new Date(f.date) < today)) {
+    const d = new Date(f.dueDate).getDate();
+    if (f.status === "overdue" || (f.status !== "filed" && new Date(f.dueDate) < today)) {
       dotMap[d] = "bg-destructive";
-    } else if (f.status === "pending") {
+    } else if (f.status === "pending" || f.status === "in_progress" || f.status === "in_review") {
       dotMap[d] = dotMap[d] || "bg-warning";
     } else if (f.status === "filed") {
       dotMap[d] = dotMap[d] || "bg-success";

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Calculator, ChevronRight, RotateCcw } from "lucide-react";
+import { Calculator, Check, ChevronRight, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClients } from "@/hooks/useClients";
+import { useCreateCalculation } from "@/hooks/useCalculations";
+import { useCreateActivity } from "@/hooks/useActivities";
 
 const FY = ["FY 2024-25", "FY 2023-24", "FY 2022-23"];
 const AGE = ["Below 60", "60-80", "Above 80"];
@@ -12071,11 +12074,75 @@ function CalculatorShell({
   inputPanel: JSX.Element;
   outputPanel: JSX.Element;
 }) {
+  const clientsQuery = useClients();
+  const createCalc = useCreateCalculation();
+  const createActivity = useCreateActivity();
+
+  const clients = clientsQuery.data ?? [];
+  const [clientId, setClientId] = useState<string>(clients[0]?.id ?? "");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setClientId((prev) => prev || clients[0]?.id || "");
+  }, [clients]);
+
+  const handleSave = async () => {
+    if (!clientId) return;
+    setSaved(true);
+    try {
+      const created = await createCalc.mutateAsync({ clientId, title, subtitle });
+      // create an activity entry
+      createActivity.mutate({
+        id: `activity-${Date.now()}`,
+        clientId,
+        title: "Calculation saved",
+        detail: `${title} was attached to the client workspace.`,
+        actor: "system",
+        time: "Just now",
+        kind: "calculation",
+      });
+    } catch (err) {
+      // noop: mutation hooks already handle rollback and notifications
+    } finally {
+      window.setTimeout(() => setSaved(false), 1800);
+    }
+  };
+
   return (
     <>
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-1 text-secondary text-sm">{subtitle}</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+          <p className="mt-1 text-secondary text-sm">{subtitle}</p>
+        </div>
+
+        <div className="card-surface p-4 w-full lg:w-[320px] space-y-3">
+          <div className="text-xs uppercase tracking-wide text-secondary">
+            Save to workspace
+          </div>
+          <select
+            value={clientId}
+            onChange={(event) => setClientId(event.target.value)}
+            className="glass-input w-full h-10 px-3 text-sm"
+          >
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={handleSave}
+            disabled={!clientId}
+            className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold glow-orange disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+            {saved ? "Saved to workspace" : "Save calculation"}
+          </button>
+          <p className="text-[11px] text-tertiary">
+            This attaches the calculator output to the client timeline and makes it available for reports.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6">

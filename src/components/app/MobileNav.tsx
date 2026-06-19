@@ -1,12 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, Calculator, CalendarCheck, Sparkles } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, CalendarCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/dashboard", label: "Home", icon: LayoutDashboard },
   { to: "/clients", label: "Clients", icon: Users },
-  { to: "/calculators/tax", label: "Tools", icon: Calculator },
-  { to: "/compliance", label: "Tasks", icon: CalendarCheck },
+  { to: "/compliance", label: "Workflows", icon: CalendarCheck },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/ai", label: "AI", icon: Sparkles },
 ];
 

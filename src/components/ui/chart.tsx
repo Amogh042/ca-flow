@@ -152,12 +152,12 @@ const ChartTooltipContent = React.forwardRef<
 
     return (
       <div
-        ref={ref}
-        className={cn(
-          "grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
-          className,
-        )}
-      >
+          ref={ref}
+          className={cn(
+            "card-surface min-w-[8rem] p-2.5 text-xs shadow-xl",
+            className,
+          )}
+        >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
           {payload.map((item, index) => {
@@ -244,7 +244,7 @@ const ChartLegendContent = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}
+      className={cn("card-surface p-2 flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}
     >
       {payload.map((item) => {
         const key = `${nameKey || item.dataKey || "value"}`;

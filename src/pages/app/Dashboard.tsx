@@ -1,30 +1,23 @@
 import { Link } from "react-router-dom";
 import {
-  AlertTriangle, ArrowRight, Calculator, Receipt, Landmark,
-  FileText, TrendingUp, Briefcase, BarChart3, Calendar, CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  FileClock,
+  FolderSearch,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
-
-const stats = [
-  { label: "Active Clients",      value: "0",    sub: "Add your first client →", to: "/clients" },
-  { label: "Calculations Today",  value: "0",    sub: "Start calculating",        to: "/calculators/tax" },
-  { label: "Filings Due",         value: "3",    sub: "This month", accent: true,  to: "/compliance" },
-  { label: "Tools Available",     value: "100+", sub: "Pro plan",                 to: "/calculators/tax" },
-];
-
-const quickActions = [
-  { to: "/calculator/income-tax", icon: Receipt,  name: "Income Tax",       desc: "Slab-wise tax for FY 2025-26" },
-  { to: "/calculator/emi",        icon: Landmark, name: "EMI Calculator",   desc: "Monthly instalment + amortisation" },
-  { to: "/calculator/gst",        icon: FileText, name: "GST Calculator",   desc: "Forward & reverse GST" },
-  { to: "/calculator/stcg",       icon: TrendingUp, name: "Capital Gains",  desc: "STCG & LTCG with indexation" },
-  { to: "/calculator/salary",     icon: Briefcase, name: "Salary Breakup",  desc: "CTC to take-home breakdown" },
-  { to: "/calculator/current-ratio", icon: BarChart3, name: "Financial Ratios", desc: "20+ ratios from P&L + Balance Sheet" },
-];
-
-const compliance = [
-  { dot: "bg-destructive", name: "GSTR-3B",        date: "Due Apr 20, 2026" },
-  { dot: "bg-warning",     name: "TDS Return Q4",   date: "Due May 31, 2026" },
-  { dot: "bg-success",     name: "Advance Tax Q1",  date: "Due Jun 15, 2026" },
-];
+import { teamMembers } from "@/data/workspace";
+import { cn } from "@/lib/utils";
+import { useClients } from "@/hooks/useClients";
+import { useFilings } from "@/hooks/useFilings";
+import { useDocuments } from "@/hooks/useDocuments";
+import { useActivities } from "@/hooks/useActivities";
+import { useAuth } from "@/contexts/AuthContext";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -35,190 +28,333 @@ function getGreeting() {
 
 export default function Dashboard() {
   const greeting = getGreeting();
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
+  const clientsQuery = useClients();
+  const filingsQuery = useFilings();
+  const documentsQuery = useDocuments();
+  const activitiesQuery = useActivities();
+  const loading = clientsQuery.isLoading || filingsQuery.isLoading || documentsQuery.isLoading || activitiesQuery.isLoading;
+  const hasError = !!(clientsQuery.error || filingsQuery.error || documentsQuery.error || activitiesQuery.error);
+
+  const activities = activitiesQuery.data ?? [];
+  const clients = clientsQuery.data ?? [];
+  const documents = documentsQuery.data ?? [];
+  const filings = filingsQuery.data ?? [];
+
+  const countFilingsByStatus = (status: string) =>
+    filings.filter((filing) => filing.status === status).length;
+
+  const statCards = [
+    {
+      label: "At-risk engagements",
+      value: `${clients.filter((client) => client.health !== "low").length}`,
+      sub: "Client workspaces needing intervention",
+      icon: ShieldAlert,
+      tone: "warning",
+    },
+    {
+      label: "Open compliance items",
+      value: `${countFilingsByStatus("pending") + countFilingsByStatus("in_progress") + countFilingsByStatus("overdue")}`,
+      sub: "Across tax, payroll, and advisory",
+      icon: FileClock,
+      tone: "neutral",
+    },
+    {
+      label: "Documents waiting",
+      value: `${documents.filter((document) => document.status === "missing" || document.status === "needs_review").length}`,
+      sub: "Blocking filings or reviews",
+      icon: FolderSearch,
+      tone: "warning",
+    },
+    {
+      label: "Advisory momentum",
+      value: "—",
+      sub: "Pipeline value across active engagements",
+      icon: TrendingUp,
+      tone: "success",
+    },
+  ];
+
+  const urgentQueue = filings
+    .filter((filing) => filing.status !== "filed")
+    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .slice(0, 4);
+
+  const watchlist = clients
+    .slice()
+    .sort((a, b) => b.openTasks - a.openTasks)
+    .slice(0, 3);
 
   return (
-    <div className="relative">
-      {/* Decorative background growth line */}
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 1200 200"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute bottom-0 left-0 right-0 w-full h-[200px]"
-        style={{ zIndex: 0 }}
-      >
-        <defs>
-          <linearGradient id="dashFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgba(249,115,22,0.05)" />
-            <stop offset="100%" stopColor="rgba(249,115,22,0)" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M0,180 C200,170 350,140 500,110 C650,80 800,70 950,45 C1080,25 1150,15 1200,10 L1200,200 L0,200 Z"
-          fill="url(#dashFill)"
-        />
-        <path
-          className="dashboard-bg-line"
-          d="M0,180 C200,170 350,140 500,110 C650,80 800,70 950,45 C1080,25 1150,15 1200,10"
-          fill="none"
-          stroke="rgba(249,115,22,0.15)"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
-
-      <div className="relative max-w-7xl mx-auto space-y-8" style={{ zIndex: 1 }}>
-
-        <header>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-            {greeting}, <span className="text-gradient-orange">Amogh</span>
-          </h1>
-          <p className="mt-2 flex items-center gap-2 text-sm" style={{ color: "#f59e0b" }}>
-            <AlertTriangle className="h-4 w-4" />
-            You have 3 compliance deadlines this month
-          </p>
-        </header>
-
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((s) => (
-            <Link key={s.label} to={s.to} className="card-surface p-5 block">
-              <div
-                className="text-xs font-medium uppercase tracking-wide"
-                style={{ color: "rgba(255,255,255,0.40)" }}
-              >
-                {s.label}
+    <div className="max-w-7xl mx-auto space-y-8">
+      {loading && (
+        <div className="max-w-7xl mx-auto py-2">
+          <div className="rounded-md bg-white/5 p-3 text-sm text-secondary">Loading dashboard…</div>
+        </div>
+      )}
+      {hasError && (
+        <div className="max-w-7xl mx-auto py-2">
+          <div className="rounded-md bg-red-900/40 p-3 text-sm text-red-200">Some data failed to load. Displaying available items.</div>
+        </div>
+      )}
+      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+        <div className="card-surface overflow-hidden">
+          <div className="px-6 py-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-secondary">
+                  Dashboard
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                  {greeting}, {displayName}
+                </h1>
+                <p className="max-w-2xl text-sm text-secondary">
+                  Here's what needs your attention across clients, filings, and documents.
+                </p>
               </div>
-              <div className={`mt-2 text-3xl font-bold ${s.accent ? "text-gradient-orange" : ""}`}
-                style={s.accent ? undefined : { color: "rgba(255,255,255,0.95)" }}
-              >
-                {s.value}
-              </div>
-              <div className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
-                {s.sub}
-              </div>
-            </Link>
-          ))}
-        </section>
 
-        <section>
-          <div className="flex items-end justify-between mb-4">
-            <h2 className="text-xl font-semibold" style={{ color: "rgba(255,255,255,0.95)" }}>
-              Jump back in
-            </h2>
-            <Link to="/calculators/tax" className="text-xs text-primary hover:underline">
-              View all calculators →
+              <div className="rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 min-w-[220px]">
+                <div className="flex items-center gap-2 text-primary text-sm font-semibold">
+                  <AlertTriangle className="h-4 w-4" />
+                  Immediate actions
+                </div>
+                <p className="mt-2 text-sm text-white">
+                  {countFilingsByStatus("overdue")} overdue filing{countFilingsByStatus("overdue") !== 1 ? 's' : ''}, {documents.filter((document) => document.status === "missing").length} missing document requests, and {clients.filter((c) => c.health !== "low").length} workspaces needing attention.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card-surface p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.16em] text-secondary">
+                Team Capacity
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-white">
+                Delivery load by owner
+              </h2>
+            </div>
+            <Link to="/clients" className="text-xs text-primary hover:underline">
+              Open workspaces
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quickActions.map((a) => (
-              <Link
-                key={a.to}
-                to={a.to}
-                className="card-surface p-5 group flex items-start gap-4 hover:-translate-y-0.5"
-              >
-                <div className="h-10 w-10 rounded-lg bg-primary/10 grid place-items-center group-hover:bg-gradient-orange transition-all shrink-0">
-                  <a.icon className="h-5 w-5 text-primary group-hover:text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="font-semibold text-sm"
-                    style={{ color: "rgba(255,255,255,0.95)" }}
-                  >
-                    {a.name}
+
+          <div className="mt-5 space-y-4">
+            {teamMembers.map((member) => (
+              <div key={member.name} className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <div className="font-medium text-white">{member.name}</div>
+                    <div className="text-xs text-secondary">{member.role}</div>
                   </div>
                   <div
-                    className="text-xs mt-0.5"
-                    style={{ color: "rgba(255,255,255,0.55)" }}
+                    className={cn(
+                      "text-sm font-semibold",
+                      member.utilisation >= 90
+                        ? "text-red-300"
+                        : member.utilisation >= 80
+                          ? "text-amber-300"
+                          : "text-emerald-300",
+                    )}
                   >
-                    {a.desc}
+                    {member.utilisation}%
                   </div>
                 </div>
-                <ArrowRight
-                  className="h-4 w-4 group-hover:text-primary group-hover:translate-x-1 transition-all"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
-                />
-              </Link>
+                <div className="h-2 rounded-full bg-white/[0.06]">
+                  <div
+                    className={cn(
+                      "h-full rounded-full",
+                      member.utilisation >= 90
+                        ? "bg-red-400"
+                        : member.utilisation >= 80
+                          ? "bg-gradient-to-r from-orange-500 to-amber-400"
+                          : "bg-emerald-400",
+                    )}
+                    style={{ width: `${member.utilisation}%` }}
+                  />
+                </div>
+              </div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card-surface p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3
-                className="font-semibold"
-                style={{ color: "rgba(255,255,255,0.95)" }}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {statCards.map((card) => (
+          <div key={card.label} className="card-surface p-5">
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-wide text-secondary">
+                {card.label}
+              </div>
+              <card.icon
+                className={cn(
+                  "h-4 w-4",
+                  card.tone === "warning"
+                    ? "text-amber-300"
+                    : card.tone === "success"
+                      ? "text-emerald-300"
+                      : "text-white/70",
+                )}
+              />
+            </div>
+            <div className="mt-3 text-3xl font-bold text-white">{card.value}</div>
+            <div className="mt-1 text-sm text-secondary">{card.sub}</div>
+          </div>
+        ))}
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.85fr]">
+        <div className="card-surface p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-white">Urgent execution queue</h2>
+              <p className="mt-1 text-sm text-secondary">
+                Upcoming deadlines across all client workspaces.
+              </p>
+            </div>
+            <Link to="/compliance" className="text-xs text-primary hover:underline">
+              Open compliance board
+            </Link>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {urgentQueue.map((filing) => (
+              <div
+                key={filing.id}
+                className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-4"
               >
-                Recent Calculations
-              </h3>
-              <Link to="/history" className="text-xs text-primary hover:underline">
-                View all →
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
+                          filing.status === "overdue"
+                            ? "bg-red-500/15 text-red-300"
+                            : filing.status === "in_review"
+                              ? "bg-sky-500/15 text-sky-300"
+                              : filing.status === "in_progress"
+                                ? "bg-amber-500/15 text-amber-300"
+                                : "bg-white/10 text-white/70",
+                        )}
+                      >
+                        {filing.status.replace("_", " ")}
+                      </span>
+                      <span className="text-xs text-secondary">{filing.entity}</span>
+                    </div>
+                    <div className="mt-2 text-base font-semibold text-white">
+                      {filing.title}
+                    </div>
+                      <div className="mt-1 text-sm text-secondary">
+                        Owner: {filing.owner ?? "—"} · Due {filing.dueDate ?? "TBD"}
+                      </div>
+                    {filing.blocker && (
+                      <div className="mt-2 text-sm text-amber-200">
+                        Blocker: {filing.blocker}
+                      </div>
+                    )}
+                  </div>
+
+                  <Link
+                    to="/clients"
+                    className="inline-flex items-center gap-1 text-sm text-primary"
+                  >
+                    Open workspace <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="card-surface p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Client watchlist</h2>
+              <Link to="/clients" className="text-xs text-primary hover:underline">
+                View portfolio
               </Link>
             </div>
-            <div className="py-12 text-center">
-              <div className="h-12 w-12 mx-auto rounded-xl bg-white/5 grid place-items-center mb-3">
-                <Calculator className="h-6 w-6" style={{ color: "rgba(255,255,255,0.35)" }} />
-              </div>
-              <div
-                className="text-sm font-medium"
-                style={{ color: "rgba(255,255,255,0.75)" }}
-              >
-                No calculations yet
-              </div>
-              <div
-                className="text-xs mt-1"
-                style={{ color: "rgba(255,255,255,0.40)" }}
-              >
-                Your recent work will appear here
-              </div>
+
+            <div className="mt-4 space-y-3">
+              {watchlist.map((client) => (
+                <div
+                  key={client.id}
+                  className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <div className="font-medium text-white">{client.name}</div>
+                      </div>
+                      <div className="mt-1 text-xs text-secondary">
+                        {client.serviceLine} · Owner {client.owner}
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                        client.health === "high"
+                          ? "bg-red-500/15 text-red-300"
+                          : client.health === "medium"
+                            ? "bg-amber-500/15 text-amber-300"
+                            : "bg-emerald-500/15 text-emerald-300",
+                      )}
+                    >
+                      {client.health}
+                    </span>
+                  </div>
+                  <div className="mt-3 text-sm text-secondary">{client.notes}</div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-secondary">
+                    <span>{client.nextDeadline}</span>
+                    <span>{client.openTasks} open tasks</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="card-surface p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3
-                className="font-semibold"
-                style={{ color: "rgba(255,255,255,0.95)" }}
-              >
-                Upcoming Compliance
-              </h3>
-              <Link to="/compliance" className="text-xs text-primary hover:underline">
-                View calendar →
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Recent activity</h2>
+              <Link to="/history" className="text-xs text-primary hover:underline">
+                Full timeline
               </Link>
             </div>
-            <ul className="space-y-2">
-              {compliance.map((c) => (
-                <li
-                  key={c.name}
-                  className="group flex items-center gap-3 p-3 rounded-lg hover:bg-white/[0.03] transition-colors"
-                >
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${c.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className="text-sm font-medium"
-                      style={{ color: "rgba(255,255,255,0.90)" }}
-                    >
-                      {c.name}
+
+            <div className="mt-4 space-y-4">
+              {activities.length === 0 ? (
+                <div className="text-center text-sm text-secondary">No recent activity</div>
+              ) : (
+                activities.slice(0, 4).map((activity) => (
+                  <div key={activity.id} className="flex gap-3">
+                    <div className="mt-1 h-8 w-8 rounded-xl bg-white/[0.06] grid place-items-center">
+                      {activity.kind === "filing" ? (
+                        <Clock3 className="h-4 w-4 text-amber-300" />
+                      ) : activity.kind === "document" ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 text-primary" />
+                      )}
                     </div>
-                    <div
-                      className="text-xs flex items-center gap-1"
-                      style={{ color: "rgba(255,255,255,0.50)" }}
-                    >
-                      <Calendar className="h-3 w-3" /> {c.date}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-white">{activity.title}</div>
+                      <div className="mt-1 text-sm text-secondary">{activity.detail}</div>
+                      <div className="mt-1 text-xs text-tertiary">
+                        {activity.actor} · {activity.time}
+                      </div>
                     </div>
                   </div>
-                  <button
-                    className="opacity-0 group-hover:opacity-100 text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary transition-all flex items-center gap-1"
-                    style={{ color: "rgba(255,255,255,0.65)" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" /> Mark filed
-                  </button>
-                </li>
-              ))}
-            </ul>
+                ))
+              )}
+            </div>
           </div>
-        </section>
-
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
