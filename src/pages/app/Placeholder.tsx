@@ -10,7 +10,7 @@ export default function Placeholder({ title }: { title?: string }) {
         <Construction className="h-10 w-10 text-primary" />
       </div>
       <h1 className="text-3xl font-bold capitalize">{t}</h1>
-      <p className="mt-2 text-secondary">This section is coming soon. Your CalcOS workspace will keep growing.</p>
+      <p className="mt-2 text-secondary">This section is coming soon. Your CA-flow workspace will keep growing.</p>
     </div>
   );
 }

@@ -156,8 +156,27 @@ export type DBWorkflow = {
 
 export type DBWorkflowInsert = Omit<DBWorkflow, "id" | "created_at" | "updated_at">;
 
+// Document Requests
+export type DocumentRequestStatus = "requested" | "reminded" | "received" | "verified";
+
+export type DBDocumentRequest = {
+  id: string;
+  client_id: string;
+  title: string;
+  description?: string | null;
+  due_date?: string | null;
+  status: DocumentRequestStatus;
+  requested_by?: string | null;
+  document_id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  clients?: { name: string } | null;
+};
+
+export type DBDocumentRequestInsert = Omit<DBDocumentRequest, "id" | "created_at" | "updated_at" | "clients">;
+
 // Generic helpers
-export type DBRow = DBClient | DBFiling | DBDocument | DBActivity | DBReport | DBCalculation | DBWorkflow;
+export type DBRow = DBClient | DBFiling | DBDocument | DBActivity | DBReport | DBCalculation | DBWorkflow | DBDocumentRequest;
 
 // Query key helpers (used by react-query hooks). These helpers centralize the
 // query key shapes so callers get consistent and type-safe keys.
@@ -171,4 +190,5 @@ export const queryKeys = {
   calculations: () => ["calculations"] as const,
   activities: () => ["activities"] as const,
   workflows: () => ["workflows"] as const,
+  documentRequests: (clientId?: string) => (clientId ? ["documentRequests", clientId] as const : ["documentRequests"] as const),
 };

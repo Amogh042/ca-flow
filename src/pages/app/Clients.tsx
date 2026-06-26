@@ -24,9 +24,12 @@ import ClientForm from "@/components/ClientForm";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDocumentsByClient } from "@/hooks/useDocuments";
-import { useFilingsByClient } from "@/hooks/useFilings";
+import { useFilings, useFilingsByClient, useCreateFiling } from "@/hooks/useFilings";
 import { useActivities, useCreateActivity } from "@/hooks/useActivities";
+import { filingTemplates } from "@/data/filingTemplates";
+import { generateFilingsForClient } from "@/services/autoFilings";
 import { useCalculations } from "@/hooks/useCalculations";
 import { useReports } from "@/hooks/useReports";
 
@@ -45,7 +48,7 @@ const defaultNewClient: NewClient = {
   name: "",
   entityType: "Private Limited",
   serviceLine: "Tax + Compliance",
-  owner: "Amogh",
+  owner: "",
   health: "low",
   country: "",
   pan: "",
@@ -62,9 +65,13 @@ const defaultNewClient: NewClient = {
 };
 
 export default function Clients() {
+  const { user } = useAuth();
+  const ownerName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const clientsQuery = useClients();
+  const allFilingsQuery = useFilings();
   const createClient = useCreateClient();
   const createActivity = useCreateActivity();
+  const createFiling = useCreateFiling();
 
   if (clientsQuery.isLoading) {
     return <div className="max-w-7xl mx-auto py-8">Loading workspaces...</div>;
@@ -77,7 +84,7 @@ export default function Clients() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [search, setSearch] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All service lines");
-  const [form, setForm] = useState<NewClient>(defaultNewClient);
+  const [form, setForm] = useState<NewClient>({ ...defaultNewClient, owner: ownerName });
   const [selectedClientId, setSelectedClientId] = useState<string>("");
   const updateClient = useUpdateClient();
   const deleteClient = useDeleteClient();
@@ -114,10 +121,13 @@ export default function Clients() {
   const selectedActivities = (activitiesQuery.data ?? []).filter((a) => a.clientId === selectedClient?.id);
   const selectedCalculations = (calculationsQuery.data ?? []).filter((c) => c.clientId === selectedClient?.id);
 
+  const allFilings = allFilingsQuery.data ?? [];
+  const pendingFilingsCount = allFilings.filter((f) => f.status !== "filed").length;
+
   const totals = {
     total: workspaceClients.length,
     atRisk: workspaceClients.filter((client) => client.health !== "low").length,
-    billing: workspaceClients.length ? "—" : "—",
+    pendingFilings: pendingFilingsCount,
   };
 
   const saveClient = () => {
@@ -140,7 +150,7 @@ export default function Clients() {
     };
     createClient.mutate(payload, {
       onSuccess(data) {
-        setForm(defaultNewClient);
+        setForm({ ...defaultNewClient, owner: ownerName });
         setShowDrawer(false);
         setSelectedClientId(data.id);
         createActivity.mutate({
@@ -152,6 +162,15 @@ export default function Clients() {
           time: "Just now",
           kind: "client",
         });
+
+        const autoFilings = generateFilingsForClient(data, filingTemplates);
+        autoFilings.forEach((f) => createFiling.mutate(f));
+        if (autoFilings.length > 0) {
+          toast({
+            title: `Created ${autoFilings.length} compliance deadlines`,
+            description: `Auto-generated filings for ${data.name}`,
+          });
+        }
       },
       onError(err: any) {
         const message = err?.message || "Failed to create workspace";
@@ -186,7 +205,7 @@ export default function Clients() {
       <div className="grid gap-4 md:grid-cols-3">
         <SummaryCard label="Active workspaces" value={`${totals.total}`} detail="Tax, compliance, payroll, and advisory" />
         <SummaryCard label="Attention needed" value={`${totals.atRisk}`} detail="Clients with blockers or overdue items" accent="warning" />
-        <SummaryCard label="Annualised billing" value={totals.billing} detail="Current managed portfolio estimate" accent="success" />
+        <SummaryCard label="Pending filings" value={`${totals.pendingFilings}`} detail="Filings not yet completed" accent={totals.pendingFilings > 0 ? "warning" : "success"} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.4fr]">
@@ -219,10 +238,13 @@ export default function Clients() {
           <div className="space-y-3">
             {filteredClients.length === 0 ? (
               <div className="card-surface p-8 text-center">
-                <div className="text-lg font-semibold text-white">No workspaces yet</div>
-                <div className="mt-2 text-sm text-secondary">Create a workspace to start linking filings, documents, and reports.</div>
+                <Users className="h-10 w-10 mx-auto mb-3 text-secondary" />
+                <div className="text-lg font-semibold text-[var(--text-primary)]">No clients yet</div>
+                <div className="mt-2 text-sm text-secondary">Add your first client workspace to get started.</div>
                 <div className="mt-4">
-                  <button onClick={() => setShowDrawer(true)} className="px-3 py-2 rounded-md bg-gradient-orange text-white font-semibold">Create workspace</button>
+                  <button onClick={() => setShowDrawer(true)} className="px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all flex items-center gap-2 mx-auto">
+                    <Plus className="h-4 w-4" /> Add Client
+                  </button>
                 </div>
               </div>
             ) : (
@@ -239,7 +261,7 @@ export default function Clients() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-primary shrink-0" />
-                        <div className="truncate text-base font-semibold text-white">
+                        <div className="truncate text-base font-semibold text-[var(--text-primary)]">
                           {client.name}
                         </div>
                       </div>
@@ -288,7 +310,7 @@ export default function Clients() {
                     {selectedClient.serviceLine}
                   </div>
                   <div>
-                    <h2 className="text-2xl font-semibold text-white">{selectedClient.name}</h2>
+                    <h2 className="text-2xl font-semibold text-[var(--text-primary)]">{selectedClient.name}</h2>
                     <p className="mt-1 text-sm text-secondary">
                       {selectedClient.entityType} · {selectedClient.country} · Owner {selectedClient.owner}
                     </p>
@@ -300,11 +322,11 @@ export default function Clients() {
                   <div className="text-xs uppercase tracking-wide text-secondary">
                     Workspace health
                   </div>
-                  <div className="mt-2 text-lg font-semibold text-white">
+                  <div className="mt-2 text-lg font-semibold text-[var(--text-primary)]">
                     {getRiskLabel(selectedClient.health)}
                   </div>
                   <div className="mt-1 text-sm text-secondary">
-                    {selectedClient.unreadItems} unread updates · {selectedClient.annualBilling} annualised billing
+                    {selectedClient.unreadItems} unread updates
                   </div>
                 </div>
               </div>
@@ -318,7 +340,7 @@ export default function Clients() {
             </div>
 
             <div className="mt-4 flex items-center gap-2">
-              <button onClick={() => setEditingClient(true)} className="h-9 px-3 rounded-md bg-white/5 text-sm text-white">Edit</button>
+              <button onClick={() => setEditingClient(true)} className="h-9 px-3 rounded-md bg-white/5 text-sm text-[var(--text-primary)]">Edit</button>
               <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
                 <AlertDialogTrigger asChild>
                   <button className="h-9 px-3 rounded-md bg-destructive/10 text-sm text-destructive">Delete</button>
@@ -361,7 +383,7 @@ export default function Clients() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-sm font-semibold text-white">{filing.title}</div>
+                            <div className="text-sm font-semibold text-[var(--text-primary)]">{filing.title}</div>
                             <div className="mt-1 text-xs text-secondary">
                               Due {filing.dueDate} · Owner {filing.owner}
                             </div>
@@ -382,7 +404,7 @@ export default function Clients() {
                                     ? "bg-amber-500/15 text-amber-300"
                                     : filing.status === "filed"
                                       ? "bg-emerald-500/15 text-emerald-300"
-                                      : "bg-white/10 text-white/70",
+                                      : "bg-white/10 text-[var(--text-secondary)]",
                             )}
                           >
                             {filing.status.replace("_", " ")}
@@ -403,7 +425,7 @@ export default function Clients() {
                         key={document.id}
                         className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4"
                       >
-                        <div className="text-sm font-semibold text-white">{document.name}</div>
+                        <div className="text-sm font-semibold text-[var(--text-primary)]">{document.name}</div>
                         <div className="mt-1 text-xs text-secondary">
                           {document.type} · {document.period}
                         </div>
@@ -429,7 +451,7 @@ export default function Clients() {
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                       <CircleAlert className="h-4 w-4 text-primary" />
                       Reports linked to this workspace
                     </div>
@@ -437,7 +459,7 @@ export default function Clients() {
                       {selectedReports.map((report) => (
                         <div key={report.id} className="flex items-center justify-between gap-3 text-sm">
                           <div>
-                            <div className="text-white">{report.title}</div>
+                            <div className="text-[var(--text-primary)]">{report.title}</div>
                             <div className="text-xs text-secondary">
                               {report.type} · {report.period}
                             </div>
@@ -451,7 +473,7 @@ export default function Clients() {
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
                       <Activity className="h-4 w-4 text-primary" />
                       Saved calculations
                     </div>
@@ -459,7 +481,7 @@ export default function Clients() {
                       {selectedCalculations.length ? selectedCalculations.map((calculation) => (
                         <div key={calculation.id} className="flex items-center justify-between gap-3 text-sm">
                           <div>
-                            <div className="text-white">{calculation.title}</div>
+                            <div className="text-[var(--text-primary)]">{calculation.title}</div>
                             <div className="text-xs text-secondary">{calculation.subtitle}</div>
                           </div>
                           <div className="text-xs text-secondary">{calculation.savedAt}</div>
@@ -500,7 +522,7 @@ export default function Clients() {
                           <Activity className="h-4 w-4 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-sm font-medium text-white">{activity.title}</div>
+                          <div className="text-sm font-medium text-[var(--text-primary)]">{activity.title}</div>
                           <div className="mt-1 text-sm text-secondary">{activity.detail}</div>
                           <div className="mt-1 text-xs text-tertiary">
                             {activity.actor} · {activity.time}
@@ -518,10 +540,10 @@ export default function Clients() {
 
       {editingClient && selectedClient && (
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
-          <div onClick={() => setEditingClient(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "#111111" }}>
+          <div onClick={() => setEditingClient(false)} className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "var(--drawer-bg)" }}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">Edit client workspace</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Edit client workspace</h3>
               <button onClick={() => setEditingClient(false)} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/5 text-secondary">x</button>
             </div>
             <ClientForm
@@ -547,14 +569,14 @@ export default function Clients() {
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
           <div
             onClick={() => setShowDrawer(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70"
           />
           <div
             className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto"
-            style={{ background: "#111111" }}
+            style={{ background: "var(--drawer-bg)" }}
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">Create client workspace</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Create client workspace</h3>
               <button
                 onClick={() => setShowDrawer(false)}
                 className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/5 text-secondary"
@@ -684,7 +706,7 @@ function SummaryCard({
             ? "text-amber-300"
             : accent === "success"
               ? "text-emerald-300"
-              : "text-white",
+              : "text-[var(--text-primary)]",
         )}
       >
         {value}
@@ -698,7 +720,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-white/[0.03] px-3 py-2">
       <div className="text-[10px] uppercase tracking-wide text-tertiary">{label}</div>
-      <div className="mt-1 text-sm font-medium text-white">{value}</div>
+      <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{value}</div>
     </div>
   );
 }
@@ -718,7 +740,7 @@ function DetailStat({
         <div className="text-xs uppercase tracking-wide text-secondary">{label}</div>
         <Icon className="h-4 w-4 text-primary" />
       </div>
-      <div className="mt-2 text-2xl font-semibold text-white">{value}</div>
+      <div className="mt-2 text-2xl font-semibold text-[var(--text-primary)]">{value}</div>
     </div>
   );
 }
@@ -735,7 +757,7 @@ function WorkspaceSection({
   return (
     <div className="card-surface p-6">
       <div>
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
         <p className="mt-1 text-sm text-secondary">{subtitle}</p>
       </div>
       <div className="mt-4">{children}</div>
@@ -758,7 +780,7 @@ function ProfileTile({
         {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
         {label}
       </div>
-      <div className="mt-2 text-sm font-medium text-white">{value}</div>
+      <div className="mt-2 text-sm font-medium text-[var(--text-primary)]">{value}</div>
     </div>
   );
 }

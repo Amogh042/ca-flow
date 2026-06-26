@@ -56,12 +56,12 @@ export default function DocumentDetails() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.16em] text-secondary">Document</div>
-            <h2 className="text-2xl font-semibold text-white mt-2">{document.name}</h2>
+            <h2 className="text-2xl font-semibold text-[var(--text-primary)] mt-2">{document.name}</h2>
             <p className="mt-1 text-sm text-secondary">{document.period} · {document.type}</p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={handleDownload} className="h-9 px-3 rounded-md bg-white/5 text-sm text-white flex items-center gap-2">
+            <button onClick={handleDownload} className="h-9 px-3 rounded-md bg-white/5 text-sm text-[var(--text-primary)] flex items-center gap-2">
               <Download className="inline-block" /> Preview / Download
             </button>
             <Link to="/documents" className="text-sm text-primary ml-3">Back to documents</Link>
@@ -71,7 +71,7 @@ export default function DocumentDetails() {
         <div className="mt-6 grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-4">
             <div className="rounded border border-white/[0.06] bg-white/[0.02] p-4 min-h-[220px]">
-              <div className="text-sm font-semibold text-white mb-2">Preview</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Preview</div>
               {loadingPreview ? (
                 <div className="text-sm text-secondary">Loading preview…</div>
               ) : previewUrl && document.mimeType?.includes("pdf") ? (
@@ -86,29 +86,29 @@ export default function DocumentDetails() {
             </div>
 
             <div className="rounded border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="text-sm font-semibold text-white mb-2">Extracted text</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Extracted text</div>
               {document.status === "processing" || document.status === "uploaded" ? (
                 <div className="text-sm text-secondary">Extraction in progress…</div>
               ) : document.extractedText ? (
-                <pre className="whitespace-pre-wrap text-sm text-white max-h-96 overflow-auto">{document.extractedText}</pre>
+                <pre className="whitespace-pre-wrap text-sm text-[var(--text-primary)] max-h-96 overflow-auto">{document.extractedText}</pre>
               ) : (
                 <div className="text-sm text-secondary">No extracted text available.</div>
               )}
             </div>
 
             <div className="rounded border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="text-sm font-semibold text-white mb-2">AI summary</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">AI summary</div>
               {document.aiSummary ? (
-                <div className="text-sm text-white">{document.aiSummary}</div>
+                <div className="text-sm text-[var(--text-primary)]">{document.aiSummary}</div>
               ) : (
                 <div className="text-sm text-secondary">No summary available.</div>
               )}
             </div>
 
             <div className="rounded border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="text-sm font-semibold text-white mb-2">Extracted structured data</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Extracted structured data</div>
               {document.extractedData ? (
-                <pre className="whitespace-pre-wrap text-sm text-white max-h-48 overflow-auto">{JSON.stringify(document.extractedData, null, 2)}</pre>
+                <pre className="whitespace-pre-wrap text-sm text-[var(--text-primary)] max-h-48 overflow-auto">{JSON.stringify(document.extractedData, null, 2)}</pre>
               ) : (
                 <div className="text-sm text-secondary">No structured data available.</div>
               )}
@@ -117,22 +117,22 @@ export default function DocumentDetails() {
 
           <div className="space-y-4">
             <div className="rounded border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="text-sm font-semibold text-white mb-2">Upload metadata</div>
-              <div className="text-sm text-secondary">File name: <span className="text-white">{document.fileName || document.name}</span></div>
-              <div className="text-sm text-secondary">Size: <span className="text-white">{document.fileSize ? `${(document.fileSize / 1024).toFixed(1)} KB` : "—"}</span></div>
-              <div className="text-sm text-secondary">MIME: <span className="text-white">{document.mimeType || "—"}</span></div>
-              <div className="text-sm text-secondary">Uploaded by: <span className="text-white">{document.uploadedBy || "—"}</span></div>
-              <div className="text-sm text-secondary">Status: <span className="text-white">{document.status}</span></div>
-              <div className="text-sm text-secondary">Confidence: <span className="text-white">{document.confidenceScore ?? "—"}</span></div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Upload metadata</div>
+              <div className="text-sm text-secondary">File name: <span className="text-[var(--text-primary)]">{document.fileName || document.name}</span></div>
+              <div className="text-sm text-secondary">Size: <span className="text-[var(--text-primary)]">{document.fileSize ? `${(document.fileSize / 1024).toFixed(1)} KB` : "—"}</span></div>
+              <div className="text-sm text-secondary">MIME: <span className="text-[var(--text-primary)]">{document.mimeType || "—"}</span></div>
+              <div className="text-sm text-secondary">Uploaded by: <span className="text-[var(--text-primary)]">{document.uploadedBy || "—"}</span></div>
+              <div className="text-sm text-secondary">Status: <span className="text-[var(--text-primary)]">{document.status}</span></div>
+              <div className="text-sm text-secondary">Confidence: <span className="text-[var(--text-primary)]">{document.confidenceScore ?? "—"}</span></div>
             </div>
 
             <div className="rounded border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="text-sm font-semibold text-white mb-2">Activity</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Activity</div>
               <div className="space-y-2">
                 {relatedActivities.length ? (
                   relatedActivities.map((a) => (
                     <div key={a.id} className="text-sm text-secondary">
-                      <div className="text-white">{a.title}</div>
+                      <div className="text-[var(--text-primary)]">{a.title}</div>
                       <div className="text-xs">{a.detail}</div>
                     </div>
                   ))

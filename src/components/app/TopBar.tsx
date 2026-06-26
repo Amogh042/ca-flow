@@ -27,7 +27,7 @@ export const TopBar = () => {
       <header className="glass-topbar sticky top-6 z-30 flex items-center gap-4 px-6 h-14">
         <button
           onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-3 flex-1 max-w-md h-9 px-3 rounded-xl text-sm transition-all glass-input"
+          className="flex items-center gap-3 flex-1 max-w-md h-9 px-3 rounded-xl text-sm transition-colors glass-input"
         >
           <Search className="h-4 w-4 shrink-0" />
           <span className="flex-1 text-left">Search clients, workflows, or calculators...</span>
@@ -41,10 +41,6 @@ export const TopBar = () => {
             <Bell className="h-4 w-4" />
             <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
           </button>
-
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium glass-input">
-            🇮🇳 IN
-          </div>
 
           <ProfileMenu />
         </div>
@@ -70,7 +66,7 @@ function ProfileMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="h-8 w-8 rounded-full grid place-items-center text-xs font-bold text-white cursor-pointer" style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)" }}>
+        <button className="h-8 w-8 rounded-full grid place-items-center text-xs font-bold text-white cursor-pointer bg-gradient-orange">
           {user?.email ? user.email.charAt(0).toUpperCase() : "U"}
         </button>
       </DropdownMenuTrigger>

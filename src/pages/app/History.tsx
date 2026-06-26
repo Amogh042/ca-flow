@@ -57,7 +57,7 @@ export default function History() {
                 ) : item.kind === "ai" ? (
                   <Bot className="h-4 w-4 text-primary" />
                 ) : (
-                  <Activity className="h-4 w-4 text-white/70" />
+                  <Activity className="h-4 w-4 text-[var(--text-secondary)]" />
                 )}
               </div>
 

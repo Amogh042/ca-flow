@@ -7,7 +7,8 @@ export function useWorkflows() {
   return useQuery<Workflow[]>({
     queryKey: queryKeys.workflows(),
     queryFn: workflowsService.fetchWorkflows,
-    staleTime: 1000 * 60,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     placeholderData: [],
   });
 }

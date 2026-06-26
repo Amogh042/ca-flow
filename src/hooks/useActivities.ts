@@ -8,7 +8,8 @@ export function useActivities() {
   return useQuery<ActivityRecord[]>({
     queryKey: queryKeys.activities(),
     queryFn: activitiesService.fetchActivities,
-    staleTime: 1000 * 30,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     placeholderData: [],
   });
 }

@@ -9,7 +9,8 @@ export function useDocuments() {
   return useQuery<DocumentRecord[]>({
     queryKey: queryKeys.documents(),
     queryFn: documentsService.fetchDocuments,
-    staleTime: 1000 * 60,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     placeholderData: [],
   });
 }

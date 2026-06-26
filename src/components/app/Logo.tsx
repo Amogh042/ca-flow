@@ -1,16 +1,26 @@
-import { Calculator } from "lucide-react";
-
-export const Logo = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
-  const dim = size === "sm" ? "h-7 w-7" : size === "lg" ? "h-10 w-10" : "h-8 w-8";
-  const text = size === "sm" ? "text-base" : size === "lg" ? "text-2xl" : "text-lg";
-  return (
-    <div className="flex items-center gap-2">
-      <div className={`${dim} rounded-lg bg-gradient-orange grid place-items-center glow-orange`}>
-        <Calculator className="h-1/2 w-1/2 text-white" strokeWidth={2.5} />
-      </div>
-      <span className={`${text} font-bold tracking-tight`}>
-        Calc<span className="text-gradient-orange">OS</span>
-      </span>
-    </div>
-  );
-};
+export const Logo = () => (
+  <div style={{
+    fontFamily: "'Space Grotesk', sans-serif",
+    display: "inline-flex",
+    alignItems: "baseline",
+    gap: "1px",
+    userSelect: "none",
+  }}>
+    <span style={{
+      fontWeight: 700,
+      fontSize: "19px",
+      color: "var(--text-primary)",
+      letterSpacing: "-0.5px",
+    }}>
+      CA
+    </span>
+    <span style={{
+      fontWeight: 500,
+      fontSize: "19px",
+      color: "#c4b5fd",
+      letterSpacing: "-0.3px",
+    }}>
+      -flow
+    </span>
+  </div>
+);

@@ -1,12 +1,15 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronRight, Edit2, Trash2, Calendar, UploadCloud, File, CheckCircle, Clock, User, Download } from "lucide-react";
+import { AlertTriangle, ChevronRight, Edit2, Trash2, Calendar, UploadCloud, File, CheckCircle, Clock, User, Download } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/services/supabaseClient";
 import { useDeleteDocument } from "@/hooks/useDocuments";
 import { useClients, useUpdateClient, useDeleteClient } from "@/hooks/useClients";
 import { useDocumentsByClient, useCreateDocument } from "@/hooks/useDocuments";
-import { useFilingsByClient, useUpdateFiling } from "@/hooks/useFilings";
+import { useFilingsByClient, useUpdateFiling, useCreateFiling } from "@/hooks/useFilings";
 import { useActivities, useCreateActivity } from "@/hooks/useActivities";
+import { useDocumentRequestsByClient } from "@/hooks/useDocumentRequests";
+import { filingTemplates } from "@/data/filingTemplates";
+import { generateFilingsForClient } from "@/services/autoFilings";
 import { useCalculations } from "@/hooks/useCalculations";
 import { useAuth } from "@/contexts/AuthContext";
 import ClientForm from "@/components/ClientForm";
@@ -24,12 +27,14 @@ export default function ClientDetails() {
 
   const documentsQuery = useDocumentsByClient(id);
   const filingsQuery = useFilingsByClient(id);
+  const docRequestsQuery = useDocumentRequestsByClient(id);
   const activitiesQuery = useActivities();
   const calculationsQuery = useCalculations();
 
   const createDocument = useCreateDocument();
   const deleteDocument = useDeleteDocument();
   const updateFiling = useUpdateFiling();
+  const createFilingMut = useCreateFiling();
   const createActivity = useCreateActivity();
   const { user } = useAuth();
 
@@ -44,6 +49,7 @@ export default function ClientDetails() {
 
   const selectedDocuments = documentsQuery.data ?? [];
   const selectedFilings = filingsQuery.data ?? [];
+  const pendingDocRequests = (docRequestsQuery.data ?? []).filter((r) => r.status === "requested" || r.status === "reminded");
   const recentActivities = (activitiesQuery.data ?? []).filter((a) => a.clientId === client.id).slice(0, 50);
   const calculations = (calculationsQuery.data ?? []).filter((c) => c.clientId === client.id);
 
@@ -175,12 +181,12 @@ export default function ClientDetails() {
               <ChevronRight className="h-3 w-3" />
               {client.serviceLine}
             </div>
-            <h2 className="text-2xl font-semibold text-white mt-2">{client.name}</h2>
+            <h2 className="text-2xl font-semibold text-[var(--text-primary)] mt-2">{client.name}</h2>
             <p className="mt-1 text-sm text-secondary">{client.entityType} · {client.country} · Owner {client.owner}</p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={() => setEditing(true)} className="h-9 px-3 rounded-md bg-white/5 text-sm text-white"> <Edit2 className="inline-block mr-2" /> Edit</button>
+            <button onClick={() => setEditing(true)} className="h-9 px-3 rounded-md bg-white/5 text-sm text-[var(--text-primary)]"> <Edit2 className="inline-block mr-2" /> Edit</button>
             <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
               <AlertDialogTrigger asChild>
                 <button className="h-9 px-3 rounded-md bg-destructive/10 text-sm text-destructive"><Trash2 className="inline-block mr-2" /> Delete</button>
@@ -206,20 +212,42 @@ export default function ClientDetails() {
           {/* Compliance timeline */}
           <div className="card-surface p-4" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); handleFileList(e.dataTransfer.files); }}>
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-white">Compliance timeline</div>
-              <div className="text-xs text-secondary">{selectedFilings.length} items</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">Compliance timeline</div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const autoFilings = generateFilingsForClient(client, filingTemplates);
+                    autoFilings.forEach((f) => createFilingMut.mutate(f));
+                    if (autoFilings.length > 0) {
+                      toast({
+                        title: `Generated ${autoFilings.length} filings`,
+                        description: `Upcoming deadlines created for ${client.name}`,
+                      });
+                    } else {
+                      toast({
+                        title: "No filings generated",
+                        description: "Add PAN or GSTIN to the client profile to auto-generate compliance deadlines.",
+                      });
+                    }
+                  }}
+                  className="text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary text-secondary transition-colors flex items-center gap-1"
+                >
+                  <Calendar className="h-3 w-3" /> Generate upcoming filings
+                </button>
+                <div className="text-xs text-secondary">{selectedFilings.length} items</div>
+              </div>
             </div>
             <div className="mt-3 space-y-3">
               {selectedFilings.length ? selectedFilings.map((f) => (
                 <div key={f.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 flex items-start justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-white">{f.title}</div>
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{f.title}</div>
                     <div className="mt-1 text-xs text-secondary">Due {f.dueDate ?? "—"} · Owner {f.owner}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={cn("text-xs px-2 py-1 rounded-md font-medium", f.status === "overdue" ? "bg-destructive text-white" : f.status === "filed" ? "bg-green-600/20 text-green-300" : "bg-white/5 text-secondary")}>{f.status}</div>
-                    <button onClick={() => handleChangeFilingStatus(f.id, "filed")} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-white"><CheckCircle className="h-4 w-4" /></button>
-                    <button onClick={() => handleChangeFilingStatus(f.id, "in_review")} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-white">!</button>
+                    <button onClick={() => handleChangeFilingStatus(f.id, "filed")} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-[var(--text-primary)]"><CheckCircle className="h-4 w-4" /></button>
+                    <button onClick={() => handleChangeFilingStatus(f.id, "in_review")} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-[var(--text-primary)]">!</button>
                   </div>
                 </div>
               )) : (
@@ -231,17 +259,17 @@ export default function ClientDetails() {
           {/* Documents panel */}
           <div className="card-surface p-4">
             <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold text-white">Documents</div>
+              <div className="text-sm font-semibold text-[var(--text-primary)]">Documents</div>
               <div className="flex items-center gap-2">
                 <input ref={fileInputRef} onChange={handleFileChange} type="file" className="hidden" multiple />
-                <button onClick={handlePickFile} className="h-9 px-3 rounded-md bg-white/5 text-sm text-white"><UploadCloud className="inline-block mr-2" />Upload</button>
+                <button onClick={handlePickFile} className="h-9 px-3 rounded-md bg-white/5 text-sm text-[var(--text-primary)]"><UploadCloud className="inline-block mr-2" />Upload</button>
               </div>
             </div>
             <div className="mt-3 space-y-3">
               {selectedDocuments.length ? selectedDocuments.map((d) => (
                 <div key={d.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white"><File className="h-4 w-4" />{d.name}</div>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><File className="h-4 w-4" />{d.name}</div>
                     <div className="mt-1 text-xs text-secondary">{d.type} · {d.period || "—"}</div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -265,12 +293,46 @@ export default function ClientDetails() {
                       } catch (err: any) {
                         toast({ title: "Download failed", description: err?.message || "Could not download file" });
                       }
-                    }} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-white" title="Download"><Download className="h-4 w-4" /></button>
+                    }} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-[var(--text-primary)]" title="Download"><Download className="h-4 w-4" /></button>
                     <button onClick={() => deleteDocument.mutate(d.id, { onSuccess() { toast({ title: "Deleted" }); }, onError(err) { toast({ title: "Delete failed", description: (err as any)?.message || "Could not delete document" }); } })} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/4 text-destructive" title="Delete"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 </div>
               )) : (
                 <div className="text-sm text-secondary">No documents uploaded yet.</div>
+              )}
+            </div>
+          </div>
+
+          {/* Pending Document Requests */}
+          <div className="card-surface p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-[var(--text-primary)]">Pending Documents</div>
+              <div className="text-xs text-secondary">{pendingDocRequests.length} pending</div>
+            </div>
+            <div className="mt-3 space-y-3">
+              {pendingDocRequests.length ? pendingDocRequests.map((r) => {
+                const overdue = r.dueDate && new Date(r.dueDate) < new Date();
+                return (
+                  <div key={r.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <div className="flex items-center gap-2">
+                      {overdue && <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0" />}
+                      <div className="text-sm font-semibold text-[var(--text-primary)]">{r.title}</div>
+                    </div>
+                    {r.description && <div className="mt-1 text-xs text-secondary">{r.description}</div>}
+                    <div className="mt-1 text-xs text-secondary">
+                      Due {r.dueDate ? new Date(r.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} ·{" "}
+                      <span className={cn(
+                        "font-medium",
+                        r.status === "reminded" ? "text-orange-300" : "text-amber-300",
+                      )}>
+                        {r.status}
+                      </span>
+                      {overdue && <span className="ml-1 text-red-400 font-medium">Overdue</span>}
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="text-sm text-secondary">No pending document requests.</div>
               )}
             </div>
           </div>
@@ -281,14 +343,14 @@ export default function ClientDetails() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase tracking-wide text-secondary">Workspace health</div>
-                <div className="mt-2 text-lg font-semibold text-white">{getRiskLabel(client.health)}</div>
+                <div className="mt-2 text-lg font-semibold text-[var(--text-primary)]">{getRiskLabel(client.health)}</div>
               </div>
               <div className="text-xs text-secondary">Owner: {client.owner}</div>
             </div>
             <div className="mt-4">
               <div className="text-sm text-secondary">Notes</div>
               <textarea
-                className="w-full mt-2 p-3 rounded-md bg-white/3 text-white text-sm"
+                className="w-full mt-2 p-3 rounded-md bg-white/3 text-[var(--text-primary)] text-sm"
                 defaultValue={client.notes}
                 onBlur={(e) => {
                   const v = e.currentTarget.value;
@@ -309,12 +371,12 @@ export default function ClientDetails() {
           </div>
 
           <div className="card-surface p-4">
-            <div className="text-sm font-semibold text-white">Activity feed</div>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">Activity feed</div>
             <div className="mt-3 space-y-3">
               {recentActivities.length ? recentActivities.map((a) => (
                 <div key={a.id} className="rounded-md p-3 bg-white/2 border border-white/[0.04]">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-white">{a.title}</div>
+                    <div className="text-sm text-[var(--text-primary)]">{a.title}</div>
                     <div className="text-xs text-secondary">{formatTime(a.time)}</div>
                   </div>
                   <div className="mt-1 text-xs text-secondary">{a.detail} · Actor: {a.actor}</div>
@@ -326,11 +388,11 @@ export default function ClientDetails() {
           </div>
 
           <div className="card-surface p-4">
-            <div className="text-sm font-semibold text-white">Calculations / Attachments</div>
+            <div className="text-sm font-semibold text-[var(--text-primary)]">Calculations / Attachments</div>
             <div className="mt-3 space-y-3">
               {calculations.length ? calculations.map((c) => (
                 <div key={c.id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-                  <div className="text-sm font-semibold text-white">{c.title}</div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{c.title}</div>
                   <div className="mt-1 text-xs text-secondary">Saved: {c.savedAt || "—"} · Owner: {c.owner || "—"}</div>
                 </div>
               )) : (
@@ -343,10 +405,10 @@ export default function ClientDetails() {
 
       {editing && (
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
-          <div onClick={() => setEditing(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "#111111" }}>
+          <div onClick={() => setEditing(false)} className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "var(--drawer-bg)" }}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">Edit client workspace</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Edit client workspace</h3>
               <button onClick={() => setEditing(false)} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/5 text-secondary">x</button>
             </div>
             <ClientForm

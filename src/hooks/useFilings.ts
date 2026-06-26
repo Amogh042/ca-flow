@@ -8,7 +8,8 @@ export function useFilings() {
   return useQuery<Filing[]>({
     queryKey: queryKeys.filings(),
     queryFn: filingsService.fetchFilings,
-    staleTime: 1000 * 60,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     placeholderData: [],
   });
 }

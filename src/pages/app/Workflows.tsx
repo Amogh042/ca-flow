@@ -10,7 +10,7 @@ type Status = Workflow["status"];
 type Priority = NonNullable<Workflow["priority"]>;
 
 const statusConfig: Record<Status, { label: string; icon: React.ElementType; color: string; bg: string }> = {
-  pending: { label: "Pending", icon: Circle, color: "text-white/50", bg: "bg-white/5" },
+  pending: { label: "Pending", icon: Circle, color: "text-[var(--text-tertiary)]", bg: "bg-white/5" },
   "in-progress": { label: "In Progress", icon: Clock, color: "text-blue-400", bg: "bg-blue-400/10" },
   done: { label: "Done", icon: CheckCircle2, color: "text-green-400", bg: "bg-green-400/10" },
   blocked: { label: "Blocked", icon: AlertCircle, color: "text-red-400", bg: "bg-red-400/10" },
@@ -143,7 +143,7 @@ export default function Workflows() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Tasks", value: stats.total, color: "text-white" },
+          { label: "Total Tasks", value: stats.total, color: "text-[var(--text-primary)]" },
           { label: "In Progress", value: stats.inProgress, color: "text-blue-400" },
           { label: "Blocked", value: stats.blocked, color: "text-red-400" },
           { label: "Completed", value: stats.done, color: "text-green-400" },
@@ -176,7 +176,7 @@ export default function Workflows() {
                 onClick={() => setFilterStatus(s)}
                 className={cn(
                   "px-2.5 py-1 rounded-md text-xs font-medium transition-all capitalize",
-                  filterStatus === s ? "bg-gradient-orange text-white" : "text-secondary hover:text-white",
+                  filterStatus === s ? "bg-gradient-orange text-white" : "text-secondary hover:text-[var(--text-primary)]",
                 )}
               >
                 {s === "all" ? "All" : s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -206,7 +206,7 @@ export default function Workflows() {
                 onClick={() => setView(v)}
                 className={cn(
                   "px-2.5 py-1 rounded-md text-xs font-medium transition-all capitalize",
-                  view === v ? "bg-gradient-orange text-white" : "text-secondary hover:text-white",
+                  view === v ? "bg-gradient-orange text-white" : "text-secondary hover:text-[var(--text-primary)]",
                 )}
               >
                 {v}
@@ -244,7 +244,7 @@ export default function Workflows() {
                 <tr>
                   <td colSpan={8} className="px-4 py-16 text-center">
                     <GitBranch className="h-10 w-10 mx-auto mb-3 text-secondary" />
-                    <div className="text-lg font-semibold text-white">No tasks yet</div>
+                    <div className="text-lg font-semibold text-[var(--text-primary)]">No tasks yet</div>
                     <div className="mt-1 text-sm text-secondary">Create your first task to start tracking work across client workspaces.</div>
                     <button
                       onClick={() => setShowDrawer(true)}
@@ -270,7 +270,7 @@ export default function Workflows() {
                       className={cn("border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group", i % 2 === 0 ? "" : "bg-white/[0.01]")}
                     >
                       <td className="px-4 py-3">
-                        <div className="font-medium text-white/90 truncate max-w-[200px]">{task.title}</div>
+                        <div className="font-medium text-[var(--text-primary)] truncate max-w-[200px]">{task.title}</div>
                         <div className="text-xs text-tertiary mt-0.5">
                           {task.completedSubtasks ?? 0}/{task.subtasks ?? 0} subtasks
                         </div>
@@ -350,7 +350,7 @@ export default function Workflows() {
           ) : source.length === 0 ? (
             <div className="card-surface p-16 text-center">
               <GitBranch className="h-10 w-10 mx-auto mb-3 text-secondary" />
-              <div className="text-lg font-semibold text-white">No tasks yet</div>
+              <div className="text-lg font-semibold text-[var(--text-primary)]">No tasks yet</div>
               <div className="mt-1 text-sm text-secondary">Create your first task to start tracking work across client workspaces.</div>
               <button onClick={() => setShowDrawer(true)} className="mt-4 px-4 py-2 rounded-lg bg-gradient-orange text-white text-sm font-semibold">
                 Create first task
@@ -376,7 +376,7 @@ export default function Workflows() {
                           return (
                             <div key={task.id} className="card-surface p-3 space-y-2 group hover:bg-white/[0.06] transition-colors">
                               <div className="flex items-start justify-between gap-2">
-                                <div className="text-sm font-medium text-white/90 leading-snug">{task.title}</div>
+                                <div className="text-sm font-medium text-[var(--text-primary)] leading-snug">{task.title}</div>
                                 <button
                                   onClick={() => handleDelete(task.id)}
                                   className="opacity-0 group-hover:opacity-100 transition-opacity text-secondary hover:text-red-400 shrink-0"
@@ -437,10 +437,10 @@ export default function Workflows() {
       {/* Create Task Drawer */}
       {showDrawer && (
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
-          <div onClick={() => setShowDrawer(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "#111111" }}>
+          <div onClick={() => setShowDrawer(false)} className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "var(--drawer-bg)" }}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">Create task</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Create task</h3>
               <button onClick={() => setShowDrawer(false)} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/5 text-secondary">
                 ✕
               </button>

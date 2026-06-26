@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent";
 
-const SYSTEM_PROMPT = `You are CalcAI, the finance copilot inside CalcOS.
+const SYSTEM_PROMPT = `You are CalcAI, the finance copilot inside CA-flow.
 
 Behave like a senior tax, compliance, audit, payroll, and FP&A advisor for a finance firm.
 
@@ -88,7 +88,7 @@ function renderMarkdownLike(text: string) {
   const flushBullets = () => {
     if (!bulletBuffer.length) return;
     elements.push(
-      <ul key={`bullets-${elements.length}`} className="list-disc space-y-1 pl-5 text-sm text-white/85">
+      <ul key={`bullets-${elements.length}`} className="list-disc space-y-1 pl-5 text-sm text-[var(--text-primary)]">
         {bulletBuffer.map((item, index) => (
           <li key={`${item}-${index}`}>{item}</li>
         ))}
@@ -124,7 +124,7 @@ function renderMarkdownLike(text: string) {
 
     if (line.startsWith("## ")) {
       elements.push(
-        <h3 key={`h2-${index}`} className="text-base font-semibold text-white">
+        <h3 key={`h2-${index}`} className="text-base font-semibold text-[var(--text-primary)]">
           {line.slice(3).replace(/\*\*/g, "")}
         </h3>,
       );
@@ -142,7 +142,7 @@ function renderMarkdownLike(text: string) {
         elements.push(
           <div key={`table-row-${index}`} className="grid gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 sm:grid-cols-2">
             {cells.map((cell, cellIndex) => (
-              <div key={`${cell}-${cellIndex}`} className="text-sm text-white/85">
+              <div key={`${cell}-${cellIndex}`} className="text-sm text-[var(--text-primary)]">
                 {cell.replace(/\*\*/g, "")}
               </div>
             ))}
@@ -153,7 +153,7 @@ function renderMarkdownLike(text: string) {
     }
 
     elements.push(
-      <p key={`p-${index}`} className="text-sm leading-6 text-white/85">
+      <p key={`p-${index}`} className="text-sm leading-6 text-[var(--text-primary)]">
         {line.replace(/\*\*/g, "")}
       </p>,
     );
@@ -204,7 +204,7 @@ export default function CalcAI() {
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
-            <div className="font-semibold text-white">CalcAI</div>
+            <div className="font-semibold text-[var(--text-primary)]">CalcAI</div>
             <div className="text-xs text-secondary">Finance copilot for workspaces</div>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function CalcAI() {
               <button
                 key={prompt}
                 onClick={() => send(prompt)}
-                className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-left text-sm text-secondary hover:text-white hover:border-primary/30 transition-colors"
+                className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-left text-sm text-secondary hover:text-[var(--text-primary)] hover:border-primary/30 transition-colors"
               >
                 {prompt}
               </button>
@@ -250,7 +250,7 @@ export default function CalcAI() {
                     className="card-surface p-4 text-left text-sm flex items-start gap-3 hover:border-primary/40 transition-all"
                   >
                     <FileText className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                    <span className="text-white/80">{prompt}</span>
+                    <span className="text-[var(--text-primary)]">{prompt}</span>
                   </button>
                 ))}
               </div>
@@ -293,7 +293,7 @@ export default function CalcAI() {
                   <div className="h-9 w-9 rounded-xl bg-gradient-orange grid place-items-center shrink-0">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <div className="card-surface rounded-tl-sm px-4 py-3 rounded-2xl flex items-center gap-2 text-white/60">
+                  <div className="card-surface rounded-tl-sm px-4 py-3 rounded-2xl flex items-center gap-2 text-[var(--text-tertiary)]">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span className="text-sm">Preparing structured answer...</span>
                   </div>
@@ -305,7 +305,7 @@ export default function CalcAI() {
           )}
         </div>
 
-        <div className="border-t border-white/[0.06] p-4 bg-[rgba(13,13,13,0.95)] backdrop-blur-xl">
+        <div className="border-t border-border/60 p-4" style={{ background: "var(--bg-surface)" }}>
           <div className="max-w-4xl mx-auto">
             <div className="relative">
               <textarea

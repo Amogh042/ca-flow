@@ -25,7 +25,7 @@ export const CountrySelector = ({ compact = false }: { compact?: boolean }) => {
         <PopoverContent
           align="end"
           className="w-56 p-1 border-white/10"
-          style={{ background: "#1a1a1a" }}
+          style={{ background: "var(--bg-elevated)" }}
         >
           {COUNTRIES.map((c) => (
             <button
@@ -36,7 +36,7 @@ export const CountrySelector = ({ compact = false }: { compact?: boolean }) => {
               <span className="text-lg">{c.flag}</span>
               <span
                 className="flex-1 text-left"
-                style={{ color: "rgba(255,255,255,0.85)" }}
+                style={{ color: "var(--text-primary)" }}
               >
                 {c.name}
               </span>
@@ -59,7 +59,7 @@ export const CountrySelector = ({ compact = false }: { compact?: boolean }) => {
           <span className="text-lg leading-none">{country.flag}</span>
           <span
             className="flex-1 text-left font-medium"
-            style={{ color: "rgba(255,255,255,0.85)" }}
+            style={{ color: "var(--text-primary)" }}
           >
             {country.name}
           </span>
@@ -68,7 +68,7 @@ export const CountrySelector = ({ compact = false }: { compact?: boolean }) => {
       </PopoverTrigger>
       <PopoverContent
         className="w-[228px] p-1 border-white/10"
-        style={{ background: "#1a1a1a" }}
+        style={{ background: "var(--bg-elevated)" }}
       >
         {COUNTRIES.map((c) => (
           <button
@@ -79,13 +79,13 @@ export const CountrySelector = ({ compact = false }: { compact?: boolean }) => {
             <span className="text-lg">{c.flag}</span>
             <span
               className="flex-1 text-left"
-              style={{ color: "rgba(255,255,255,0.85)" }}
+              style={{ color: "var(--text-primary)" }}
             >
               {c.name}
             </span>
             <span
               className="text-[10px] font-medium"
-              style={{ color: "rgba(255,255,255,0.40)" }}
+              style={{ color: "var(--text-tertiary)" }}
             >
               {c.currency}
             </span>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, ChevronLeft, ChevronRight, CheckCircle2, UserPlus, Calendar, List, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, ChevronLeft, ChevronRight, CheckCircle2, UserPlus, Calendar, CalendarCheck, List, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFilings, useCreateFiling, useUpdateFiling } from "@/hooks/useFilings";
 import { useClients } from "@/hooks/useClients";
@@ -131,6 +132,34 @@ export default function Compliance() {
 
   const filings = filingsQuery.data ?? [];
 
+  if (filings.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Compliance Tracker</h1>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+              Never miss a filing deadline again.
+            </p>
+          </div>
+        </div>
+        <div className="card-surface p-16 text-center">
+          <CalendarCheck className="h-12 w-12 mx-auto mb-4 text-secondary" />
+          <div className="text-lg font-semibold text-[var(--text-primary)]">No filings yet</div>
+          <div className="mt-2 text-sm text-secondary max-w-md mx-auto">
+            Add a client with their GSTIN or PAN to auto-generate compliance deadlines.
+          </div>
+          <Link
+            to="/clients"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all"
+          >
+            <Users className="h-4 w-4" /> Go to Clients
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const prevMonth = () => { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); };
   const nextMonth = () => { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); };
 
@@ -152,7 +181,7 @@ export default function Compliance() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Compliance Tracker</h1>
-          <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.65)" }}>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
             Never miss a filing deadline again.
           </p>
         </div>
@@ -192,9 +221,9 @@ export default function Compliance() {
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1.5",
                 view === o.v
                   ? "bg-gradient-orange text-white"
-                  : "hover:text-white"
+                  : "hover:text-[var(--text-primary)]"
               )}
-              style={{ color: view === o.v ? undefined : "rgba(255,255,255,0.65)" }}
+              style={{ color: view === o.v ? undefined : "var(--text-secondary)" }}
             >
               <o.icon className="h-3.5 w-3.5" /> {o.label}
             </button>
@@ -216,7 +245,7 @@ export default function Compliance() {
             return (
               <div key={label}>
                 <h3 className="text-xs font-semibold uppercase tracking-wider mb-2"
-                  style={{ color: "rgba(255,255,255,0.40)" }}>
+                  style={{ color: "var(--text-tertiary)" }}>
                   {label}
                 </h3>
                 <div className="card-surface divide-y divide-white/[0.04] overflow-hidden">
@@ -226,14 +255,14 @@ export default function Compliance() {
                       <div key={i} className="group flex items-center gap-4 px-5 py-3 hover:bg-white/[0.03] transition-colors">
                         <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${s.dot}`} />
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm" style={{ color: "rgba(255,255,255,0.90)" }}>
+                          <div className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>
                             {f.title}
                           </div>
-                          <div className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>
+                          <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
                             {f.owner}
                           </div>
                         </div>
-                        <div className="text-xs hidden sm:block" style={{ color: "rgba(255,255,255,0.65)" }}>
+                        <div className="text-xs hidden sm:block" style={{ color: "var(--text-secondary)" }}>
                           {formatDate(f.dueDate)}
                         </div>
                         <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-pill capitalize", s.badge)}>
@@ -257,7 +286,7 @@ export default function Compliance() {
                               });
                             }}
                             className="text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary flex items-center gap-1"
-                            style={{ color: "rgba(255,255,255,0.65)" }}
+                            style={{ color: "var(--text-secondary)" }}
                           >
                             <CheckCircle2 className="h-3 w-3" /> Mark Filed
                           </button>
@@ -269,13 +298,13 @@ export default function Compliance() {
                               onKeyDown={(e) => { if (e.key === "Enter") handleAssign(f.id, assignValue); if (e.key === "Escape") { setAssigningFilingId(null); setAssignValue(""); } }}
                               onBlur={() => { if (assignValue.trim()) handleAssign(f.id, assignValue); else { setAssigningFilingId(null); setAssignValue(""); } }}
                               placeholder="Assignee name…"
-                              className="text-xs px-2 py-1 rounded-md border border-primary/40 bg-white/5 text-white outline-none w-28"
+                              className="text-xs px-2 py-1 rounded-md border border-primary/40 bg-white/5 text-[var(--text-primary)] outline-none w-28"
                             />
                           ) : (
                             <button
                               onClick={() => { setAssigningFilingId(f.id); setAssignValue(f.owner); }}
                               className="text-xs px-2.5 py-1 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary flex items-center gap-1"
-                              style={{ color: "rgba(255,255,255,0.65)" }}
+                              style={{ color: "var(--text-secondary)" }}
                             >
                               <UserPlus className="h-3 w-3" /> Assign
                             </button>
@@ -294,7 +323,7 @@ export default function Compliance() {
             <div className="card-surface p-12 text-center">
               <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-success" />
               <div className="font-semibold">All caught up!</div>
-              <div className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>
+              <div className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
                 No pending filings right now.
               </div>
             </div>
@@ -306,10 +335,10 @@ export default function Compliance() {
 
       {showDrawer && (
         <div className="fixed inset-0 z-50 flex justify-end" role="dialog">
-          <div onClick={() => setShowDrawer(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "#111111" }}>
+          <div onClick={() => setShowDrawer(false)} className="absolute inset-0 bg-black/70" />
+          <div className="relative w-full max-w-md h-full border-l border-white/10 p-6 overflow-y-auto" style={{ background: "var(--drawer-bg)" }}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">New Filing</h3>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">New Filing</h3>
               <button onClick={() => setShowDrawer(false)} className="h-8 w-8 grid place-items-center rounded-md hover:bg-white/5 text-secondary">
                 <X className="h-4 w-4" />
               </button>
@@ -323,7 +352,7 @@ export default function Compliance() {
                   onChange={(e) => setFormTitle(e.target.value)}
                   required
                   placeholder="e.g. GST 3B — April 2026"
-                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-primary/60 outline-none"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none"
                 />
               </div>
 
@@ -332,7 +361,7 @@ export default function Compliance() {
                 <select
                   value={formClientId}
                   onChange={(e) => setFormClientId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white focus:border-primary/60 outline-none"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none"
                 >
                   <option value="">— No client —</option>
                   {clients.map((c) => (
@@ -346,7 +375,7 @@ export default function Compliance() {
                 <select
                   value={formType}
                   onChange={(e) => setFormType(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white focus:border-primary/60 outline-none"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none"
                 >
                   {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -361,7 +390,7 @@ export default function Compliance() {
                   value={formDueDate}
                   onChange={(e) => setFormDueDate(e.target.value)}
                   required
-                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white focus:border-primary/60 outline-none"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none"
                 />
               </div>
 
@@ -371,7 +400,7 @@ export default function Compliance() {
                   value={formAssignee}
                   onChange={(e) => setFormAssignee(e.target.value)}
                   placeholder="Team member name"
-                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-primary/60 outline-none"
+                  className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none"
                 />
               </div>
 
@@ -382,7 +411,7 @@ export default function Compliance() {
                   onChange={(e) => setFormNotes(e.target.value)}
                   rows={3}
                   placeholder="Optional notes or blockers…"
-                  className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-primary/60 outline-none resize-none"
+                  className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none"
                 />
               </div>
 
@@ -397,7 +426,7 @@ export default function Compliance() {
                 <button
                   type="button"
                   onClick={() => setShowDrawer(false)}
-                  className="h-10 px-4 rounded-pill border border-white/10 text-sm text-secondary hover:text-white transition-colors"
+                  className="h-10 px-4 rounded-pill border border-white/10 text-sm text-secondary hover:text-[var(--text-primary)] transition-colors"
                 >
                   Cancel
                 </button>
@@ -423,7 +452,7 @@ const Stat = ({
 }) => (
   <div className="flex items-center gap-2">
     <span className={`h-2 w-2 rounded-full ${dot}`} />
-    <span style={{ color: "rgba(255,255,255,0.40)" }}>{label}</span>
+    <span style={{ color: "var(--text-tertiary)" }}>{label}</span>
     <span className={cn("font-bold", color)}>{value}</span>
   </div>
 );
@@ -450,7 +479,7 @@ const CalendarView = ({ month, year, filings }: {
   return (
     <div className="card-surface p-5">
       <div className="grid grid-cols-7 text-center text-[10px] uppercase tracking-wide mb-2"
-        style={{ color: "rgba(255,255,255,0.40)" }}>
+        style={{ color: "var(--text-tertiary)" }}>
         {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => (
           <div key={d} className="py-1">{d}</div>
         ))}
@@ -471,7 +500,7 @@ const CalendarView = ({ month, year, filings }: {
                   ? "border-primary/60 bg-primary/10 text-primary font-bold"
                   : "border-white/[0.04] hover:border-primary/40 hover:bg-primary/5"
               )}
-              style={{ color: isToday ? undefined : "rgba(255,255,255,0.75)" }}
+              style={{ color: isToday ? undefined : "var(--text-secondary)" }}
             >
               <span>{d}</span>
               {dotMap[d] && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   User, Bell, Palette, Globe, Shield, ChevronRight,
   Check, Moon, Sun, Monitor, Mail, Smartphone, Save, Loader2,
@@ -7,6 +8,19 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { getProfile, updateProfile, updateUserMetadata } from "@/services/profiles";
 import { toast } from "@/hooks/use-toast";
+import { useClients } from "@/hooks/useClients";
+import { useFilings } from "@/hooks/useFilings";
+import { useDocuments } from "@/hooks/useDocuments";
+import { useWorkflows } from "@/hooks/useWorkflows";
+import { useReports } from "@/hooks/useReports";
+import { useCalculations } from "@/hooks/useCalculations";
+import { useDocumentRequests } from "@/hooks/useDocumentRequests";
+import { usePlan, useRedeemCoupon, useRedemptionHistory } from "@/hooks/usePlan";
+import { supabase } from "@/services/supabaseClient";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 type Tab = "profile" | "preferences" | "appearance" | "notifications" | "account";
 
@@ -18,24 +32,14 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "account", label: "Account & Plan", icon: Shield },
 ];
 
-const COUNTRIES = [
-  { code: "IN", label: "India", flag: "🇮🇳", currency: "INR (₹)" },
-  { code: "GB", label: "United Kingdom", flag: "🇬🇧", currency: "GBP (£)" },
-  { code: "US", label: "United States", flag: "🇺🇸", currency: "USD ($)" },
-  { code: "AE", label: "UAE", flag: "🇦🇪", currency: "AED (د.إ)" },
-  { code: "SG", label: "Singapore", flag: "🇸🇬", currency: "SGD (S$)" },
-  { code: "DE", label: "Germany", flag: "🇩🇪", currency: "EUR (€)" },
-  { code: "AU", label: "Australia", flag: "🇦🇺", currency: "AUD (A$)" },
-];
-
 function loadPref<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(`calcos_${key}`);
+    const raw = localStorage.getItem(`caflow_${key}`);
     return raw !== null ? (JSON.parse(raw) as T) : fallback;
   } catch { return fallback; }
 }
 function savePref<T>(key: string, value: T) {
-  localStorage.setItem(`calcos_${key}`, JSON.stringify(value));
+  localStorage.setItem(`caflow_${key}`, JSON.stringify(value));
 }
 
 const fontSizeMap: Record<string, string> = {
@@ -46,11 +50,20 @@ const fontSizeMap: Record<string, string> = {
 
 function applyTheme(theme: string) {
   const root = document.documentElement;
-  if (theme === "light") {
-    root.style.filter = "invert(1) hue-rotate(180deg)";
+  root.style.filter = "";
+
+  if (theme === "system") {
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.classList.toggle("light", !prefersDark);
+    root.style.colorScheme = prefersDark ? "dark" : "light";
+  } else if (theme === "light") {
+    root.classList.add("light");
+    root.style.colorScheme = "light";
   } else {
-    root.style.filter = "";
+    root.classList.remove("light");
+    root.style.colorScheme = "dark";
   }
+
   savePref("theme", theme);
 }
 
@@ -63,7 +76,7 @@ function SectionCard({ title, desc, children }: { title: string; desc?: string; 
   return (
     <div className="card-surface p-6 space-y-5">
       <div>
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h3>
         {desc && <p className="mt-0.5 text-xs text-secondary">{desc}</p>}
       </div>
       {children}
@@ -177,7 +190,7 @@ function ProfileTab() {
             {name.charAt(0).toUpperCase() || "?"}
           </div>
           <div>
-            <p className="text-sm font-medium text-white">{name || "Your Name"}</p>
+            <p className="text-sm font-medium text-[var(--text-primary)]">{name || "Your Name"}</p>
             <p className="text-xs text-secondary mt-0.5">{email}</p>
             <p className="text-xs text-tertiary mt-1">Free plan</p>
           </div>
@@ -203,35 +216,19 @@ function ProfileTab() {
 
 // ─── Preferences ─────────────────────────────────────────────────────────────
 function PreferencesTab() {
-  const [country, setCountry] = useState(() => loadPref("pref_country", "IN"));
   const [defaultFY, setDefaultFY] = useState(() => loadPref("pref_fy", "FY 2024-25"));
   const [taxRegime, setTaxRegime] = useState(() => loadPref("pref_regime", "new"));
   const [numberFormat, setNumberFormat] = useState(() => loadPref("pref_numformat", "indian"));
   const [saved, setSaved] = useState(false);
 
   const save = () => {
-    savePref("pref_country", country); savePref("pref_fy", defaultFY);
+    savePref("pref_fy", defaultFY);
     savePref("pref_regime", taxRegime); savePref("pref_numformat", numberFormat);
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <div className="space-y-5">
-      <SectionCard title="Region & Jurisdiction" desc="Sets the default country for calculators">
-        <Field label="Default Country">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {COUNTRIES.map((c) => (
-              <button key={c.code} onClick={() => setCountry(c.code)}
-                className={cn("flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all text-sm",
-                  country === c.code ? "border-primary/50 bg-primary/10 text-white" : "border-white/8 bg-card text-secondary hover:border-white/20 hover:text-white")}>
-                <span className="text-lg">{c.flag}</span>
-                <div><div className="font-medium text-xs">{c.label}</div><div className="text-[10px] text-tertiary">{c.currency}</div></div>
-                {country === c.code && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
-              </button>
-            ))}
-          </div>
-        </Field>
-      </SectionCard>
       <SectionCard title="Tax Defaults" desc="Pre-fill calculators with your preferred settings">
         <Field label="Default Financial Year">
           <select value={defaultFY} onChange={(e) => setDefaultFY(e.target.value)} className="glass-select w-full h-10 px-3 text-sm rounded-[10px]">
@@ -242,7 +239,7 @@ function PreferencesTab() {
           <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
             {[{ id: "new", label: "New Regime" }, { id: "old", label: "Old Regime" }].map((r) => (
               <button key={r.id} onClick={() => setTaxRegime(r.id)}
-                className={cn("py-2 text-sm font-medium rounded-md transition-all", taxRegime === r.id ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>
+                className={cn("py-2 text-sm font-medium rounded-md transition-all", taxRegime === r.id ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>
                 {r.label}
               </button>
             ))}
@@ -252,7 +249,7 @@ function PreferencesTab() {
           <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
             {[{ id: "indian", label: "Indian (1,00,000)" }, { id: "international", label: "International (100,000)" }].map((f) => (
               <button key={f.id} onClick={() => setNumberFormat(f.id)}
-                className={cn("py-2 text-xs font-medium rounded-md transition-all", numberFormat === f.id ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>
+                className={cn("py-2 text-xs font-medium rounded-md transition-all", numberFormat === f.id ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>
                 {f.label}
               </button>
             ))}
@@ -294,21 +291,21 @@ function AppearanceTab() {
 
   return (
     <div className="space-y-5">
-      <SectionCard title="Theme" desc="Choose how CalcOS looks — changes apply instantly">
+      <SectionCard title="Theme" desc="Choose how CA-flow looks — changes apply instantly">
         <div className="grid grid-cols-3 gap-3">
           {themes.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => handleTheme(id)}
               className={cn("flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all",
                 theme === id ? "border-primary bg-primary/10" : "border-white/8 hover:border-white/20")}>
               <Icon className={cn("h-6 w-6", theme === id ? "text-primary" : "text-secondary")} />
-              <span className={cn("text-xs font-medium", theme === id ? "text-white" : "text-secondary")}>{label}</span>
+              <span className={cn("text-xs font-medium", theme === id ? "text-[var(--text-primary)]" : "text-secondary")}>{label}</span>
               {theme === id && <Check className="h-3 w-3 text-primary" />}
             </button>
           ))}
         </div>
-        {theme === "light" && (
-          <div className="px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-500/20 text-xs text-orange-300">
-            Light mode applied via CSS inversion. Native light theme coming soon.
+        {theme === "system" && (
+          <div className="px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary">
+            Theme follows your operating system preference.
           </div>
         )}
       </SectionCard>
@@ -323,21 +320,21 @@ function AppearanceTab() {
             <button key={id} onClick={() => handleFontSize(id)}
               className={cn("flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
                 fontSize === id ? "border-primary bg-primary/10" : "border-white/8 hover:border-white/20")}>
-              <span className={cn("font-bold text-white", sampleClass)}>Aa</span>
+              <span className={cn("font-bold text-[var(--text-primary)]", sampleClass)}>Aa</span>
               <span className={cn("text-xs", fontSize === id ? "text-primary font-medium" : "text-secondary")}>{label}</span>
               {fontSize === id && <Check className="h-3 w-3 text-primary" />}
             </button>
           ))}
         </div>
         <p className="text-xs text-tertiary">
-          Applied: <span className="text-white font-medium">{fontSizeMap[fontSize]}</span> — scroll any page to see the effect
+          Applied: <span className="text-[var(--text-primary)] font-medium">{fontSizeMap[fontSize]}</span> — scroll any page to see the effect
         </p>
       </SectionCard>
 
       <SectionCard title="Layout Density">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-white">Compact Mode</p>
+            <p className="text-sm text-[var(--text-primary)]">Compact Mode</p>
             <p className="text-xs text-secondary mt-0.5">Reduce padding and spacing throughout the app</p>
           </div>
           <Toggle checked={compactMode} onChange={handleCompact} />
@@ -372,7 +369,7 @@ function NotificationsTab() {
         <div className="space-y-4">
           {rows.map((row) => (
             <div key={row.key} className="flex items-center justify-between gap-4">
-              <div><p className="text-sm text-white">{row.label}</p><p className="text-xs text-secondary mt-0.5">{row.desc}</p></div>
+              <div><p className="text-sm text-[var(--text-primary)]">{row.label}</p><p className="text-xs text-secondary mt-0.5">{row.desc}</p></div>
               <Toggle checked={prefs[row.key]} onChange={() => toggle(row.key)} />
             </div>
           ))}
@@ -383,19 +380,22 @@ function NotificationsTab() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-secondary" />
-              <div><p className="text-sm text-white">Email Notifications</p><p className="text-xs text-secondary">Sent to amogh@calcos.com</p></div>
+              <div><p className="text-sm text-[var(--text-primary)]">Email Notifications</p><p className="text-xs text-secondary">Sent to hello@ca-flow.in</p></div>
             </div>
             <Toggle checked={prefs.emailNotifs} onChange={() => toggle("emailNotifs")} />
           </div>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Smartphone className="h-4 w-4 text-secondary" />
-              <div><p className="text-sm text-white">Browser Notifications</p><p className="text-xs text-secondary">Push notifications in your browser</p></div>
+              <div><p className="text-sm text-[var(--text-primary)]">Browser Notifications</p><p className="text-xs text-secondary">Push notifications in your browser</p></div>
             </div>
             <Toggle checked={prefs.browserNotifs} onChange={() => toggle("browserNotifs")} />
           </div>
         </div>
       </SectionCard>
+      <div className="px-3 py-2.5 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary">
+        Email and browser notifications are coming soon. Your preferences will be saved for when they launch.
+      </div>
       <div className="flex items-center justify-end gap-3"><SavedBadge show={saved} /><SaveButton onSave={save} /></div>
     </div>
   );
@@ -403,60 +403,255 @@ function NotificationsTab() {
 
 // ─── Account ──────────────────────────────────────────────────────────────────
 function AccountTab() {
+  const { user, signOut } = useAuth();
+  const clientsQuery = useClients();
+  const filingsQuery = useFilings();
+  const documentsQuery = useDocuments();
+  const workflowsQuery = useWorkflows();
+  const reportsQuery = useReports();
+  const calculationsQuery = useCalculations();
+  const docRequestsQuery = useDocumentRequests();
+  const { data: planData } = usePlan();
+  const redeemMutation = useRedeemCoupon();
+  const { data: redemptions } = useRedemptionHistory();
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const activePlan = planData?.plan ?? "free";
+  const planExpiry = planData?.expiresAt
+    ? new Date(planData.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+    : null;
+
+  const handleCouponRedeem = async () => {
+    if (!couponCode.trim()) { setCouponError("Enter a code"); return; }
+    setCouponError("");
+    setCouponSuccess("");
+    const res = await redeemMutation.mutateAsync(couponCode);
+    if (!res.valid) { setCouponError(res.error); }
+    else { setCouponSuccess(res.message); setCouponCode(""); }
+  };
+
   const freeFeatures = ["15 core calculators", "Basic compliance tracker", "Client management (up to 5)", "CalcAI (5 queries/day)"];
-  const proFeatures = ["All 100+ calculators", "Unlimited CalcAI queries", "PDF export for all calculators", "Unlimited clients", "Priority support", "Advanced audit tools", "Multi-country calculators"];
+  const proFeatures = ["All 100+ calculators", "Unlimited CalcAI queries", "PDF export for all calculators", "Unlimited clients", "Priority support", "Advanced audit tools"];
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        clients: clientsQuery.data ?? [],
+        filings: filingsQuery.data ?? [],
+        documents: documentsQuery.data ?? [],
+        workflows: workflowsQuery.data ?? [],
+        reports: reportsQuery.data ?? [],
+        calculations: calculationsQuery.data ?? [],
+        documentRequests: docRequestsQuery.data ?? [],
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ca-flow-export.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Export complete", description: "Your data has been downloaded as JSON." });
+    } catch (err: any) {
+      toast({ title: "Export failed", description: err?.message || "Could not export data" });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleClearHistory() {
+    setClearing(true);
+    try {
+      if (!supabase) throw new Error("Not connected");
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData?.user) throw new Error("Not authenticated");
+      const { error } = await supabase.from("calculations").delete().eq("owner", userData.user.id);
+      if (error) throw error;
+      toast({ title: "History cleared", description: "All saved calculations have been removed." });
+      setConfirmClear(false);
+    } catch (err: any) {
+      toast({ title: "Clear failed", description: err?.message || "Could not clear history" });
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    try {
+      await signOut();
+    } catch {}
+    window.location.href = "mailto:hello@ca-flow.in?subject=Delete%20my%20CA-flow%20account&body=Please%20delete%20my%20account%20(" + encodeURIComponent(user?.email || "") + ").%20I%20understand%20this%20is%20permanent.";
+  }
 
   return (
     <div className="space-y-5">
-      <SectionCard title="Your Plan" desc="Manage your CalcOS subscription">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <SectionCard title="Your Plan" desc="Manage your CA-flow subscription">
+        {activePlan !== "free" ? (
           <div className="p-5 rounded-xl border-2 border-primary/50 bg-primary/5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-white">Free</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">CURRENT</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">{activePlan === "firm" ? "Firm" : "Pro"}</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>
             </div>
-            <div className="text-2xl font-bold text-white mb-3">₹0 <span className="text-sm font-normal text-secondary">/ month</span></div>
-            <ul className="space-y-1.5">
-              {freeFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
+            <p className="text-sm text-secondary">
+              Your {activePlan === "firm" ? "Firm" : "Pro"} plan is active{planExpiry ? ` until ${planExpiry}` : ""}.
+            </p>
+            <ul className="space-y-1.5 mt-3">
+              {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
             </ul>
           </div>
-          <div className="relative p-5 rounded-xl border border-white/10 bg-gradient-to-br from-orange-500/5 to-amber-500/5 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-orange opacity-[0.03]" />
-            <div className="relative">
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-5 rounded-xl border-2 border-primary/50 bg-primary/5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-white">Pro</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-400/20">RECOMMENDED</span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">Free</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">CURRENT</span>
               </div>
-              <div className="text-2xl font-bold text-white mb-1">₹999 <span className="text-sm font-normal text-secondary">/ year</span></div>
-              <p className="text-xs text-tertiary mb-3">≈ ₹83/month · Less than a chai daily</p>
-              <ul className="space-y-1.5 mb-4">
-                {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-orange-400 shrink-0" />{f}</li>)}
+              <div className="text-2xl font-bold text-[var(--text-primary)] mb-3">₹0 <span className="text-sm font-normal text-secondary">/ month</span></div>
+              <ul className="space-y-1.5">
+                {freeFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
               </ul>
-              <button className="w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange">Upgrade to Pro</button>
+            </div>
+            <div className="relative p-5 rounded-xl border border-white/10 bg-gradient-to-br from-primary/5 to-warning/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-orange opacity-[0.03]" />
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">Pro</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20">RECOMMENDED</span>
+                </div>
+                <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹999 <span className="text-sm font-normal text-secondary">/ year</span></div>
+                <p className="text-xs text-tertiary mb-3">≈ ₹83/month · Less than a chai daily</p>
+                <ul className="space-y-1.5 mb-4">
+                  {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
+                </ul>
+                <Link to="/pricing" className="block w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange text-center">Upgrade to Pro</Link>
+              </div>
             </div>
           </div>
+        )}
+
+        <div className="mt-4 p-4 rounded-xl border border-white/[0.06] bg-card space-y-3">
+          <div className="text-xs font-medium text-secondary">Redeem a coupon code</div>
+          <div className="flex gap-2">
+            <input
+              value={couponCode}
+              onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); setCouponSuccess(""); }}
+              maxLength={20}
+              placeholder="ENTER CODE"
+              className="glass-input flex-1 h-9 px-3 text-sm tracking-wider uppercase font-semibold"
+            />
+            <button
+              onClick={handleCouponRedeem}
+              disabled={redeemMutation.status === "pending"}
+              className="h-9 px-4 rounded-lg text-xs font-semibold bg-gradient-orange text-white glow-orange disabled:opacity-50"
+            >
+              {redeemMutation.status === "pending" ? "..." : "Activate"}
+            </button>
+          </div>
+          {couponError && <p className="text-xs text-red-400">{couponError}</p>}
+          {couponSuccess && <p className="text-xs text-emerald-400">{couponSuccess}</p>}
         </div>
+
+        {redemptions && redemptions.length > 0 && (
+          <div className="mt-4">
+            <div className="text-xs font-medium text-secondary mb-2">Redemption history</div>
+            <div className="space-y-1.5">
+              {redemptions.map((r: any) => (
+                <div key={r.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-white/[0.02]">
+                  <span className="font-mono text-[var(--text-primary)]">{r.coupons?.code ?? "—"}</span>
+                  <span className="text-secondary">
+                    {r.coupons?.plan} · {r.redeemed_at ? new Date(r.redeemed_at).toLocaleDateString("en-IN") : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </SectionCard>
       <SectionCard title="Account Actions" desc="Manage your account data">
         <div className="space-y-3">
-          {[
-            { label: "Export my data", desc: "Download all your calculations and client data as JSON", action: "Export", danger: false },
-            { label: "Clear calculation history", desc: "Remove all saved calculations permanently", action: "Clear", danger: true },
-            { label: "Delete account", desc: "Permanently delete your account and all associated data", action: "Delete", danger: true },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/[0.06] bg-card">
-              <div>
-                <p className={cn("text-sm font-medium", item.danger ? "text-red-400" : "text-white")}>{item.label}</p>
-                <p className="text-xs text-secondary mt-0.5">{item.desc}</p>
-              </div>
-              <button className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border shrink-0 transition-all",
-                item.danger ? "border-red-400/30 text-red-400 hover:bg-red-400/10" : "border-white/10 text-secondary hover:text-white hover:border-white/30")}>
-                {item.action}
-              </button>
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/[0.06] bg-card">
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Export my data</p>
+              <p className="text-xs text-secondary mt-0.5">Download all your calculations and client data as JSON</p>
             </div>
-          ))}
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border shrink-0 transition-all border-white/10 text-secondary hover:text-[var(--text-primary)] hover:border-white/30 disabled:opacity-50"
+            >
+              {exporting ? "Exporting…" : "Export"}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/[0.06] bg-card">
+            <div>
+              <p className="text-sm font-medium text-red-400">Clear calculation history</p>
+              <p className="text-xs text-secondary mt-0.5">Remove all saved calculations permanently</p>
+            </div>
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border shrink-0 transition-all border-red-400/30 text-red-400 hover:bg-red-400/10"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-white/[0.06] bg-card">
+            <div>
+              <p className="text-sm font-medium text-red-400">Delete account</p>
+              <p className="text-xs text-secondary mt-0.5">Permanently delete your account and all associated data</p>
+            </div>
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border shrink-0 transition-all border-red-400/30 text-red-400 hover:bg-red-400/10"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </SectionCard>
+
+      <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear calculation history</AlertDialogTitle>
+            <AlertDialogDescription>This will permanently delete all your saved calculations. This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearHistory} disabled={clearing} className="bg-destructive text-white">
+              {clearing ? "Clearing…" : "Clear all"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Account self-deletion is not yet available. You will be signed out and directed to email support for account deletion.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-white">
+              Contact support to delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -477,7 +672,7 @@ export default function Settings() {
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setActiveTab(id)}
               className={cn("w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left",
-                activeTab === id ? "bg-primary/10 text-primary font-medium" : "text-secondary hover:bg-white/[0.04] hover:text-white")}>
+                activeTab === id ? "bg-primary/10 text-primary font-medium" : "text-secondary hover:bg-white/[0.04] hover:text-[var(--text-primary)]")}>
               <Icon className="h-4 w-4 shrink-0" />
               {label}
               {activeTab === id && <ChevronRight className="h-3.5 w-3.5 ml-auto" />}

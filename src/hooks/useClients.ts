@@ -8,7 +8,8 @@ export function useClients() {
   return useQuery<ClientRecord[]>({
     queryKey: queryKeys.clients(),
     queryFn: clientsService.fetchClients,
-    staleTime: 1000 * 60,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     placeholderData: [],
   });
 }

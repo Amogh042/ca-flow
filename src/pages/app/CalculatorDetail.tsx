@@ -52,11 +52,6 @@ const CALC_REGISTRY: Record<string, CalculatorComponent> = {
   prepayment: PrepaymentCalc,
   "gst-late-fee": GSTLateFeeCalc,
   "itc-reconciliation": ITCReconciliationCalc,
-  "uk-income-tax": UKIncomeTaxCalc,
-  "us-federal-tax": USFederalTaxCalc,
-  "uae-vat": UAEVATCalc,
-  "uk-vat": UKVATCalc,
-  "sg-income-tax": SGIncomeTaxCalc,
   "debt-equity": DebtEquityCalc,
   "leave-encashment": LeaveEncashmentCalc,
   "capital-gains-property": CapitalGainsPropertyCalc,
@@ -155,11 +150,6 @@ const titleMap: Record<string, string> = {
   prepayment: "Loan Prepayment Savings Calculator",
   "gst-late-fee": "GST Late Fee Calculator",
   "itc-reconciliation": "GST ITC Reconciliation",
-  "uk-income-tax": "UK Income Tax Calculator",
-  "us-federal-tax": "US Federal Income Tax Calculator",
-  "uae-vat": "UAE VAT Calculator",
-  "uk-vat": "UK VAT Calculator",
-  "sg-income-tax": "Singapore Income Tax Calculator",
   "debt-equity": "Debt to Equity & Leverage Ratios",
   "leave-encashment": "Leave Encashment Tax Calculator",
   "capital-gains-property": "Property Capital Gains Calculator",
@@ -258,11 +248,6 @@ const categoryMap: Record<string, string> = {
   prepayment: "loans",
   "gst-late-fee": "gst",
   "itc-reconciliation": "gst",
-  "uk-income-tax": "tax",
-  "us-federal-tax": "tax",
-  "uae-vat": "gst",
-  "uk-vat": "gst",
-  "sg-income-tax": "tax",
   "debt-equity": "ratios",
   "leave-encashment": "tax",
   "capital-gains-property": "tax",
@@ -518,11 +503,11 @@ export default function CalculatorDetail() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <nav className="flex items-center gap-2 text-xs text-secondary">
-        <Link to="/dashboard" className="hover:text-white">Home</Link>
+        <Link to="/dashboard" className="hover:text-[var(--text-primary)]">Home</Link>
         <ChevronRight className="h-3 w-3" />
-        <Link to={`/calculators/${category}`} className="hover:text-white">Calculators</Link>
+        <Link to={`/calculators/${category}`} className="hover:text-[var(--text-primary)]">Calculators</Link>
         <ChevronRight className="h-3 w-3" />
-        <span className="text-white capitalize">{title}</span>
+        <span className="text-[var(--text-primary)] capitalize">{title}</span>
       </nav>
 
       {CalcComponent ? <CalcComponent /> : <ComingSoonCard slug={slug} />}
@@ -531,7 +516,7 @@ export default function CalculatorDetail() {
 }
 
 function IncomeTaxCalc() {
-  const [annualIncome, setAnnualIncome] = useState("1800000");
+  const [annualIncome, setAnnualIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [age, setAge] = useState(AGE[0]);
   const [fy, setFy] = useState(FY[0]);
@@ -624,7 +609,7 @@ function IncomeTaxCalc() {
                     onClick={() => setRegime(item)}
                     className={cn(
                       "py-2 text-sm font-medium rounded-md transition-all capitalize",
-                      regime === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                      regime === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                     )}
                   >
                     {item} Regime
@@ -664,7 +649,7 @@ function IncomeTaxCalc() {
                 setAnnualIncome("");
                 setCalculatedAt("Never");
               }}
-              className="w-full text-xs text-tertiary hover:text-white flex items-center justify-center gap-1"
+              className="w-full text-xs text-tertiary hover:text-[var(--text-primary)] flex items-center justify-center gap-1"
             >
               <RotateCcw className="h-3 w-3" /> Reset
             </button>
@@ -672,10 +657,15 @@ function IncomeTaxCalc() {
         </div>
 
         <div className="space-y-4">
+          {!incomeValue ? (
+            <div className="card-surface p-10 text-center">
+              <p className="text-sm text-secondary">Enter values above to see results</p>
+            </div>
+          ) : (<>
           <div className="card-surface p-6">
             <div className="text-xs text-tertiary uppercase tracking-wide font-medium">Total Tax Payable</div>
             <div className="mt-2 text-4xl md:text-5xl font-bold text-gradient-orange">{formatINR(result.totalTax)}</div>
-            <div className="mt-2 text-sm text-secondary">Effective Rate: <span className="text-white font-medium">{formatPct(result.effectiveRate)}</span></div>
+            <div className="mt-2 text-sm text-secondary">Effective Rate: <span className="text-[var(--text-primary)] font-medium">{formatPct(result.effectiveRate)}</span></div>
           </div>
 
           <div className="card-surface p-5 overflow-hidden">
@@ -727,6 +717,7 @@ function IncomeTaxCalc() {
             <MiniStat label="Taxable Income" value={formatINR(result.taxableIncome)} />
             <MiniStat label="Annual Income" value={formatINR(incomeValue)} />
           </div>
+          </>)}
         </div>
       </div>
     </>
@@ -746,9 +737,9 @@ type EMIResult = {
 };
 
 function EMICalc() {
-  const [principal, setPrincipal] = useState("1500000");
-  const [annualRate, setAnnualRate] = useState("9");
-  const [tenureMonths, setTenureMonths] = useState("240");
+  const [principal, setPrincipal] = useState("");
+  const [annualRate, setAnnualRate] = useState("");
+  const [tenureMonths, setTenureMonths] = useState("");
   const [result, setResult] = useState<EMIResult>({
     monthlyEMI: 0,
     totalAmount: 0,
@@ -804,7 +795,9 @@ function EMICalc() {
           <NumberInput label="Tenure (Months)" value={tenureMonths} onChange={setTenureMonths} />
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(principal) ? (
+        <div className="card-surface p-10 text-center"><p className="text-sm text-secondary">Enter values above to see results</p></div>
+      ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <MiniStat label="Monthly EMI" value={formatINR(result.monthlyEMI)} />
@@ -843,8 +836,12 @@ function EMICalc() {
   );
 }
 
+function EmptyResults() {
+  return <div className="card-surface p-10 text-center"><p className="text-sm text-secondary">Enter values above to see results</p></div>;
+}
+
 function GSTCalc() {
-  const [amount, setAmount] = useState("100000");
+  const [amount, setAmount] = useState("");
   const [gstRate, setGstRate] = useState("18");
   const [direction, setDirection] = useState<"add" | "remove">("add");
   const [result, setResult] = useState({
@@ -912,7 +909,7 @@ function GSTCalc() {
                   onClick={() => setDirection(item)}
                   className={cn(
                     "py-2 text-sm font-medium rounded-md transition-all capitalize",
-                    direction === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    direction === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item} GST
@@ -922,7 +919,7 @@ function GSTCalc() {
           </Field>
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(amount) ? <EmptyResults /> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <MiniStat label="Taxable Amount" value={formatINR(result.taxableAmount)} />
           <MiniStat label="GST Amount" value={formatINR(result.gstAmount)} />
@@ -939,7 +936,7 @@ function GSTCalc() {
 }
 
 function SalaryCalc() {
-  const [ctc, setCtc] = useState("1200000");
+  const [ctc, setCtc] = useState("");
   const [result, setResult] = useState({
     basic: 0,
     hra: 0,
@@ -984,7 +981,7 @@ function SalaryCalc() {
           <MoneyInput label="Annual CTC" value={ctc} onChange={setCtc} />
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(ctc) ? <EmptyResults /> : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MiniStat label="Basic" value={formatINR(result.basic)} />
@@ -998,7 +995,7 @@ function SalaryCalc() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="card-surface p-6">
               <div className="text-xs text-tertiary uppercase tracking-wide font-medium">Gross Salary</div>
-              <div className="mt-2 text-3xl font-bold text-white">{formatINR(result.grossSalary)}</div>
+              <div className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{formatINR(result.grossSalary)}</div>
             </div>
             <div className="card-surface p-6">
               <div className="text-xs text-tertiary uppercase tracking-wide font-medium">Take Home (Annual)</div>
@@ -1013,9 +1010,9 @@ function SalaryCalc() {
 }
 
 function SIPCalc() {
-  const [monthlyAmount, setMonthlyAmount] = useState("10000");
-  const [annualRate, setAnnualRate] = useState("12");
-  const [years, setYears] = useState("10");
+  const [monthlyAmount, setMonthlyAmount] = useState("");
+  const [annualRate, setAnnualRate] = useState("");
+  const [years, setYears] = useState("");
   const [result, setResult] = useState({
     futureValue: 0,
     totalInvested: 0,
@@ -1057,7 +1054,7 @@ function SIPCalc() {
           <NumberInput label="Investment Duration (Years)" value={years} onChange={setYears} />
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(monthlyAmount) ? <EmptyResults /> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2 card-surface p-6">
             <div className="text-xs text-tertiary uppercase tracking-wide font-medium">Future Value</div>
@@ -1073,8 +1070,8 @@ function SIPCalc() {
 }
 
 function GratuityCalc() {
-  const [basicSalary, setBasicSalary] = useState("50000");
-  const [yearsOfService, setYearsOfService] = useState("7");
+  const [basicSalary, setBasicSalary] = useState("");
+  const [yearsOfService, setYearsOfService] = useState("");
   const [result, setResult] = useState({
     eligible: false,
     gratuityAmount: 0,
@@ -1105,7 +1102,7 @@ function GratuityCalc() {
           <NumberInput label="Years of Service" value={yearsOfService} onChange={setYearsOfService} />
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(basicSalary) ? <EmptyResults /> : (
         <div className="space-y-4">
           {!result.eligible && (
             <div className="card-surface p-4 border border-white/10">
@@ -1124,7 +1121,7 @@ function GratuityCalc() {
 }
 
 function PFCalc() {
-  const [basicSalary, setBasicSalary] = useState("50000");
+  const [basicSalary, setBasicSalary] = useState("");
   const [result, setResult] = useState({
     employeeContribution: 0,
     employerEPF: 0,
@@ -1191,9 +1188,9 @@ function PFCalc() {
 }
 
 function HRACalc() {
-  const [basicSalary, setBasicSalary] = useState("600000");
-  const [hraReceived, setHraReceived] = useState("240000");
-  const [rentPaid, setRentPaid] = useState("300000");
+  const [basicSalary, setBasicSalary] = useState("");
+  const [hraReceived, setHraReceived] = useState("");
+  const [rentPaid, setRentPaid] = useState("");
   const [cityType, setCityType] = useState<"metro" | "non-metro">("metro");
   const [result, setResult] = useState({
     actualHRA: 0,
@@ -1242,7 +1239,7 @@ function HRACalc() {
                   onClick={() => setCityType(item)}
                   className={cn(
                     "py-2 text-sm font-medium rounded-md transition-all capitalize",
-                    cityType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    cityType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -1252,7 +1249,7 @@ function HRACalc() {
           </Field>
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(basicSalary) && !toNum(hraReceived) ? <EmptyResults /> : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MiniStat label="a) Actual HRA Received" value={formatINR(result.actualHRA)} />
@@ -1269,7 +1266,7 @@ function HRACalc() {
             </div>
             <div className="card-surface p-6">
               <div className="text-xs text-tertiary uppercase tracking-wide font-medium">Taxable HRA</div>
-              <div className="mt-2 text-3xl font-bold text-white">{formatINR(result.taxableHRA)}</div>
+              <div className="mt-2 text-3xl font-bold text-[var(--text-primary)]">{formatINR(result.taxableHRA)}</div>
             </div>
           </div>
         </div>
@@ -1279,8 +1276,8 @@ function HRACalc() {
 }
 
 function STCGCalc() {
-  const [purchasePrice, setPurchasePrice] = useState("800000");
-  const [salePrice, setSalePrice] = useState("1050000");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("2025-01-01");
   const [saleDate, setSaleDate] = useState("2025-10-01");
   const [assetType, setAssetType] = useState<"equity" | "property" | "other">("equity");
@@ -1357,7 +1354,7 @@ function STCGCalc() {
                   onClick={() => setAssetType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all capitalize",
-                    assetType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    assetType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -1393,9 +1390,9 @@ function STCGCalc() {
 
 function WDVCalc() {
   const [assetName, setAssetName] = useState<keyof typeof WDV_DEFAULT_RATES>("Plant & Machinery");
-  const [purchaseCost, setPurchaseCost] = useState("1000000");
+  const [purchaseCost, setPurchaseCost] = useState("");
   const [rate, setRate] = useState(String(WDV_DEFAULT_RATES["Plant & Machinery"]));
-  const [years, setYears] = useState("5");
+  const [years, setYears] = useState("");
   const [result, setResult] = useState({
     schedule: [] as Array<{ year: number; openingValue: number; depreciation: number; closingValue: number }>,
     totalDepreciation: 0,
@@ -1489,10 +1486,10 @@ function WDVCalc() {
 }
 
 function LTCGCalc() {
-  const [purchasePrice, setPurchasePrice] = useState("1000000");
-  const [salePrice, setSalePrice] = useState("1800000");
-  const [purchaseYear, setPurchaseYear] = useState("2021");
-  const [saleYear, setSaleYear] = useState("2024");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [purchaseYear, setPurchaseYear] = useState("");
+  const [saleYear, setSaleYear] = useState("");
   const [assetType, setAssetType] = useState<"equity" | "property" | "other">("property");
   const [result, setResult] = useState({
     gainAmount: 0,
@@ -1562,7 +1559,7 @@ function LTCGCalc() {
                   onClick={() => setAssetType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all capitalize",
-                    assetType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    assetType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -1591,8 +1588,8 @@ function LTCGCalc() {
 }
 
 function AdvanceTaxCalc() {
-  const [estimatedAnnualIncome, setEstimatedAnnualIncome] = useState("1800000");
-  const [taxAlreadyDeducted, setTaxAlreadyDeducted] = useState("50000");
+  const [estimatedAnnualIncome, setEstimatedAnnualIncome] = useState("");
+  const [taxAlreadyDeducted, setTaxAlreadyDeducted] = useState("");
   const [result, setResult] = useState({
     totalTaxLiability: 0,
     netTaxAfterTDS: 0,
@@ -1652,7 +1649,7 @@ function AdvanceTaxCalc() {
           <MoneyInput label="Tax Already Deducted (TDS)" value={taxAlreadyDeducted} onChange={setTaxAlreadyDeducted} />
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(estimatedAnnualIncome) ? <EmptyResults /> : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MiniStat label="Total Tax Liability" value={formatINR(result.totalTaxLiability)} />
@@ -1699,17 +1696,17 @@ function AdvanceTaxCalc() {
 }
 
 function FinancialRatiosCalc() {
-  const [currentAssets, setCurrentAssets] = useState("1200000");
-  const [currentLiabilities, setCurrentLiabilities] = useState("500000");
-  const [inventory, setInventory] = useState("200000");
-  const [totalRevenue, setTotalRevenue] = useState("3000000");
-  const [grossProfit, setGrossProfit] = useState("900000");
-  const [netProfit, setNetProfit] = useState("420000");
-  const [totalDebt, setTotalDebt] = useState("800000");
-  const [totalEquity, setTotalEquity] = useState("1500000");
-  const [totalAssets, setTotalAssets] = useState("2600000");
-  const [ebit, setEbit] = useState("500000");
-  const [interestExpense, setInterestExpense] = useState("120000");
+  const [currentAssets, setCurrentAssets] = useState("");
+  const [currentLiabilities, setCurrentLiabilities] = useState("");
+  const [inventory, setInventory] = useState("");
+  const [totalRevenue, setTotalRevenue] = useState("");
+  const [grossProfit, setGrossProfit] = useState("");
+  const [netProfit, setNetProfit] = useState("");
+  const [totalDebt, setTotalDebt] = useState("");
+  const [totalEquity, setTotalEquity] = useState("");
+  const [totalAssets, setTotalAssets] = useState("");
+  const [ebit, setEbit] = useState("");
+  const [interestExpense, setInterestExpense] = useState("");
   const [ratios, setRatios] = useState(
     [] as Array<{ name: string; value: number; healthy: boolean; isPercent?: boolean; suffix?: string }>
   );
@@ -1807,9 +1804,9 @@ function FinancialRatiosCalc() {
 }
 
 function BreakEvenCalc() {
-  const [fixedCosts, setFixedCosts] = useState("500000");
-  const [variableCostPerUnit, setVariableCostPerUnit] = useState("300");
-  const [sellingPricePerUnit, setSellingPricePerUnit] = useState("500");
+  const [fixedCosts, setFixedCosts] = useState("");
+  const [variableCostPerUnit, setVariableCostPerUnit] = useState("");
+  const [sellingPricePerUnit, setSellingPricePerUnit] = useState("");
   const [result, setResult] = useState({
     contributionMargin: 0,
     breakEvenUnits: 0,
@@ -1910,9 +1907,9 @@ function BreakEvenCalc() {
 }
 
 function CompoundInterestCalc() {
-  const [principal, setPrincipal] = useState("100000");
-  const [annualRate, setAnnualRate] = useState("10");
-  const [years, setYears] = useState("10");
+  const [principal, setPrincipal] = useState("");
+  const [annualRate, setAnnualRate] = useState("");
+  const [years, setYears] = useState("");
   const [compoundingFrequency, setCompoundingFrequency] = useState<"annually" | "semi-annually" | "quarterly" | "monthly">("annually");
   const [result, setResult] = useState({
     finalAmount: 0,
@@ -1977,7 +1974,7 @@ function CompoundInterestCalc() {
                   onClick={() => setCompoundingFrequency(item)}
                   className={cn(
                     "py-2 px-2 text-xs font-medium rounded-md transition-all capitalize",
-                    compoundingFrequency === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    compoundingFrequency === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -2026,10 +2023,10 @@ function CompoundInterestCalc() {
 }
 
 function LoanEligibilityCalc() {
-  const [monthlyIncome, setMonthlyIncome] = useState("100000");
-  const [existingEMIs, setExistingEMIs] = useState("15000");
-  const [interestRate, setInterestRate] = useState("9");
-  const [tenureYears, setTenureYears] = useState("20");
+  const [monthlyIncome, setMonthlyIncome] = useState("");
+  const [existingEMIs, setExistingEMIs] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [tenureYears, setTenureYears] = useState("");
   const [result, setResult] = useState({
     availableForEMI: 0,
     maxLoanAmount: 0,
@@ -2117,10 +2114,10 @@ function LoanEligibilityCalc() {
 }
 
 function HomeLoanCalc() {
-  const [propertyValue, setPropertyValue] = useState("8000000");
-  const [downPaymentPercent, setDownPaymentPercent] = useState("20");
-  const [interestRate, setInterestRate] = useState("9");
-  const [tenureYears, setTenureYears] = useState("20");
+  const [propertyValue, setPropertyValue] = useState("");
+  const [downPaymentPercent, setDownPaymentPercent] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [tenureYears, setTenureYears] = useState("");
   const [result, setResult] = useState({
     downPayment: 0,
     loanAmount: 0,
@@ -2178,7 +2175,7 @@ function HomeLoanCalc() {
           <NumberInput label="Tenure (Years)" value={tenureYears} onChange={setTenureYears} />
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(propertyValue) ? <EmptyResults /> : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MiniStat label="Loan Amount" value={formatINR(result.loanAmount)} />
@@ -2205,11 +2202,11 @@ function HomeLoanCalc() {
 }
 
 function RentalYieldCalc() {
-  const [propertyValue, setPropertyValue] = useState("6000000");
-  const [monthlyRent, setMonthlyRent] = useState("35000");
-  const [annualMaintenance, setAnnualMaintenance] = useState("50000");
-  const [annualPropertyTax, setAnnualPropertyTax] = useState("20000");
-  const [vacancyRate, setVacancyRate] = useState("5");
+  const [propertyValue, setPropertyValue] = useState("");
+  const [monthlyRent, setMonthlyRent] = useState("");
+  const [annualMaintenance, setAnnualMaintenance] = useState("");
+  const [annualPropertyTax, setAnnualPropertyTax] = useState("");
+  const [vacancyRate, setVacancyRate] = useState("");
   const [result, setResult] = useState({
     grossYield: 0,
     netYield: 0,
@@ -2272,8 +2269,8 @@ function RentalYieldCalc() {
 }
 
 function NPVCalc() {
-  const [initialInvestment, setInitialInvestment] = useState("1000000");
-  const [discountRate, setDiscountRate] = useState("12");
+  const [initialInvestment, setInitialInvestment] = useState("");
+  const [discountRate, setDiscountRate] = useState("");
   const [cashFlows, setCashFlows] = useState<string[]>(["300000", "350000", "400000"]);
   const [result, setResult] = useState({
     npv: 0,
@@ -2391,7 +2388,7 @@ function NPVCalc() {
 function TDSCalc() {
   const paymentTypes = Object.keys(TDS_CONFIG) as TdsPaymentType[];
   const [paymentType, setPaymentType] = useState<TdsPaymentType>("Professional/Technical fees (194J)");
-  const [paymentAmount, setPaymentAmount] = useState("100000");
+  const [paymentAmount, setPaymentAmount] = useState("");
   const [recipientType, setRecipientType] = useState<"resident" | "NRI">("resident");
   const [contractorType, setContractorType] = useState<"individual" | "company">("individual");
   const [result, setResult] = useState({
@@ -2475,7 +2472,7 @@ function TDSCalc() {
                   onClick={() => setRecipientType(item)}
                   className={cn(
                     "py-2 text-sm font-medium rounded-md transition-all",
-                    recipientType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    recipientType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -2493,7 +2490,7 @@ function TDSCalc() {
                     onClick={() => setContractorType(item)}
                     className={cn(
                       "py-2 text-sm font-medium rounded-md transition-all capitalize",
-                      contractorType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                      contractorType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                     )}
                   >
                     {item}
@@ -2504,7 +2501,7 @@ function TDSCalc() {
           )}
         </div>
       )}
-      outputPanel={(
+      outputPanel={!toNum(paymentAmount) ? <EmptyResults /> : (
         <div className="space-y-4">
           {!result.thresholdMet && result.thresholdLimit > 0 && (
             <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
@@ -2527,8 +2524,8 @@ function TDSCalc() {
 }
 
 function PPFCalc() {
-  const [annualInvestment, setAnnualInvestment] = useState("150000");
-  const [years, setYears] = useState("15");
+  const [annualInvestment, setAnnualInvestment] = useState("");
+  const [years, setYears] = useState("");
   const [result, setResult] = useState({
     maturityAmount: 0,
     totalInvested: 0,
@@ -2631,9 +2628,9 @@ function PPFCalc() {
 
 function SLMCalc() {
   const [assetName, setAssetName] = useState("Asset");
-  const [purchaseCost, setPurchaseCost] = useState("1000000");
+  const [purchaseCost, setPurchaseCost] = useState("");
   const [salvageValue, setSalvageValue] = useState("100000");
-  const [usefulLifeYears, setUsefulLifeYears] = useState("10");
+  const [usefulLifeYears, setUsefulLifeYears] = useState("");
   const [result, setResult] = useState({
     annualDepreciation: 0,
     depreciationRate: 0,
@@ -2736,9 +2733,9 @@ function SLMCalc() {
 }
 
 function MaterialityCalc() {
-  const [totalRevenue, setTotalRevenue] = useState("50000000");
-  const [totalAssets, setTotalAssets] = useState("80000000");
-  const [netProfit, setNetProfit] = useState("7000000");
+  const [totalRevenue, setTotalRevenue] = useState("");
+  const [totalAssets, setTotalAssets] = useState("");
+  const [netProfit, setNetProfit] = useState("");
   const [benchmark, setBenchmark] = useState<"revenue" | "assets" | "profit">("revenue");
   const [result, setResult] = useState({
     revenueMateriality: 0,
@@ -2796,7 +2793,7 @@ function MaterialityCalc() {
                   onClick={() => setBenchmark(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all capitalize",
-                    benchmark === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    benchmark === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -2840,7 +2837,7 @@ function MaterialityCalc() {
 
 function StampDutyCalc() {
   const states = Object.keys(STAMP_DUTY_RATES) as Array<keyof typeof STAMP_DUTY_RATES>;
-  const [propertyValue, setPropertyValue] = useState("8000000");
+  const [propertyValue, setPropertyValue] = useState("");
   const [state, setState] = useState<keyof typeof STAMP_DUTY_RATES>("Maharashtra");
   const [propertyType, setPropertyType] = useState<"residential" | "commercial">("residential");
   const [ownerGender, setOwnerGender] = useState<"women" | "men">("women");
@@ -2946,7 +2943,7 @@ function StampDutyCalc() {
                   onClick={() => setPropertyType(item)}
                   className={cn(
                     "py-2 text-sm font-medium rounded-md transition-all capitalize",
-                    propertyType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    propertyType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -2964,7 +2961,7 @@ function StampDutyCalc() {
                     onClick={() => setOwnerGender(item)}
                     className={cn(
                       "py-2 text-sm font-medium rounded-md transition-all capitalize",
-                      ownerGender === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                      ownerGender === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                     )}
                   >
                     {item}
@@ -3022,10 +3019,10 @@ function StampDutyCalc() {
 }
 
 function WACCCalc() {
-  const [equityValue, setEquityValue] = useState("5000000");
-  const [debtValue, setDebtValue] = useState("3000000");
-  const [costOfEquity, setCostOfEquity] = useState("14");
-  const [costOfDebt, setCostOfDebt] = useState("9");
+  const [equityValue, setEquityValue] = useState("");
+  const [debtValue, setDebtValue] = useState("");
+  const [costOfEquity, setCostOfEquity] = useState("");
+  const [costOfDebt, setCostOfDebt] = useState("");
   const [taxRate, setTaxRate] = useState("25");
   const [result, setResult] = useState({
     wacc: 0,
@@ -3098,10 +3095,10 @@ function WACCCalc() {
 
 function DCFCalc() {
   const [cashFlows, setCashFlows] = useState<string[]>(["0", "250000", "300000", "360000", "420000", "480000"]);
-  const [terminalGrowth, setTerminalGrowth] = useState("4");
-  const [discountRate, setDiscountRate] = useState("12");
-  const [netDebt, setNetDebt] = useState("0");
-  const [sharesOutstanding, setSharesOutstanding] = useState("0");
+  const [terminalGrowth, setTerminalGrowth] = useState("");
+  const [discountRate, setDiscountRate] = useState("");
+  const [netDebt, setNetDebt] = useState("");
+  const [sharesOutstanding, setSharesOutstanding] = useState("");
   const [result, setResult] = useState({
     enterpriseValue: 0,
     equityValue: 0,
@@ -3233,11 +3230,11 @@ function DCFCalc() {
 }
 
 function SampleSizeCalc() {
-  const [populationSize, setPopulationSize] = useState("10000");
+  const [populationSize, setPopulationSize] = useState("");
   const [confidenceLevel, setConfidenceLevel] = useState<"90" | "95" | "99">("95");
-  const [tolerableErrorRate, setTolerableErrorRate] = useState("5");
-  const [expectedErrorRate, setExpectedErrorRate] = useState("2");
-  const [populationValue, setPopulationValue] = useState("50000000");
+  const [tolerableErrorRate, setTolerableErrorRate] = useState("");
+  const [expectedErrorRate, setExpectedErrorRate] = useState("");
+  const [populationValue, setPopulationValue] = useState("");
   const [tolerableMisstatement, setTolerableMisstatement] = useState("1000000");
   const [result, setResult] = useState({
     sampleSize: 0,
@@ -3288,7 +3285,7 @@ function SampleSizeCalc() {
                   onClick={() => setConfidenceLevel(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    confidenceLevel === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    confidenceLevel === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}%
@@ -3322,16 +3319,16 @@ function SampleSizeCalc() {
 }
 
 function Section80CCalc() {
-  const [epf, setEpf] = useState("50000");
-  const [ppf, setPpf] = useState("30000");
-  const [elss, setElss] = useState("20000");
-  const [lic, setLic] = useState("15000");
-  const [homePrincipal, setHomePrincipal] = useState("25000");
-  const [tuitionFees, setTuitionFees] = useState("10000");
-  const [nscFd, setNscFd] = useState("0");
-  const [healthSelfFamily, setHealthSelfFamily] = useState("25000");
-  const [healthParents, setHealthParents] = useState("25000");
-  const [npsAdditional, setNpsAdditional] = useState("50000");
+  const [epf, setEpf] = useState("");
+  const [ppf, setPpf] = useState("");
+  const [elss, setElss] = useState("");
+  const [lic, setLic] = useState("");
+  const [homePrincipal, setHomePrincipal] = useState("");
+  const [tuitionFees, setTuitionFees] = useState("");
+  const [nscFd, setNscFd] = useState("");
+  const [healthSelfFamily, setHealthSelfFamily] = useState("");
+  const [healthParents, setHealthParents] = useState("");
+  const [npsAdditional, setNpsAdditional] = useState("");
   const [isSeniorCitizen, setIsSeniorCitizen] = useState(false);
   const [isParentsSeniorCitizen, setIsParentsSeniorCitizen] = useState(false);
   const [result, setResult] = useState({
@@ -3418,7 +3415,7 @@ function Section80CCalc() {
                 onClick={() => setIsSeniorCitizen((v) => !v)}
                 className={cn(
                   "py-2 text-xs font-medium rounded-md transition-all",
-                  isSeniorCitizen ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                  isSeniorCitizen ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                 )}
               >
                 Self/Family Senior: {isSeniorCitizen ? "Yes" : "No"}
@@ -3427,7 +3424,7 @@ function Section80CCalc() {
                 onClick={() => setIsParentsSeniorCitizen((v) => !v)}
                 className={cn(
                   "py-2 text-xs font-medium rounded-md transition-all",
-                  isParentsSeniorCitizen ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                  isParentsSeniorCitizen ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                 )}
               >
                 Parents Senior: {isParentsSeniorCitizen ? "Yes" : "No"}
@@ -3467,12 +3464,12 @@ function Section80CCalc() {
 }
 
 function BalanceTransferCalc() {
-  const [currentLoanBalance, setCurrentLoanBalance] = useState("3000000");
-  const [currentInterestRate, setCurrentInterestRate] = useState("10");
-  const [currentRemainingTenure, setCurrentRemainingTenure] = useState("180");
-  const [newInterestRate, setNewInterestRate] = useState("8.5");
-  const [processingFee, setProcessingFee] = useState("1");
-  const [prepaymentPenalty, setPrepaymentPenalty] = useState("2");
+  const [currentLoanBalance, setCurrentLoanBalance] = useState("");
+  const [currentInterestRate, setCurrentInterestRate] = useState("");
+  const [currentRemainingTenure, setCurrentRemainingTenure] = useState("");
+  const [newInterestRate, setNewInterestRate] = useState("");
+  const [processingFee, setProcessingFee] = useState("");
+  const [prepaymentPenalty, setPrepaymentPenalty] = useState("");
   const [result, setResult] = useState({
     oldEMI: 0,
     newEMI: 0,
@@ -3563,7 +3560,7 @@ function BalanceTransferCalc() {
 }
 
 function DividendTaxCalc() {
-  const [dividendAmount, setDividendAmount] = useState("100000");
+  const [dividendAmount, setDividendAmount] = useState("");
   const [shareholderType, setShareholderType] = useState<"individual" | "company" | "NRI">("individual");
   const [taxSlab, setTaxSlab] = useState<"5" | "20" | "30">("30");
   const [hasDTAA, setHasDTAA] = useState(false);
@@ -3631,7 +3628,7 @@ function DividendTaxCalc() {
                   onClick={() => setShareholderType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all capitalize",
-                    shareholderType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    shareholderType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -3648,7 +3645,7 @@ function DividendTaxCalc() {
                   onClick={() => setTaxSlab(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    taxSlab === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    taxSlab === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}%
@@ -3665,7 +3662,7 @@ function DividendTaxCalc() {
                   "w-full py-2 text-sm font-medium rounded-md transition-all border",
                   hasDTAA
                     ? "bg-gradient-orange text-white glow-orange border-transparent"
-                    : "text-secondary border-white/10 hover:text-white"
+                    : "text-secondary border-white/10 hover:text-[var(--text-primary)]"
                 )}
               >
                 {hasDTAA ? "Yes (Use 10% DTAA rate)" : "No (Use 20% + surcharge + cess)"}
@@ -3695,10 +3692,10 @@ function DividendTaxCalc() {
 }
 
 function ROEDetailCalc() {
-  const [netIncome, setNetIncome] = useState("1200000");
-  const [revenue, setRevenue] = useState("12000000");
-  const [totalAssets, setTotalAssets] = useState("18000000");
-  const [shareholderEquity, setShareholderEquity] = useState("6000000");
+  const [netIncome, setNetIncome] = useState("");
+  const [revenue, setRevenue] = useState("");
+  const [totalAssets, setTotalAssets] = useState("");
+  const [shareholderEquity, setShareholderEquity] = useState("");
   const [result, setResult] = useState({
     basicROE: 0,
     netProfitMarginPct: 0,
@@ -3789,9 +3786,9 @@ function ROEDetailCalc() {
 }
 
 function IRRCalc() {
-  const [initialInvestment, setInitialInvestment] = useState("1000000");
+  const [initialInvestment, setInitialInvestment] = useState("");
   const [cashFlows, setCashFlows] = useState<string[]>(["250000", "300000", "350000", "400000"]);
-  const [reinvestmentRate, setReinvestmentRate] = useState("10");
+  const [reinvestmentRate, setReinvestmentRate] = useState("");
   const [result, setResult] = useState({
     irr: 0,
     mirr: 0,
@@ -3921,8 +3918,8 @@ function IRRCalc() {
 }
 
 function PaybackCalc() {
-  const [initialInvestment, setInitialInvestment] = useState("1000000");
-  const [discountRate, setDiscountRate] = useState("10");
+  const [initialInvestment, setInitialInvestment] = useState("");
+  const [discountRate, setDiscountRate] = useState("");
   const [cashFlows, setCashFlows] = useState<string[]>(["250000", "300000", "350000", "400000"]);
   const [result, setResult] = useState({
     simplePaybackMonths: 0,
@@ -4082,10 +4079,10 @@ function PaybackCalc() {
 }
 
 function LumpsumCalc() {
-  const [principalAmount, setPrincipalAmount] = useState("1000000");
-  const [expectedReturn, setExpectedReturn] = useState("12");
-  const [years, setYears] = useState("10");
-  const [inflationRate, setInflationRate] = useState("6");
+  const [principalAmount, setPrincipalAmount] = useState("");
+  const [expectedReturn, setExpectedReturn] = useState("");
+  const [years, setYears] = useState("");
+  const [inflationRate, setInflationRate] = useState("");
   const [result, setResult] = useState({
     futureValue: 0,
     realValueAfterInflation: 0,
@@ -4216,7 +4213,7 @@ function LumpsumCalc() {
 }
 
 function ESICalc() {
-  const [grossSalary, setGrossSalary] = useState("18000");
+  const [grossSalary, setGrossSalary] = useState("");
   const [result, setResult] = useState({
     applicable: true,
     employeeESI: 0,
@@ -4313,12 +4310,12 @@ function ESICalc() {
 }
 
 function CarLoanCalc() {
-  const [carPrice, setCarPrice] = useState("1200000");
-  const [downPayment, setDownPayment] = useState("200000");
-  const [interestRate, setInterestRate] = useState("9");
-  const [tenureYears, setTenureYears] = useState("5");
-  const [processingFeePercent, setProcessingFeePercent] = useState("1");
-  const [insuranceAmount, setInsuranceAmount] = useState("50000");
+  const [carPrice, setCarPrice] = useState("");
+  const [downPayment, setDownPayment] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [tenureYears, setTenureYears] = useState("");
+  const [processingFeePercent, setProcessingFeePercent] = useState("");
+  const [insuranceAmount, setInsuranceAmount] = useState("");
   const [result, setResult] = useState({
     loanAmount: 0,
     monthlyEMI: 0,
@@ -4407,10 +4404,10 @@ function CarLoanCalc() {
 }
 
 function PersonalLoanCalc() {
-  const [loanAmount, setLoanAmount] = useState("500000");
-  const [interestRate, setInterestRate] = useState("14");
-  const [tenureMonths, setTenureMonths] = useState("36");
-  const [processingFeePercent, setProcessingFeePercent] = useState("2");
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [tenureMonths, setTenureMonths] = useState("");
+  const [processingFeePercent, setProcessingFeePercent] = useState("");
   const [result, setResult] = useState({
     monthlyEMI: 0,
     processingFee: 0,
@@ -4509,11 +4506,11 @@ function PersonalLoanCalc() {
 }
 
 function PrepaymentCalc() {
-  const [originalLoan, setOriginalLoan] = useState("3000000");
-  const [interestRate, setInterestRate] = useState("9");
-  const [originalTenureMonths, setOriginalTenureMonths] = useState("240");
-  const [monthsPaid, setMonthsPaid] = useState("24");
-  const [prepaymentAmount, setPrepaymentAmount] = useState("500000");
+  const [originalLoan, setOriginalLoan] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [originalTenureMonths, setOriginalTenureMonths] = useState("");
+  const [monthsPaid, setMonthsPaid] = useState("");
+  const [prepaymentAmount, setPrepaymentAmount] = useState("");
   const [prepaymentPenaltyPercent, setPrepaymentPenaltyPercent] = useState("2");
   const [result, setResult] = useState({
     remainingBalance: 0,
@@ -4638,7 +4635,7 @@ function GSTLateFeeCalc() {
   const [returnType, setReturnType] = useState<"GSTR-1" | "GSTR-3B" | "GSTR-9">("GSTR-3B");
   const [dueDate, setDueDate] = useState("2026-04-20");
   const [filingDate, setFilingDate] = useState("2026-04-25");
-  const [taxPayable, setTaxPayable] = useState("100000");
+  const [taxPayable, setTaxPayable] = useState("");
   const [isNilReturn, setIsNilReturn] = useState(false);
   const [result, setResult] = useState({
     daysLate: 0,
@@ -4715,7 +4712,7 @@ function GSTLateFeeCalc() {
                   onClick={() => setReturnType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    returnType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    returnType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -4751,7 +4748,7 @@ function GSTLateFeeCalc() {
                 "w-full py-2 text-sm font-medium rounded-md transition-all border",
                 isNilReturn
                   ? "bg-gradient-orange text-white glow-orange border-transparent"
-                  : "text-secondary border-white/10 hover:text-white"
+                  : "text-secondary border-white/10 hover:text-[var(--text-primary)]"
               )}
             >
               {isNilReturn ? "Yes" : "No"}
@@ -4828,15 +4825,15 @@ function GSTLateFeeCalc() {
 }
 
 function ITCReconciliationCalc() {
-  const [igst2B, setIgst2B] = useState("100000");
-  const [cgst2B, setCgst2B] = useState("50000");
-  const [sgst2B, setSgst2B] = useState("50000");
-  const [igstClaimed, setIgstClaimed] = useState("95000");
-  const [cgstClaimed, setCgstClaimed] = useState("52000");
-  const [sgstClaimed, setSgstClaimed] = useState("50000");
-  const [igstReversed, setIgstReversed] = useState("5000");
-  const [cgstReversed, setCgstReversed] = useState("2000");
-  const [sgstReversed, setSgstReversed] = useState("1000");
+  const [igst2B, setIgst2B] = useState("");
+  const [cgst2B, setCgst2B] = useState("");
+  const [sgst2B, setSgst2B] = useState("");
+  const [igstClaimed, setIgstClaimed] = useState("");
+  const [cgstClaimed, setCgstClaimed] = useState("");
+  const [sgstClaimed, setSgstClaimed] = useState("");
+  const [igstReversed, setIgstReversed] = useState("");
+  const [cgstReversed, setCgstReversed] = useState("");
+  const [sgstReversed, setSgstReversed] = useState("");
   const [result, setResult] = useState({
     rows: [] as Array<{
       type: "IGST" | "CGST" | "SGST";
@@ -4980,678 +4977,14 @@ function ITCReconciliationCalc() {
   );
 }
 
-function UKIncomeTaxCalc() {
-  const [annualIncome, setAnnualIncome] = useState("65000");
-  const [taxYear, setTaxYear] = useState("2025-26");
-  const [residency, setResidency] = useState<"England" | "Scotland" | "Wales">("England");
-  const [result, setResult] = useState({
-    incomeTax: 0,
-    nationalInsurance: 0,
-    totalDeductions: 0,
-    takeHome: 0,
-    effectiveIncomeTaxRate: 0,
-    effectiveTotalRate: 0,
-    taxRows: [] as Array<{ slab: string; taxable: number; rate: number; tax: number }>,
-    niRows: [] as Array<{ slab: string; taxable: number; rate: number; amount: number }>,
-  });
-
-  useEffect(() => {
-    const income = Math.max(0, toNum(annualIncome));
-
-    const englandWalesBands = [
-      { min: 0, max: 12570, rate: 0, label: "Personal Allowance" },
-      { min: 12570, max: 50270, rate: 20, label: "Basic Rate" },
-      { min: 50270, max: 125140, rate: 40, label: "Higher Rate" },
-      { min: 125140, max: null as number | null, rate: 45, label: "Additional Rate" },
-    ];
-
-    const scotlandBands = [
-      { min: 0, max: 12570, rate: 0, label: "Personal Allowance" },
-      { min: 12570, max: 14876, rate: 19, label: "Starter Rate" },
-      { min: 14876, max: 26561, rate: 20, label: "Basic Rate" },
-      { min: 26561, max: 43662, rate: 21, label: "Intermediate Rate" },
-      { min: 43662, max: 75000, rate: 42, label: "Higher Rate" },
-      { min: 75000, max: null as number | null, rate: 47, label: "Top Rate" },
-    ];
-
-    const selectedBands = residency === "Scotland" ? scotlandBands : englandWalesBands;
-    const taxRows = selectedBands.map((band) => {
-      const upper = band.max ?? Number.POSITIVE_INFINITY;
-      const taxable = Math.max(0, Math.min(income, upper) - band.min);
-      const tax = taxable * band.rate / 100;
-      return { slab: band.label, taxable, rate: band.rate, tax };
-    });
-    const incomeTax = taxRows.reduce((sum, row) => sum + row.tax, 0);
-
-    const niBands = [
-      { min: 0, max: 12570, rate: 0, label: "Primary Threshold" },
-      { min: 12570, max: 50270, rate: 8, label: "Main NI Rate" },
-      { min: 50270, max: null as number | null, rate: 2, label: "Additional NI Rate" },
-    ];
-    const niRows = niBands.map((band) => {
-      const upper = band.max ?? Number.POSITIVE_INFINITY;
-      const taxable = Math.max(0, Math.min(income, upper) - band.min);
-      const amount = taxable * band.rate / 100;
-      return { slab: band.label, taxable, rate: band.rate, amount };
-    });
-
-    const nationalInsurance = niRows.reduce((sum, row) => sum + row.amount, 0);
-    const totalDeductions = incomeTax + nationalInsurance;
-    const takeHome = Math.max(0, income - totalDeductions);
-    const effectiveIncomeTaxRate = income > 0 ? incomeTax / income * 100 : 0;
-    const effectiveTotalRate = income > 0 ? totalDeductions / income * 100 : 0;
-
-    setResult({
-      incomeTax,
-      nationalInsurance,
-      totalDeductions,
-      takeHome,
-      effectiveIncomeTaxRate,
-      effectiveTotalRate,
-      taxRows,
-      niRows,
-    });
-  }, [annualIncome, taxYear, residency]);
-
-  return (
-    <CalculatorShell
-      title="UK Income Tax Calculator"
-      subtitle="Income tax and National Insurance estimate"
-      inputPanel={(
-        <div className="card-surface p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Inputs</h2>
-          <NumberInput label="Annual Income (GBP)" value={annualIncome} onChange={setAnnualIncome} />
-
-          <Field label="Tax Year">
-            <input
-              value={taxYear}
-              onChange={(e) => setTaxYear(e.target.value)}
-              className="glass-input w-full h-11 px-3 text-sm"
-            />
-          </Field>
-
-          <Field label="Residency">
-            <div className="grid grid-cols-3 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {(["England", "Scotland", "Wales"] as const).map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setResidency(item)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md transition-all",
-                    residency === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
-                  )}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </Field>
-        </div>
-      )}
-      outputPanel={(
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniStat label="Income Tax" value={formatGBP(result.incomeTax)} />
-            <MiniStat label="National Insurance" value={formatGBP(result.nationalInsurance)} />
-            <MiniStat label="Total Deductions" value={formatGBP(result.totalDeductions)} />
-            <MiniStat label="Take Home" value={formatGBP(result.takeHome)} green />
-            <MiniStat label="Effective Income Tax Rate" value={formatPct(result.effectiveIncomeTaxRate)} />
-            <MiniStat label="Effective Total Rate" value={formatPct(result.effectiveTotalRate)} />
-          </div>
-
-          <div className="card-surface p-5 overflow-hidden">
-            <div className="text-sm font-semibold mb-3">Income Tax Slab Breakdown</div>
-            <div className="overflow-x-auto -mx-5">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-tertiary">
-                    <th className="text-left font-medium px-5 py-2 bg-primary/10">Slab</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Taxable Income</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Rate</th>
-                    <th className="text-right font-medium px-5 py-2 bg-primary/10">Tax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.taxRows.map((row, index) => (
-                    <tr key={row.slab} className={index % 2 ? "bg-white/[0.02]" : ""}>
-                      <td className="px-5 py-2 text-secondary">{row.slab}</td>
-                      <td className="px-3 py-2 text-right">{formatGBP(row.taxable)}</td>
-                      <td className="px-3 py-2 text-right">{formatPct(row.rate)}</td>
-                      <td className="px-5 py-2 text-right font-medium">{formatGBP(row.tax)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="card-surface p-5 overflow-hidden">
-            <div className="text-sm font-semibold mb-3">National Insurance Breakdown</div>
-            <div className="overflow-x-auto -mx-5">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-tertiary">
-                    <th className="text-left font-medium px-5 py-2 bg-primary/10">Band</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Income</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Rate</th>
-                    <th className="text-right font-medium px-5 py-2 bg-primary/10">NI</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.niRows.map((row, index) => (
-                    <tr key={row.slab} className={index % 2 ? "bg-white/[0.02]" : ""}>
-                      <td className="px-5 py-2 text-secondary">{row.slab}</td>
-                      <td className="px-3 py-2 text-right">{formatGBP(row.taxable)}</td>
-                      <td className="px-3 py-2 text-right">{formatPct(row.rate)}</td>
-                      <td className="px-5 py-2 text-right font-medium">{formatGBP(row.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-    />
-  );
-}
-
-function USFederalTaxCalc() {
-  const [annualIncome, setAnnualIncome] = useState("120000");
-  const [filingStatus, setFilingStatus] = useState<"Single" | "MFJ" | "MFS" | "HoH">("Single");
-  const [taxYear, setTaxYear] = useState("2025");
-  const [result, setResult] = useState({
-    federalTax: 0,
-    socialSecurity: 0,
-    medicare: 0,
-    totalTax: 0,
-    effectiveRate: 0,
-    marginalRate: 0,
-    takeHome: 0,
-    taxableIncome: 0,
-    bracketRows: [] as Array<{ slab: string; taxable: number; rate: number; tax: number }>,
-  });
-
-  useEffect(() => {
-    const income = Math.max(0, toNum(annualIncome));
-    const standardDeductionMap = {
-      Single: 15000,
-      MFJ: 30000,
-      MFS: 15000,
-      HoH: 22500,
-    } as const;
-    const standardDeduction = standardDeductionMap[filingStatus];
-    const taxableIncome = Math.max(0, income - standardDeduction);
-
-    const singleBrackets = [
-      { min: 0, max: 11925, rate: 10 },
-      { min: 11925, max: 48475, rate: 12 },
-      { min: 48475, max: 103350, rate: 22 },
-      { min: 103350, max: 197300, rate: 24 },
-      { min: 197300, max: 250525, rate: 32 },
-      { min: 250525, max: 626350, rate: 35 },
-      { min: 626350, max: null as number | null, rate: 37 },
-    ];
-
-    const multiplier = filingStatus === "MFJ" ? 2 : 1;
-    const brackets = singleBrackets.map((b) => ({
-      min: b.min * multiplier,
-      max: b.max === null ? null : b.max * multiplier,
-      rate: b.rate,
-      slab: b.max === null
-        ? `Over ${formatUSD(b.min * multiplier)}`
-        : `${formatUSD(b.min + 1)} - ${formatUSD(b.max * multiplier)}`,
-    }));
-
-    const bracketRows = brackets.map((b) => {
-      const upper = b.max ?? Number.POSITIVE_INFINITY;
-      const taxable = Math.max(0, Math.min(taxableIncome, upper) - b.min);
-      const tax = taxable * b.rate / 100;
-      return { slab: b.slab, taxable, rate: b.rate, tax };
-    });
-    const federalTax = bracketRows.reduce((sum, row) => sum + row.tax, 0);
-    const marginalRate = bracketRows.reduce((rate, row) => (row.taxable > 0 ? row.rate : rate), 0);
-
-    const socialSecurity = Math.min(income, 176100) * 0.062;
-    const medicareBase = income * 0.0145;
-    const additionalMedicare = income > 200000 ? (income - 200000) * 0.009 : 0;
-    const medicare = medicareBase + additionalMedicare;
-
-    const totalTax = federalTax + socialSecurity + medicare;
-    const takeHome = Math.max(0, income - totalTax);
-    const effectiveRate = income > 0 ? totalTax / income * 100 : 0;
-
-    setResult({
-      federalTax,
-      socialSecurity,
-      medicare,
-      totalTax,
-      effectiveRate,
-      marginalRate,
-      takeHome,
-      taxableIncome,
-      bracketRows,
-    });
-  }, [annualIncome, filingStatus, taxYear]);
-
-  return (
-    <CalculatorShell
-      title="US Federal Income Tax Calculator"
-      subtitle="Federal tax, FICA and take-home estimate"
-      inputPanel={(
-        <div className="card-surface p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Inputs</h2>
-          <NumberInput label="Annual Income (USD)" value={annualIncome} onChange={setAnnualIncome} />
-
-          <Field label="Filing Status">
-            <div className="grid grid-cols-2 gap-2">
-              {(["Single", "MFJ", "MFS", "HoH"] as const).map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setFilingStatus(item)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md border transition-all",
-                    filingStatus === item
-                      ? "bg-gradient-orange text-white glow-orange border-transparent"
-                      : "text-secondary border-white/10 hover:text-white"
-                  )}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </Field>
-
-          <Field label="Tax Year">
-            <input
-              value={taxYear}
-              onChange={(e) => setTaxYear(e.target.value)}
-              className="glass-input w-full h-11 px-3 text-sm"
-            />
-          </Field>
-        </div>
-      )}
-      outputPanel={(
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniStat label="Taxable Income" value={formatUSD(result.taxableIncome)} />
-            <MiniStat label="Federal Tax" value={formatUSD(result.federalTax)} />
-            <MiniStat label="Social Security" value={formatUSD(result.socialSecurity)} />
-            <MiniStat label="Medicare" value={formatUSD(result.medicare)} />
-            <MiniStat label="Total Tax" value={formatUSD(result.totalTax)} />
-            <MiniStat label="Take Home" value={formatUSD(result.takeHome)} green />
-            <MiniStat label="Effective Rate" value={formatPct(result.effectiveRate)} />
-            <MiniStat label="Marginal Rate" value={formatPct(result.marginalRate)} />
-          </div>
-
-          <div className="card-surface p-5 overflow-hidden">
-            <div className="text-sm font-semibold mb-3">Federal Bracket Breakdown</div>
-            <div className="overflow-x-auto -mx-5">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-tertiary">
-                    <th className="text-left font-medium px-5 py-2 bg-primary/10">Bracket</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Taxed</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Rate</th>
-                    <th className="text-right font-medium px-5 py-2 bg-primary/10">Tax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.bracketRows.map((row, index) => (
-                    <tr key={`${row.slab}-${row.rate}`} className={index % 2 ? "bg-white/[0.02]" : ""}>
-                      <td className="px-5 py-2 text-secondary">{row.slab}</td>
-                      <td className="px-3 py-2 text-right">{formatUSD(row.taxable)}</td>
-                      <td className="px-3 py-2 text-right">{formatPct(row.rate)}</td>
-                      <td className="px-5 py-2 text-right font-medium">{formatUSD(row.tax)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-    />
-  );
-}
-
-function UAEVATCalc() {
-  const [amount, setAmount] = useState("10000");
-  const [vatRate, setVatRate] = useState<5 | 0>(5);
-  const [direction, setDirection] = useState<"add" | "remove">("add");
-  const [result, setResult] = useState({
-    baseAmount: 0,
-    vatAmount: 0,
-    totalAmount: 0,
-    estimatedQuarterlyVAT: 0,
-    vatRegistrationThreshold: 375000,
-  });
-
-  useEffect(() => {
-    const inputAmount = Math.max(0, toNum(amount));
-    const rate = vatRate / 100;
-    let baseAmount = 0;
-    let vatAmount = 0;
-    let totalAmount = 0;
-
-    if (direction === "add") {
-      baseAmount = inputAmount;
-      vatAmount = baseAmount * rate;
-      totalAmount = baseAmount + vatAmount;
-    } else {
-      totalAmount = inputAmount;
-      baseAmount = rate > 0 ? totalAmount / (1 + rate) : totalAmount;
-      vatAmount = totalAmount - baseAmount;
-    }
-
-    const estimatedQuarterlyVAT = vatAmount * 4;
-    setResult({
-      baseAmount,
-      vatAmount,
-      totalAmount,
-      estimatedQuarterlyVAT,
-      vatRegistrationThreshold: 375000,
-    });
-  }, [amount, vatRate, direction]);
-
-  return (
-    <CalculatorShell
-      title="UAE VAT Calculator"
-      subtitle="Add or remove VAT with quarterly liability estimate"
-      inputPanel={(
-        <div className="card-surface p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Inputs</h2>
-          <NumberInput label="Amount (AED)" value={amount} onChange={setAmount} />
-
-          <Field label="VAT Rate">
-            <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {([5, 0] as const).map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setVatRate(item)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md transition-all",
-                    vatRate === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
-                  )}
-                >
-                  {item}%
-                </button>
-              ))}
-            </div>
-          </Field>
-
-          <Field label="Direction">
-            <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {([
-                { key: "add", label: "Add VAT" },
-                { key: "remove", label: "Remove VAT" },
-              ] as const).map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setDirection(item.key)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md transition-all",
-                    direction === item.key ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-        </div>
-      )}
-      outputPanel={(
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniStat label="Base Amount" value={formatAED(result.baseAmount)} />
-            <MiniStat label="VAT Amount" value={formatAED(result.vatAmount)} />
-            <MiniStat label="Total Amount" value={formatAED(result.totalAmount)} green />
-            <MiniStat label="Estimated Quarterly VAT" value={formatAED(result.estimatedQuarterlyVAT)} />
-            <MiniStat label="Registration Threshold" value={formatAED(result.vatRegistrationThreshold)} />
-          </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            VAT registration required if taxable supplies exceed AED 375,000/year.
-          </div>
-        </div>
-      )}
-    />
-  );
-}
-
-function UKVATCalc() {
-  const [amount, setAmount] = useState("1000");
-  const [vatRate, setVatRate] = useState<20 | 5 | 0>(20);
-  const [direction, setDirection] = useState<"add" | "remove">("add");
-  const [result, setResult] = useState({
-    netAmount: 0,
-    vatAmount: 0,
-    grossAmount: 0,
-    flatRateSchemeEstimate: 0,
-    threshold: 90000,
-    hmrcReference: "HMRC VAT Notice 700",
-  });
-
-  useEffect(() => {
-    const inputAmount = Math.max(0, toNum(amount));
-    const rate = vatRate / 100;
-    let netAmount = 0;
-    let vatAmount = 0;
-    let grossAmount = 0;
-
-    if (direction === "add") {
-      netAmount = inputAmount;
-      vatAmount = netAmount * rate;
-      grossAmount = netAmount + vatAmount;
-    } else {
-      grossAmount = inputAmount;
-      netAmount = rate > 0 ? grossAmount / (1 + rate) : grossAmount;
-      vatAmount = grossAmount - netAmount;
-    }
-
-    const flatRateSchemeEstimate = netAmount * 0.12;
-    setResult({
-      netAmount,
-      vatAmount,
-      grossAmount,
-      flatRateSchemeEstimate,
-      threshold: 90000,
-      hmrcReference: "HMRC VAT Notice 700",
-    });
-  }, [amount, vatRate, direction]);
-
-  return (
-    <CalculatorShell
-      title="UK VAT Calculator"
-      subtitle="Add/remove UK VAT with flat rate comparison"
-      inputPanel={(
-        <div className="card-surface p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Inputs</h2>
-          <NumberInput label="Amount (GBP)" value={amount} onChange={setAmount} />
-
-          <Field label="VAT Rate">
-            <div className="grid grid-cols-3 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {([20, 5, 0] as const).map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setVatRate(item)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md transition-all",
-                    vatRate === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
-                  )}
-                >
-                  {item}%
-                </button>
-              ))}
-            </div>
-          </Field>
-
-          <Field label="Direction">
-            <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {([
-                { key: "add", label: "Add VAT" },
-                { key: "remove", label: "Remove VAT" },
-              ] as const).map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setDirection(item.key)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md transition-all",
-                    direction === item.key ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-        </div>
-      )}
-      outputPanel={(
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniStat label="Net Amount" value={formatGBP(result.netAmount)} />
-            <MiniStat label="VAT Amount" value={formatGBP(result.vatAmount)} />
-            <MiniStat label="Gross Amount" value={formatGBP(result.grossAmount)} green />
-            <MiniStat label="Flat Rate Estimate (12%)" value={formatGBP(result.flatRateSchemeEstimate)} />
-            <MiniStat label="VAT Threshold" value={formatGBP(result.threshold)} />
-          </div>
-
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            HMRC reference: {result.hmrcReference}
-          </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            VAT registration required if taxable turnover exceeds £90,000.
-          </div>
-        </div>
-      )}
-    />
-  );
-}
-
-function SGIncomeTaxCalc() {
-  const [annualIncome, setAnnualIncome] = useState("90000");
-  const [residencyStatus, setResidencyStatus] = useState<"Tax Resident" | "Non-Resident">("Tax Resident");
-  const [result, setResult] = useState({
-    incomeTax: 0,
-    cpfContribution: 0,
-    effectiveRate: 0,
-    slabRows: [] as Array<{ slab: string; taxable: number; rate: number; tax: number }>,
-  });
-
-  useEffect(() => {
-    const income = Math.max(0, toNum(annualIncome));
-    const residentSlabs = [
-      { min: 0, max: 20000, rate: 0, slab: "$0 - $20,000" },
-      { min: 20000, max: 30000, rate: 2, slab: "$20,001 - $30,000" },
-      { min: 30000, max: 40000, rate: 3.5, slab: "$30,001 - $40,000" },
-      { min: 40000, max: 80000, rate: 7, slab: "$40,001 - $80,000" },
-      { min: 80000, max: 120000, rate: 11.5, slab: "$80,001 - $120,000" },
-      { min: 120000, max: 160000, rate: 15, slab: "$120,001 - $160,000" },
-      { min: 160000, max: 200000, rate: 18, slab: "$160,001 - $200,000" },
-      { min: 200000, max: 240000, rate: 19, slab: "$200,001 - $240,000" },
-      { min: 240000, max: 280000, rate: 20, slab: "$240,001 - $280,000" },
-      { min: 280000, max: 320000, rate: 22, slab: "$280,001 - $320,000" },
-      { min: 320000, max: null as number | null, rate: 24, slab: "Above $320,000" },
-    ];
-
-    const slabRows = residentSlabs.map((slab) => {
-      const upper = slab.max ?? Number.POSITIVE_INFINITY;
-      const taxable = Math.max(0, Math.min(income, upper) - slab.min);
-      const tax = taxable * slab.rate / 100;
-      return { slab: slab.slab, taxable, rate: slab.rate, tax };
-    });
-
-    const residentTax = slabRows.reduce((sum, row) => sum + row.tax, 0);
-    const nonResidentFlat = income * 0.15;
-    const incomeTax = residencyStatus === "Tax Resident" ? residentTax : Math.max(nonResidentFlat, residentTax);
-
-    const cpfCapAnnual = 6800 * 12;
-    const cpfContribution = residencyStatus === "Tax Resident" ? Math.min(income, cpfCapAnnual) * 0.2 : 0;
-    const effectiveRate = income > 0 ? incomeTax / income * 100 : 0;
-
-    setResult({
-      incomeTax,
-      cpfContribution,
-      effectiveRate,
-      slabRows,
-    });
-  }, [annualIncome, residencyStatus]);
-
-  return (
-    <CalculatorShell
-      title="Singapore Income Tax Calculator"
-      subtitle="Resident slab tax, CPF and non-resident comparison"
-      inputPanel={(
-        <div className="card-surface p-6 space-y-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Inputs</h2>
-          <NumberInput label="Annual Income (SGD)" value={annualIncome} onChange={setAnnualIncome} />
-
-          <Field label="Residency Status">
-            <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {(["Tax Resident", "Non-Resident"] as const).map((item) => (
-                <button
-                  key={item}
-                  onClick={() => setResidencyStatus(item)}
-                  className={cn(
-                    "py-2 text-xs font-medium rounded-md transition-all",
-                    residencyStatus === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
-                  )}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </Field>
-        </div>
-      )}
-      outputPanel={(
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniStat label="Income Tax" value={formatSGD(result.incomeTax)} />
-            <MiniStat label="CPF Contribution" value={formatSGD(result.cpfContribution)} />
-            <MiniStat label="Effective Rate" value={formatPct(result.effectiveRate)} green />
-          </div>
-
-          <div className="card-surface p-5 overflow-hidden">
-            <div className="text-sm font-semibold mb-3">Slab Breakdown (Resident Rates)</div>
-            <div className="overflow-x-auto -mx-5">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-tertiary">
-                    <th className="text-left font-medium px-5 py-2 bg-primary/10">Slab</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Taxed</th>
-                    <th className="text-right font-medium px-3 py-2 bg-primary/10">Rate</th>
-                    <th className="text-right font-medium px-5 py-2 bg-primary/10">Tax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.slabRows.map((row, index) => (
-                    <tr key={row.slab} className={index % 2 ? "bg-white/[0.02]" : ""}>
-                      <td className="px-5 py-2 text-secondary">{row.slab}</td>
-                      <td className="px-3 py-2 text-right">{formatSGD(row.taxable)}</td>
-                      <td className="px-3 py-2 text-right">{formatPct(row.rate)}</td>
-                      <td className="px-5 py-2 text-right font-medium">{formatSGD(row.tax)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-    />
-  );
-}
-
 function DebtEquityCalc() {
-  const [totalDebt, setTotalDebt] = useState("2500000");
-  const [totalEquity, setTotalEquity] = useState("1800000");
-  const [totalAssets, setTotalAssets] = useState("5000000");
-  const [ebit, setEbit] = useState("900000");
-  const [interestExpense, setInterestExpense] = useState("220000");
-  const [netIncome, setNetIncome] = useState("600000");
-  const [totalRevenue, setTotalRevenue] = useState("7500000");
+  const [totalDebt, setTotalDebt] = useState("");
+  const [totalEquity, setTotalEquity] = useState("");
+  const [totalAssets, setTotalAssets] = useState("");
+  const [ebit, setEbit] = useState("");
+  const [interestExpense, setInterestExpense] = useState("");
+  const [netIncome, setNetIncome] = useState("");
+  const [totalRevenue, setTotalRevenue] = useState("");
   const [cards, setCards] = useState(
     [] as Array<{
       key: string;
@@ -5789,10 +5122,10 @@ function DebtEquityCalc() {
 }
 
 function LeaveEncashmentCalc() {
-  const [basicSalary, setBasicSalary] = useState("90000");
-  const [daPay, setDaPay] = useState("15000");
-  const [leavesEncashed, setLeavesEncashed] = useState("180");
-  const [totalServiceYears, setTotalServiceYears] = useState("12");
+  const [basicSalary, setBasicSalary] = useState("");
+  const [daPay, setDaPay] = useState("");
+  const [leavesEncashed, setLeavesEncashed] = useState("");
+  const [totalServiceYears, setTotalServiceYears] = useState("");
   const [isGovernmentEmployee, setIsGovernmentEmployee] = useState(false);
   const [result, setResult] = useState({
     totalEncashment: 0,
@@ -5854,7 +5187,7 @@ function LeaveEncashmentCalc() {
                 "w-full py-2 text-sm font-medium rounded-md transition-all border",
                 isGovernmentEmployee
                   ? "bg-gradient-orange text-white glow-orange border-transparent"
-                  : "text-secondary border-white/10 hover:text-white"
+                  : "text-secondary border-white/10 hover:text-[var(--text-primary)]"
               )}
             >
               {isGovernmentEmployee ? "Yes" : "No"}
@@ -5905,12 +5238,12 @@ function LeaveEncashmentCalc() {
 
 function CapitalGainsPropertyCalc() {
   const ciiYears = Object.keys(CII_TABLE).map((y) => Number(y)).sort((a, b) => a - b);
-  const [purchasePrice, setPurchasePrice] = useState("4500000");
-  const [salePrice, setSalePrice] = useState("8500000");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
   const [purchaseYear, setPurchaseYear] = useState(String(ciiYears[ciiYears.length - 3] ?? 2022));
   const [saleYear, setSaleYear] = useState(String(ciiYears[ciiYears.length - 1] ?? 2024));
-  const [stampDutyPaid, setStampDutyPaid] = useState("350000");
-  const [improvementCost, setImprovementCost] = useState("500000");
+  const [stampDutyPaid, setStampDutyPaid] = useState("");
+  const [improvementCost, setImprovementCost] = useState("");
   const [brokerageSalePercent, setBrokerageSalePercent] = useState("1.5");
   const [slabRate, setSlabRate] = useState("30");
   const [result, setResult] = useState({
@@ -6074,7 +5407,7 @@ function ITDepreciationCalc() {
   } as const;
 
   const [assetBlock, setAssetBlock] = useState<keyof typeof assetRates>("Plant & Machinery (general)");
-  const [purchaseCost, setPurchaseCost] = useState("1000000");
+  const [purchaseCost, setPurchaseCost] = useState("");
   const [dateOfPurchase, setDateOfPurchase] = useState("2025-11-15");
   const [financialYearEnd, setFinancialYearEnd] = useState("2026-03-31");
   const [result, setResult] = useState({
@@ -6278,7 +5611,7 @@ function NetWorthCalc() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Assets</h2>
               <button
                 onClick={() => addItem("asset")}
-                className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white"
+                className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]"
               >
                 Add Asset
               </button>
@@ -6307,7 +5640,7 @@ function NetWorthCalc() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Liabilities</h2>
               <button
                 onClick={() => addItem("liability")}
-                className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white"
+                className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]"
               >
                 Add Liability
               </button>
@@ -6382,13 +5715,13 @@ function NetWorthCalc() {
 }
 
 function WorkingCapitalCalc() {
-  const [currentAssets, setCurrentAssets] = useState("2500000");
-  const [currentLiabilities, setCurrentLiabilities] = useState("1400000");
-  const [inventory, setInventory] = useState("450000");
-  const [accountsReceivable, setAccountsReceivable] = useState("380000");
-  const [accountsPayable, setAccountsPayable] = useState("300000");
-  const [annualRevenue, setAnnualRevenue] = useState("7200000");
-  const [annualCOGS, setAnnualCOGS] = useState("4200000");
+  const [currentAssets, setCurrentAssets] = useState("");
+  const [currentLiabilities, setCurrentLiabilities] = useState("");
+  const [inventory, setInventory] = useState("");
+  const [accountsReceivable, setAccountsReceivable] = useState("");
+  const [accountsPayable, setAccountsPayable] = useState("");
+  const [annualRevenue, setAnnualRevenue] = useState("");
+  const [annualCOGS, setAnnualCOGS] = useState("");
   const [result, setResult] = useState({
     workingCapital: 0,
     currentRatio: 0,
@@ -6530,7 +5863,7 @@ function WorkingCapitalCalc() {
           </div>
 
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            Cash Conversion Cycle: <span className="font-semibold text-white">{result.cashConversionCycle.toLocaleString("en-IN", { maximumFractionDigits: 2 })} days</span>.
+            Cash Conversion Cycle: <span className="font-semibold text-[var(--text-primary)]">{result.cashConversionCycle.toLocaleString("en-IN", { maximumFractionDigits: 2 })} days</span>.
             {" "}{cccText}
           </div>
         </div>
@@ -6540,10 +5873,10 @@ function WorkingCapitalCalc() {
 }
 
 function BondValuationCalc() {
-  const [faceValue, setFaceValue] = useState("100000");
-  const [couponRate, setCouponRate] = useState("8");
-  const [marketRate, setMarketRate] = useState("9");
-  const [yearsToMaturity, setYearsToMaturity] = useState("10");
+  const [faceValue, setFaceValue] = useState("");
+  const [couponRate, setCouponRate] = useState("");
+  const [marketRate, setMarketRate] = useState("");
+  const [yearsToMaturity, setYearsToMaturity] = useState("");
   const [couponFrequency, setCouponFrequency] = useState<"annual" | "semi-annual">("annual");
   const [result, setResult] = useState({
     bondPrice: 0,
@@ -6609,7 +5942,7 @@ function BondValuationCalc() {
                   onClick={() => setCouponFrequency(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all capitalize",
-                    couponFrequency === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    couponFrequency === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -6663,9 +5996,9 @@ function BondValuationCalc() {
 }
 
 function SYDCalc() {
-  const [assetCost, setAssetCost] = useState("1200000");
+  const [assetCost, setAssetCost] = useState("");
   const [salvageValue, setSalvageValue] = useState("120000");
-  const [usefulLife, setUsefulLife] = useState("6");
+  const [usefulLife, setUsefulLife] = useState("");
   const [result, setResult] = useState({
     sumOfYears: 0,
     yearOneDepreciation: 0,
@@ -6781,14 +6114,14 @@ function SYDCalc() {
 }
 
 function ProfitabilityRatiosCalc() {
-  const [revenue, setRevenue] = useState("10000000");
-  const [grossProfit, setGrossProfit] = useState("2800000");
-  const [ebitda, setEbitda] = useState("2200000");
-  const [ebit, setEbit] = useState("1700000");
-  const [netIncome, setNetIncome] = useState("1200000");
-  const [totalAssets, setTotalAssets] = useState("9000000");
-  const [totalEquity, setTotalEquity] = useState("4200000");
-  const [capitalEmployed, setCapitalEmployed] = useState("6500000");
+  const [revenue, setRevenue] = useState("");
+  const [grossProfit, setGrossProfit] = useState("");
+  const [ebitda, setEbitda] = useState("");
+  const [ebit, setEbit] = useState("");
+  const [netIncome, setNetIncome] = useState("");
+  const [totalAssets, setTotalAssets] = useState("");
+  const [totalEquity, setTotalEquity] = useState("");
+  const [capitalEmployed, setCapitalEmployed] = useState("");
   const [cards, setCards] = useState(
     [] as Array<{ label: string; value: number; suffix: string; benchmark: string; status: "Healthy" | "Caution" | "Risk" }>
   );
@@ -6874,15 +6207,15 @@ function ProfitabilityRatiosCalc() {
 }
 
 function RentVsBuyCalc() {
-  const [propertyPrice, setPropertyPrice] = useState("9000000");
-  const [downPaymentPercent, setDownPaymentPercent] = useState("20");
+  const [propertyPrice, setPropertyPrice] = useState("");
+  const [downPaymentPercent, setDownPaymentPercent] = useState("");
   const [mortgageRate, setMortgageRate] = useState("8.5");
-  const [tenureYears, setTenureYears] = useState("20");
-  const [monthlyRent, setMonthlyRent] = useState("35000");
-  const [rentIncreasePercent, setRentIncreasePercent] = useState("7");
-  const [propertyAppreciationPercent, setPropertyAppreciationPercent] = useState("6");
-  const [maintenancePercent, setMaintenancePercent] = useState("1");
-  const [investmentReturnPercent, setInvestmentReturnPercent] = useState("10");
+  const [tenureYears, setTenureYears] = useState("");
+  const [monthlyRent, setMonthlyRent] = useState("");
+  const [rentIncreasePercent, setRentIncreasePercent] = useState("");
+  const [propertyAppreciationPercent, setPropertyAppreciationPercent] = useState("");
+  const [maintenancePercent, setMaintenancePercent] = useState("");
+  const [investmentReturnPercent, setInvestmentReturnPercent] = useState("");
   const [result, setResult] = useState({
     totalBuyingCost: 0,
     totalRentCost: 0,
@@ -7027,7 +6360,7 @@ function RentVsBuyCalc() {
 function HUFTaxCalc() {
   type Member = { name: string; income: string };
 
-  const [hufIncome, setHufIncome] = useState("1800000");
+  const [hufIncome, setHufIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [memberIncomes, setMemberIncomes] = useState<Member[]>([
     { name: "Member 1", income: "600000" },
@@ -7097,7 +6430,7 @@ function HUFTaxCalc() {
                     onClick={() => setRegime(item)}
                     className={cn(
                       "py-2 text-xs font-medium rounded-md transition-all uppercase",
-                      regime === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                      regime === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                     )}
                   >
                     {item}
@@ -7115,7 +6448,7 @@ function HUFTaxCalc() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Member Incomes (Max 5)</h2>
               <button
                 onClick={addMember}
-                className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white"
+                className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]"
               >
                 Add Member
               </button>
@@ -7184,16 +6517,16 @@ function Form16Calc() {
   const [employerName, setEmployerName] = useState("ABC Private Limited");
   const [tan, setTan] = useState("BLRA12345A");
   const [pan, setPan] = useState("ABCDE1234F");
-  const [grossSalary, setGrossSalary] = useState("1800000");
-  const [allowances, setAllowances] = useState("240000");
-  const [perquisites, setPerquisites] = useState("60000");
-  const [hraExemption, setHraExemption] = useState("120000");
-  const [ltaExemption, setLtaExemption] = useState("30000");
-  const [otherExemption, setOtherExemption] = useState("15000");
-  const [ded80c, setDed80c] = useState("150000");
-  const [ded80d, setDed80d] = useState("25000");
-  const [ded80ccd1b, setDed80ccd1b] = useState("50000");
-  const [otherDeduction, setOtherDeduction] = useState("0");
+  const [grossSalary, setGrossSalary] = useState("");
+  const [allowances, setAllowances] = useState("");
+  const [perquisites, setPerquisites] = useState("");
+  const [hraExemption, setHraExemption] = useState("");
+  const [ltaExemption, setLtaExemption] = useState("");
+  const [otherExemption, setOtherExemption] = useState("");
+  const [ded80c, setDed80c] = useState("");
+  const [ded80d, setDed80d] = useState("");
+  const [ded80ccd1b, setDed80ccd1b] = useState("");
+  const [otherDeduction, setOtherDeduction] = useState("");
   const [result, setResult] = useState({
     grossIncome: 0,
     exemptIncome: 0,
@@ -7292,7 +6625,7 @@ function Form16Calc() {
       outputPanel={(
         <div className="space-y-4">
           <div className="card-surface p-4 text-xs text-secondary">
-            Employer: <span className="text-white font-medium">{employerName}</span> | TAN: <span className="text-white font-medium">{tan}</span> | PAN: <span className="text-white font-medium">{pan}</span>
+            Employer: <span className="text-[var(--text-primary)] font-medium">{employerName}</span> | TAN: <span className="text-[var(--text-primary)] font-medium">{tan}</span> | PAN: <span className="text-[var(--text-primary)] font-medium">{pan}</span>
           </div>
 
           <div className="card-surface p-5 overflow-hidden">
@@ -7319,15 +6652,15 @@ function Form16Calc() {
 }
 
 function TDSSalaryCalc() {
-  const [monthlyBasic, setMonthlyBasic] = useState("70000");
-  const [monthlyHRA, setMonthlyHRA] = useState("30000");
-  const [otherAllowances, setOtherAllowances] = useState("20000");
-  const [employerPF, setEmployerPF] = useState("8400");
-  const [rentPaid, setRentPaid] = useState("28000");
+  const [monthlyBasic, setMonthlyBasic] = useState("");
+  const [monthlyHRA, setMonthlyHRA] = useState("");
+  const [otherAllowances, setOtherAllowances] = useState("");
+  const [employerPF, setEmployerPF] = useState("");
+  const [rentPaid, setRentPaid] = useState("");
   const [cityType, setCityType] = useState<"metro" | "non-metro">("metro");
-  const [investments80C, setInvestments80C] = useState("150000");
-  const [insurance80D, setInsurance80D] = useState("25000");
-  const [nps80CCD, setNps80CCD] = useState("50000");
+  const [investments80C, setInvestments80C] = useState("");
+  const [insurance80D, setInsurance80D] = useState("");
+  const [nps80CCD, setNps80CCD] = useState("");
   const [result, setResult] = useState({
     annualTaxableIncome: 0,
     totalAnnualTax: 0,
@@ -7389,7 +6722,7 @@ function TDSSalaryCalc() {
                   onClick={() => setCityType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all capitalize",
-                    cityType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    cityType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -7445,8 +6778,8 @@ function TDSSalaryCalc() {
 
 function GSTCompositionCalc() {
   const [businessType, setBusinessType] = useState<"Manufacturer" | "Trader" | "Restaurant" | "Service">("Manufacturer");
-  const [annualTurnover, setAnnualTurnover] = useState("12000000");
-  const [quarterlyTurnover, setQuarterlyTurnover] = useState("3000000");
+  const [annualTurnover, setAnnualTurnover] = useState("");
+  const [quarterlyTurnover, setQuarterlyTurnover] = useState("");
   const [result, setResult] = useState({
     compositionTaxAnnual: 0,
     compositionTaxQuarterly: 0,
@@ -7511,7 +6844,7 @@ function GSTCompositionCalc() {
                     "py-2 text-xs font-medium rounded-md border transition-all",
                     businessType === item
                       ? "bg-gradient-orange text-white glow-orange border-transparent"
-                      : "text-secondary border-white/10 hover:text-white"
+                      : "text-secondary border-white/10 hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -7534,7 +6867,7 @@ function GSTCompositionCalc() {
           </div>
 
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            Eligibility: <span className="text-white font-medium">{result.eligibilityStatus}</span>. Lower threshold of ₹75L may apply in some states.
+            Eligibility: <span className="text-[var(--text-primary)] font-medium">{result.eligibilityStatus}</span>. Lower threshold of ₹75L may apply in some states.
           </div>
 
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
@@ -7547,10 +6880,10 @@ function GSTCompositionCalc() {
 }
 
 function ExportGSTCalc() {
-  const [exportValue, setExportValue] = useState("5000000");
+  const [exportValue, setExportValue] = useState("");
   const [exportType, setExportType] = useState<"Goods" | "Services">("Goods");
   const [hasLUT, setHasLUT] = useState(true);
-  const [igstPaidOnInputs, setIgstPaidOnInputs] = useState("300000");
+  const [igstPaidOnInputs, setIgstPaidOnInputs] = useState("");
   const [refundType, setRefundType] = useState<"Refund of IGST" | "ITC Refund">("ITC Refund");
   const [result, setResult] = useState({
     exportValue: 0,
@@ -7588,7 +6921,7 @@ function ExportGSTCalc() {
                   onClick={() => setExportType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    exportType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    exportType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -7604,7 +6937,7 @@ function ExportGSTCalc() {
                 "w-full py-2 text-sm font-medium rounded-md transition-all border",
                 hasLUT
                   ? "bg-gradient-orange text-white glow-orange border-transparent"
-                  : "text-secondary border-white/10 hover:text-white"
+                  : "text-secondary border-white/10 hover:text-[var(--text-primary)]"
               )}
             >
               {hasLUT ? "Yes" : "No"}
@@ -7621,7 +6954,7 @@ function ExportGSTCalc() {
                   onClick={() => setRefundType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    refundType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    refundType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -7655,7 +6988,7 @@ function ExportGSTCalc() {
 }
 
 function MISCalc() {
-  const [investmentAmount, setInvestmentAmount] = useState("900000");
+  const [investmentAmount, setInvestmentAmount] = useState("");
   const [accountType, setAccountType] = useState<"Single" | "Joint">("Single");
   const [result, setResult] = useState({
     monthlyPayout: 0,
@@ -7700,7 +7033,7 @@ function MISCalc() {
                   onClick={() => setAccountType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    accountType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    accountType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -7742,7 +7075,7 @@ function MISCalc() {
 }
 
 function SSYCalc() {
-  const [annualDeposit, setAnnualDeposit] = useState("150000");
+  const [annualDeposit, setAnnualDeposit] = useState("");
   const [girlAge, setGirlAge] = useState("2");
   const [startYear, setStartYear] = useState(String(new Date().getFullYear()));
   const [result, setResult] = useState({
@@ -7847,11 +7180,11 @@ function SSYCalc() {
 }
 
 function NPSCalc() {
-  const [monthlyContribution, setMonthlyContribution] = useState("10000");
+  const [monthlyContribution, setMonthlyContribution] = useState("");
   const [currentAge, setCurrentAge] = useState("30");
   const [retirementAge, setRetirementAge] = useState("60");
-  const [expectedReturn, setExpectedReturn] = useState("10");
-  const [annuityRate, setAnnuityRate] = useState("6");
+  const [expectedReturn, setExpectedReturn] = useState("");
+  const [annuityRate, setAnnuityRate] = useState("");
   const [result, setResult] = useState({
     corpusAtRetirement: 0,
     lumpsum: 0,
@@ -7929,8 +7262,8 @@ function NPSCalc() {
 }
 
 function SCFDCalc() {
-  const [principal, setPrincipal] = useState("1000000");
-  const [tenureMonths, setTenureMonths] = useState("36");
+  const [principal, setPrincipal] = useState("");
+  const [tenureMonths, setTenureMonths] = useState("");
   const [bankName, setBankName] = useState<"SBI" | "HDFC" | "ICICI" | "Post Office TD" | "Small Finance Banks">("SBI");
   const [isSeniorCitizen, setIsSeniorCitizen] = useState(true);
   const [result, setResult] = useState({
@@ -8002,7 +7335,7 @@ function SCFDCalc() {
                 "w-full py-2 text-sm font-medium rounded-md transition-all border",
                 isSeniorCitizen
                   ? "bg-gradient-orange text-white glow-orange border-transparent"
-                  : "text-secondary border-white/10 hover:text-white"
+                  : "text-secondary border-white/10 hover:text-[var(--text-primary)]"
               )}
             >
               {isSeniorCitizen ? "Yes" : "No"}
@@ -8057,8 +7390,8 @@ function SCFDCalc() {
 
 function GratuityEligibilityCalc() {
   const [employeeType, setEmployeeType] = useState<"Covered" | "Not Covered">("Covered");
-  const [lastDrawnBasic, setLastDrawnBasic] = useState("80000");
-  const [daPay, setDaPay] = useState("10000");
+  const [lastDrawnBasic, setLastDrawnBasic] = useState("");
+  const [daPay, setDaPay] = useState("");
   const [dateOfJoining, setDateOfJoining] = useState("2019-04-01");
   const [dateOfLeaving, setDateOfLeaving] = useState("2026-04-10");
   const [reasonForLeaving, setReasonForLeaving] = useState<"Resignation" | "Retirement" | "Death" | "Disability">("Resignation");
@@ -8142,7 +7475,7 @@ function GratuityEligibilityCalc() {
                   onClick={() => setEmployeeType(item)}
                   className={cn(
                     "py-2 text-xs font-medium rounded-md transition-all",
-                    employeeType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white"
+                    employeeType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]"
                   )}
                 >
                   {item}
@@ -8178,7 +7511,7 @@ function GratuityEligibilityCalc() {
       outputPanel={(
         <div className="space-y-4">
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            Exact Service Period: <span className="text-white font-medium">{result.exactServicePeriod}</span>
+            Exact Service Period: <span className="text-[var(--text-primary)] font-medium">{result.exactServicePeriod}</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -8201,23 +7534,23 @@ function GratuityEligibilityCalc() {
 }
 
 function CashFlowCalc() {
-  const [netIncome, setNetIncome] = useState("1200000");
-  const [depreciation, setDepreciation] = useState("180000");
-  const [amortisation, setAmortisation] = useState("40000");
-  const [changeInReceivables, setChangeInReceivables] = useState("100000");
-  const [changeInInventory, setChangeInInventory] = useState("70000");
-  const [changeInPayables, setChangeInPayables] = useState("50000");
-  const [otherOperating, setOtherOperating] = useState("10000");
-  const [capex, setCapex] = useState("300000");
-  const [assetSales, setAssetSales] = useState("25000");
-  const [acquisitions, setAcquisitions] = useState("0");
-  const [otherInvesting, setOtherInvesting] = useState("0");
-  const [debtRaised, setDebtRaised] = useState("200000");
-  const [debtRepaid, setDebtRepaid] = useState("50000");
-  const [equityIssued, setEquityIssued] = useState("0");
-  const [dividendsPaid, setDividendsPaid] = useState("30000");
-  const [otherFinancing, setOtherFinancing] = useState("0");
-  const [revenue, setRevenue] = useState("5000000");
+  const [netIncome, setNetIncome] = useState("");
+  const [depreciation, setDepreciation] = useState("");
+  const [amortisation, setAmortisation] = useState("");
+  const [changeInReceivables, setChangeInReceivables] = useState("");
+  const [changeInInventory, setChangeInInventory] = useState("");
+  const [changeInPayables, setChangeInPayables] = useState("");
+  const [otherOperating, setOtherOperating] = useState("");
+  const [capex, setCapex] = useState("");
+  const [assetSales, setAssetSales] = useState("");
+  const [acquisitions, setAcquisitions] = useState("");
+  const [otherInvesting, setOtherInvesting] = useState("");
+  const [debtRaised, setDebtRaised] = useState("");
+  const [debtRepaid, setDebtRepaid] = useState("");
+  const [equityIssued, setEquityIssued] = useState("");
+  const [dividendsPaid, setDividendsPaid] = useState("");
+  const [otherFinancing, setOtherFinancing] = useState("");
+  const [revenue, setRevenue] = useState("");
   const [result, setResult] = useState({
     operatingCF: 0,
     investingCF: 0,
@@ -8568,7 +7901,7 @@ function InvoiceGSTCalc() {
           <div className="card-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Line Items (Max 5)</h2>
-              <button onClick={addItem} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white">Add Item</button>
+              <button onClick={addItem} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]">Add Item</button>
             </div>
             {items.map((item, index) => (
               <div key={`line-${index}`} className="grid grid-cols-[1.2fr_70px_110px_80px] gap-2">
@@ -8623,17 +7956,17 @@ function InvoiceGSTCalc() {
           </div>
 
           <div className="card-surface p-4 text-sm text-secondary space-y-1">
-            <div>Total Taxable Value: <span className="text-white font-medium">{formatINR(result.totalTaxableValue)}</span></div>
+            <div>Total Taxable Value: <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalTaxableValue)}</span></div>
             {result.sameState ? (
               <>
-                <div>CGST: <span className="text-white font-medium">{formatINR(result.totalCGST)}</span></div>
-                <div>SGST: <span className="text-white font-medium">{formatINR(result.totalSGST)}</span></div>
+                <div>CGST: <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalCGST)}</span></div>
+                <div>SGST: <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalSGST)}</span></div>
               </>
             ) : (
-              <div>IGST: <span className="text-white font-medium">{formatINR(result.totalIGST)}</span></div>
+              <div>IGST: <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalIGST)}</span></div>
             )}
-            <div>Grand Total: <span className="text-white font-semibold">{formatINR(result.grandTotal)}</span></div>
-            <div>HSN/SAC Note: <span className="text-white">{hsnNote}</span></div>
+            <div>Grand Total: <span className="text-[var(--text-primary)] font-semibold">{formatINR(result.grandTotal)}</span></div>
+            <div>HSN/SAC Note: <span className="text-[var(--text-primary)]">{hsnNote}</span></div>
           </div>
 
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
@@ -8648,7 +7981,7 @@ function InvoiceGSTCalc() {
 function PartnershipProfitCalc() {
   type Partner = { name: string; profitSharingRatio: string; salary: string; interestOnCapital: string; capital: string };
 
-  const [totalProfit, setTotalProfit] = useState("1200000");
+  const [totalProfit, setTotalProfit] = useState("");
   const [partners, setPartners] = useState<Partner[]>([
     { name: "Partner A", profitSharingRatio: "3", salary: "120000", interestOnCapital: "8", capital: "1500000" },
     { name: "Partner B", profitSharingRatio: "2", salary: "90000", interestOnCapital: "8", capital: "1000000" },
@@ -8718,7 +8051,7 @@ function PartnershipProfitCalc() {
           <div className="card-surface p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Partners (Max 6)</h2>
-              <button onClick={addPartner} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white">Add Partner</button>
+              <button onClick={addPartner} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]">Add Partner</button>
             </div>
             {partners.map((partner, index) => (
               <div key={partner.name + index} className="grid grid-cols-[1fr_70px_90px_80px_120px] gap-2">
@@ -8735,10 +8068,10 @@ function PartnershipProfitCalc() {
       outputPanel={(
         <div className="space-y-4">
           <div className="card-surface p-4 text-sm text-secondary space-y-1">
-            <div>Net Profit: <span className="text-white font-medium">{formatINR(toNum(totalProfit))}</span></div>
-            <div>Less: Salaries: <span className="text-white font-medium">{formatINR(result.salaryTotal)}</span></div>
-            <div>Less: Interest on Capital: <span className="text-white font-medium">{formatINR(result.interestTotal)}</span></div>
-            <div>Distributable Profit: <span className="text-white font-semibold">{formatINR(result.distributableProfit)}</span></div>
+            <div>Net Profit: <span className="text-[var(--text-primary)] font-medium">{formatINR(toNum(totalProfit))}</span></div>
+            <div>Less: Salaries: <span className="text-[var(--text-primary)] font-medium">{formatINR(result.salaryTotal)}</span></div>
+            <div>Less: Interest on Capital: <span className="text-[var(--text-primary)] font-medium">{formatINR(result.interestTotal)}</span></div>
+            <div>Distributable Profit: <span className="text-[var(--text-primary)] font-semibold">{formatINR(result.distributableProfit)}</span></div>
           </div>
 
           <div className="card-surface p-5 overflow-hidden">
@@ -8777,9 +8110,9 @@ function PartnershipProfitCalc() {
 }
 
 function DepreciationComparisonCalc() {
-  const [assetCost, setAssetCost] = useState("1000000");
+  const [assetCost, setAssetCost] = useState("");
   const [salvageValue, setSalvageValue] = useState("100000");
-  const [usefulLife, setUsefulLife] = useState("5");
+  const [usefulLife, setUsefulLife] = useState("");
   const [decliningRate, setDecliningRate] = useState("200");
   const [result, setResult] = useState({
     rows: [] as Array<{
@@ -8897,10 +8230,10 @@ function DepreciationComparisonCalc() {
           </div>
 
           <div className="card-surface p-4 text-sm text-secondary space-y-1">
-            <div>Total Depreciation (SLM): <span className="text-white font-medium">{formatINR(result.totalSLM)}</span></div>
-            <div>Total Depreciation (WDV): <span className="text-white font-medium">{formatINR(result.totalWDV)}</span></div>
-            <div>Total Depreciation (SYD): <span className="text-white font-medium">{formatINR(result.totalSYD)}</span></div>
-            <div>Total Depreciation (DDB): <span className="text-white font-medium">{formatINR(result.totalDDB)}</span></div>
+            <div>Total Depreciation (SLM): <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalSLM)}</span></div>
+            <div>Total Depreciation (WDV): <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalWDV)}</span></div>
+            <div>Total Depreciation (SYD): <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalSYD)}</span></div>
+            <div>Total Depreciation (DDB): <span className="text-[var(--text-primary)] font-medium">{formatINR(result.totalDDB)}</span></div>
           </div>
 
           <div className="card-surface p-5 overflow-hidden">
@@ -8932,7 +8265,7 @@ function DepreciationComparisonCalc() {
           </div>
 
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">
-            Highest early-year depreciation method: <span className="text-white font-medium">{result.earlyHighMethod}</span>. Equal annual distribution method: <span className="text-white font-medium">SLM</span>.
+            Highest early-year depreciation method: <span className="text-[var(--text-primary)] font-medium">{result.earlyHighMethod}</span>. Equal annual distribution method: <span className="text-[var(--text-primary)] font-medium">SLM</span>.
           </div>
         </div>
       )}
@@ -8941,13 +8274,13 @@ function DepreciationComparisonCalc() {
 }
 
 function EquityValuationCalc() {
-  const [currentEPS, setCurrentEPS] = useState("45");
-  const [epsGrowthRate, setEpsGrowthRate] = useState("12");
-  const [dividendPerShare, setDividendPerShare] = useState("12");
-  const [dividendGrowthRate, setDividendGrowthRate] = useState("6");
-  const [requiredReturn, setRequiredReturn] = useState("14");
-  const [industryPE, setIndustryPE] = useState("18");
-  const [currentMarketPrice, setCurrentMarketPrice] = useState("850");
+  const [currentEPS, setCurrentEPS] = useState("");
+  const [epsGrowthRate, setEpsGrowthRate] = useState("");
+  const [dividendPerShare, setDividendPerShare] = useState("");
+  const [dividendGrowthRate, setDividendGrowthRate] = useState("");
+  const [requiredReturn, setRequiredReturn] = useState("");
+  const [industryPE, setIndustryPE] = useState("");
+  const [currentMarketPrice, setCurrentMarketPrice] = useState("");
   const [result, setResult] = useState({
     intrinsicValueDDM: 0,
     intrinsicValuePE: 0,
@@ -9021,7 +8354,7 @@ function EquityValuationCalc() {
             <MiniStat label="Margin of Safety (20%)" value={formatINR(result.marginOfSafety)} />
             <MiniStat label="Upside / Downside" value={formatPct(result.upsideDownside)} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Recommendation: <span className="text-white font-medium">{result.recommendation}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Recommendation: <span className="text-[var(--text-primary)] font-medium">{result.recommendation}</span></div>
         </div>
       )}
     />
@@ -9029,10 +8362,10 @@ function EquityValuationCalc() {
 }
 
 function EMIMoratoriumCalc() {
-  const [loanAmount, setLoanAmount] = useState("3000000");
-  const [interestRate, setInterestRate] = useState("9");
-  const [originalTenure, setOriginalTenure] = useState("240");
-  const [moratoriumMonths, setMoratoriumMonths] = useState("6");
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [originalTenure, setOriginalTenure] = useState("");
+  const [moratoriumMonths, setMoratoriumMonths] = useState("");
   const [moratoriumType, setMoratoriumType] = useState<"interest-only" | "full deferment">("interest-only");
   const [result, setResult] = useState({
     originalEMI: 0,
@@ -9092,7 +8425,7 @@ function EMIMoratoriumCalc() {
                 <button
                   key={item}
                   onClick={() => setMoratoriumType(item)}
-                  className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", moratoriumType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}
+                  className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", moratoriumType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}
                 >
                   {item}
                 </button>
@@ -9136,7 +8469,7 @@ function EMIMoratoriumCalc() {
 }
 
 function IncomeTaxNoticeCalc() {
-  const [taxDemand, setTaxDemand] = useState("250000");
+  const [taxDemand, setTaxDemand] = useState("");
   const [noticeDate, setNoticeDate] = useState("2026-01-10");
   const [paymentDate, setPaymentDate] = useState("2026-04-25");
   const [noticeType, setNoticeType] = useState<"143(1)" | "143(3)" | "148" | "271">("143(1)");
@@ -9212,12 +8545,12 @@ function IncomeTaxNoticeCalc() {
 }
 
 function StartupValuationCalc() {
-  const [annualRevenue, setAnnualRevenue] = useState("25000000");
-  const [revenueGrowthRate, setRevenueGrowthRate] = useState("35");
-  const [netMargin, setNetMargin] = useState("18");
-  const [industryRevenueMultiple, setIndustryRevenueMultiple] = useState("4");
-  const [industryEBITDAMultiple, setIndustryEBITDAMultiple] = useState("10");
-  const [totalFunding, setTotalFunding] = useState("50000000");
+  const [annualRevenue, setAnnualRevenue] = useState("");
+  const [revenueGrowthRate, setRevenueGrowthRate] = useState("");
+  const [netMargin, setNetMargin] = useState("");
+  const [industryRevenueMultiple, setIndustryRevenueMultiple] = useState("");
+  const [industryEBITDAMultiple, setIndustryEBITDAMultiple] = useState("");
+  const [totalFunding, setTotalFunding] = useState("");
   const [berkusIdea, setBerkusIdea] = useState(true);
   const [berkusPrototype, setBerkusPrototype] = useState(true);
   const [berkusManagement, setBerkusManagement] = useState(true);
@@ -9276,7 +8609,7 @@ function StartupValuationCalc() {
           <Field label="Berkus Factors (Each worth up to $500K)">
             <div className="space-y-2">
               {berkusItems.map((item) => (
-                <button key={item.label} onClick={() => item.set(!item.value)} className={cn("w-full py-2 text-xs font-medium rounded-md border transition-all text-left px-3", item.value ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{item.label}</button>
+                <button key={item.label} onClick={() => item.set(!item.value)} className={cn("w-full py-2 text-xs font-medium rounded-md border transition-all text-left px-3", item.value ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{item.label}</button>
               ))}
             </div>
           </Field>
@@ -9299,15 +8632,15 @@ function StartupValuationCalc() {
 }
 
 function TaxPlanningCalc() {
-  const [annualIncome, setAnnualIncome] = useState("1800000");
+  const [annualIncome, setAnnualIncome] = useState("");
   const [currentRegime, setCurrentRegime] = useState<"new" | "old">("new");
-  const [current80C, setCurrent80C] = useState("80000");
-  const [current80D, setCurrent80D] = useState("10000");
+  const [current80C, setCurrent80C] = useState("");
+  const [current80D, setCurrent80D] = useState("");
   const [hasNPS, setHasNPS] = useState(false);
-  const [rentPaid, setRentPaid] = useState("25000");
-  const [basicSalary, setBasicSalary] = useState("90000");
+  const [rentPaid, setRentPaid] = useState("");
+  const [basicSalary, setBasicSalary] = useState("");
   const [cityType, setCityType] = useState<"metro" | "non-metro">("metro");
-  const [homeLoanInterest, setHomeLoanInterest] = useState("120000");
+  const [homeLoanInterest, setHomeLoanInterest] = useState("");
   const [result, setResult] = useState({
     currentTaxNew: 0,
     currentTaxOld: 0,
@@ -9364,21 +8697,21 @@ function TaxPlanningCalc() {
           <Field label="Current Regime">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
               {(["new", "old"] as const).map((r) => (
-                <button key={r} onClick={() => setCurrentRegime(r)} className={cn("py-2 text-xs font-medium rounded-md transition-all uppercase", currentRegime === r ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{r}</button>
+                <button key={r} onClick={() => setCurrentRegime(r)} className={cn("py-2 text-xs font-medium rounded-md transition-all uppercase", currentRegime === r ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{r}</button>
               ))}
             </div>
           </Field>
           <MoneyInput label="Current 80C" value={current80C} onChange={setCurrent80C} />
           <MoneyInput label="Current 80D" value={current80D} onChange={setCurrent80D} />
           <Field label="Has NPS (80CCD)">
-            <button onClick={() => setHasNPS((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasNPS ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{hasNPS ? "Yes" : "No"}</button>
+            <button onClick={() => setHasNPS((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasNPS ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{hasNPS ? "Yes" : "No"}</button>
           </Field>
           <MoneyInput label="Rent Paid (Monthly)" value={rentPaid} onChange={setRentPaid} />
           <MoneyInput label="Basic Salary (Monthly)" value={basicSalary} onChange={setBasicSalary} />
           <Field label="City Type">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
               {(["metro", "non-metro"] as const).map((c) => (
-                <button key={c} onClick={() => setCityType(c)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", cityType === c ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{c}</button>
+                <button key={c} onClick={() => setCityType(c)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", cityType === c ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{c}</button>
               ))}
             </div>
           </Field>
@@ -9393,7 +8726,7 @@ function TaxPlanningCalc() {
             <MiniStat label="Optimized Tax" value={formatINR(result.optimizedTax)} green />
             <MiniStat label="Total Potential Saving" value={formatINR(result.totalPotentialSaving)} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Better Regime: <span className="text-white font-medium">{result.betterRegime}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Better Regime: <span className="text-[var(--text-primary)] font-medium">{result.betterRegime}</span></div>
           <div className="card-surface p-5 overflow-hidden">
             <div className="text-sm font-semibold mb-3">Prioritized Action List</div>
             <div className="overflow-x-auto -mx-5">
@@ -9497,7 +8830,7 @@ function ReceivablesAgingCalc() {
         <div className="card-surface p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Debtors (Max 10)</h2>
-            <button onClick={addDebtor} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white">Add Debtor</button>
+            <button onClick={addDebtor} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]">Add Debtor</button>
           </div>
           {debtors.map((debtor, index) => (
             <div key={`debtor-${index}`} className="grid grid-cols-1 sm:grid-cols-[1.2fr_120px_140px_140px] gap-2">
@@ -9531,13 +8864,13 @@ function ReceivablesAgingCalc() {
                   {result.rows.map((row, index) => (
                     <tr key={`${row.clientName}-${index}`} className={cn(index % 2 ? "bg-white/[0.02]" : "", row.daysOutstanding > 90 ? "text-red-300" : row.daysOutstanding > 60 ? "text-warning" : row.daysOutstanding <= 30 ? "text-success" : "") }>
                       <td className="px-5 py-2">{row.clientName || `Client ${index + 1}`}</td>
-                      <td className="px-2 py-2 text-right text-white">₹ {row.invoiceAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                      <td className="px-2 py-2 text-right text-[var(--text-primary)]">₹ {row.invoiceAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                       <td className="px-2 py-2 text-right">{row.invoiceDate || "-"}</td>
                       <td className="px-2 py-2 text-right">{row.expectedCollection || "-"}</td>
                       <td className="px-2 py-2 text-right">{row.daysOutstanding.toLocaleString('en-IN')}</td>
                       <td className="px-2 py-2 text-right">{row.bucket}</td>
                       <td className="px-2 py-2 text-right">{formatPct(row.provisionRate)}</td>
-                      <td className="px-5 py-2 text-right text-white">₹ {row.provisionAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                      <td className="px-5 py-2 text-right text-[var(--text-primary)]">₹ {row.provisionAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -9554,7 +8887,7 @@ function ReceivablesAgingCalc() {
                 <div key={bucket} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span>{bucket}</span>
-                    <span className="text-white">₹ {amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({pct.toLocaleString('en-IN', { maximumFractionDigits: 1 })}%)</span>
+                    <span className="text-[var(--text-primary)]">₹ {amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} ({pct.toLocaleString('en-IN', { maximumFractionDigits: 1 })}%)</span>
                   </div>
                   <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                     <div className={cn("h-full rounded-full", barClass)} style={{ width: `${Math.min(100, pct)}%` }} />
@@ -9562,7 +8895,7 @@ function ReceivablesAgingCalc() {
                 </div>
               );
             })}
-            <div>Total Provision: <span className="text-white font-semibold">₹ {result.totalProvision.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+            <div>Total Provision: <span className="text-[var(--text-primary)] font-semibold">₹ {result.totalProvision.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
           </div>
         </div>
       )}
@@ -9629,7 +8962,7 @@ function TDS26ASCalc() {
         <div className="card-surface p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">TDS Entries (Max 10)</h2>
-            <button onClick={addEntry} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white">Add Entry</button>
+            <button onClick={addEntry} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]">Add Entry</button>
           </div>
           {entries.map((entry, index) => (
             <div key={`tds-${index}`} className="grid grid-cols-1 sm:grid-cols-[1.2fr_80px_120px_120px_80px] gap-2">
@@ -9686,7 +9019,7 @@ function TDS26ASCalc() {
               green={result.netTaxPayable < 0}
             />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">ITR Suggestion: <span className="text-white">{result.itrSuggestion}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">ITR Suggestion: <span className="text-[var(--text-primary)]">{result.itrSuggestion}</span></div>
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Download Form 26AS from TRACES portal.</div>
         </div>
       )}
@@ -9695,12 +9028,12 @@ function TDS26ASCalc() {
 }
 
 function SalaryHikeCalc() {
-  const [currentCTC, setCurrentCTC] = useState("1200000");
-  const [hikePercent, setHikePercent] = useState("15");
-  const [currentBasicPercent, setCurrentBasicPercent] = useState("40");
-  const [hraPercent, setHraPercent] = useState("40");
-  const [currentPFEmployee, setCurrentPFEmployee] = useState("21600");
-  const [currentPFEmployer, setCurrentPFEmployer] = useState("21600");
+  const [currentCTC, setCurrentCTC] = useState("");
+  const [hikePercent, setHikePercent] = useState("");
+  const [currentBasicPercent, setCurrentBasicPercent] = useState("");
+  const [hraPercent, setHraPercent] = useState("");
+  const [currentPFEmployee, setCurrentPFEmployee] = useState("");
+  const [currentPFEmployer, setCurrentPFEmployer] = useState("");
   const [result, setResult] = useState({
     current: { ctc: 0, basic: 0, hra: 0, pfEmployee: 0, pfEmployer: 0, special: 0, gross: 0, takeHome: 0 },
     revised: { ctc: 0, basic: 0, hra: 0, pfEmployee: 0, pfEmployer: 0, special: 0, gross: 0, takeHome: 0 },
@@ -9832,24 +9165,24 @@ function SalaryHikeCalc() {
 }
 
 function GSTAnnualReturnCalc() {
-  const [outwardSupplies, setOutwardSupplies] = useState("25000000");
-  const [outwardIGST, setOutwardIGST] = useState("900000");
-  const [outwardCGST, setOutwardCGST] = useState("450000");
-  const [outwardSGST, setOutwardSGST] = useState("450000");
+  const [outwardSupplies, setOutwardSupplies] = useState("");
+  const [outwardIGST, setOutwardIGST] = useState("");
+  const [outwardCGST, setOutwardCGST] = useState("");
+  const [outwardSGST, setOutwardSGST] = useState("");
 
-  const [availedIGST, setAvailedIGST] = useState("600000");
-  const [availedCGST, setAvailedCGST] = useState("300000");
-  const [availedSGST, setAvailedSGST] = useState("300000");
-  const [reversedIGST, setReversedIGST] = useState("50000");
-  const [reversedCGST, setReversedCGST] = useState("25000");
-  const [reversedSGST, setReversedSGST] = useState("25000");
+  const [availedIGST, setAvailedIGST] = useState("");
+  const [availedCGST, setAvailedCGST] = useState("");
+  const [availedSGST, setAvailedSGST] = useState("");
+  const [reversedIGST, setReversedIGST] = useState("");
+  const [reversedCGST, setReversedCGST] = useState("");
+  const [reversedSGST, setReversedSGST] = useState("");
 
-  const [cashIGST, setCashIGST] = useState("120000");
-  const [cashCGST, setCashCGST] = useState("60000");
-  const [cashSGST, setCashSGST] = useState("60000");
-  const [itcUsedIGST, setItcUsedIGST] = useState("730000");
-  const [itcUsedCGST, setItcUsedCGST] = useState("365000");
-  const [itcUsedSGST, setItcUsedSGST] = useState("365000");
+  const [cashIGST, setCashIGST] = useState("");
+  const [cashCGST, setCashCGST] = useState("");
+  const [cashSGST, setCashSGST] = useState("");
+  const [itcUsedIGST, setItcUsedIGST] = useState("");
+  const [itcUsedCGST, setItcUsedCGST] = useState("");
+  const [itcUsedSGST, setItcUsedSGST] = useState("");
 
   const [dueDate, setDueDate] = useState("2026-12-31");
   const [filingDate, setFilingDate] = useState("2027-01-10");
@@ -9970,8 +9303,8 @@ function GSTAnnualReturnCalc() {
           </div>
 
           <div className="card-surface p-4 text-sm text-secondary space-y-1">
-            <div>ITC Reconciliation (IGST/CGST/SGST): <span className="text-white">₹ {result.netITC.igst.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / ₹ {result.netITC.cgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / ₹ {result.netITC.sgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
-            <div>Late Fee: <span className="text-white font-medium">₹ {result.lateFee.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span> ({result.daysLate.toLocaleString('en-IN')} days late)</div>
+            <div>ITC Reconciliation (IGST/CGST/SGST): <span className="text-[var(--text-primary)]">₹ {result.netITC.igst.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / ₹ {result.netITC.cgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })} / ₹ {result.netITC.sgst.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+            <div>Late Fee: <span className="text-[var(--text-primary)] font-medium">₹ {result.lateFee.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span> ({result.daysLate.toLocaleString('en-IN')} days late)</div>
           </div>
 
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">GSTR-9 due date: December 31 of following FY.</div>
@@ -10034,7 +9367,7 @@ function CryptoTaxCalc() {
         <div className="card-surface p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Transactions (Max 8)</h2>
-            <button onClick={addTransaction} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white">Add Txn</button>
+            <button onClick={addTransaction} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]">Add Txn</button>
           </div>
           {transactions.map((tx, index) => (
             <div key={`vda-${index}`} className="grid grid-cols-1 sm:grid-cols-[90px_120px_120px_90px_140px] gap-2">
@@ -10095,7 +9428,7 @@ function CryptoTaxCalc() {
 }
 
 function MarginalReliefCalc() {
-  const [totalIncome, setTotalIncome] = useState("5050000");
+  const [totalIncome, setTotalIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [result, setResult] = useState({
     baseTax: 0,
@@ -10180,7 +9513,7 @@ function MarginalReliefCalc() {
           <Field label="Regime">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
               {(["new", "old"] as const).map((r) => (
-                <button key={r} onClick={() => setRegime(r)} className={cn("py-2 text-xs font-medium rounded-md transition-all uppercase", regime === r ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{r}</button>
+                <button key={r} onClick={() => setRegime(r)} className={cn("py-2 text-xs font-medium rounded-md transition-all uppercase", regime === r ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{r}</button>
               ))}
             </div>
           </Field>
@@ -10220,12 +9553,12 @@ function MarginalReliefCalc() {
 
 function PresumptiveTaxCalc() {
   const [schemeType, setSchemeType] = useState<"44AD" | "44ADA" | "44AE">("44AD");
-  const [grossReceipts, setGrossReceipts] = useState("4800000");
+  const [grossReceipts, setGrossReceipts] = useState("");
   const [paymentMode, setPaymentMode] = useState<"cash" | "digital">("digital");
   const [professionType, setProfessionType] = useState<"Doctor" | "Lawyer" | "CA" | "Engineer" | "Architect">("CA");
-  const [actualProfit, setActualProfit] = useState("650000");
-  const [vehicleCount, setVehicleCount] = useState("3");
-  const [monthsOwned, setMonthsOwned] = useState("12");
+  const [actualProfit, setActualProfit] = useState("");
+  const [vehicleCount, setVehicleCount] = useState("");
+  const [monthsOwned, setMonthsOwned] = useState("");
   const [result, setResult] = useState({
     presumptiveRate: 0,
     presumptiveIncome: 0,
@@ -10299,7 +9632,7 @@ function PresumptiveTaxCalc() {
             <Field label="Payment Mode">
               <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
                 {(["cash", "digital"] as const).map((m) => (
-                  <button key={m} onClick={() => setPaymentMode(m)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", paymentMode === m ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{m}</button>
+                  <button key={m} onClick={() => setPaymentMode(m)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", paymentMode === m ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{m}</button>
                 ))}
               </div>
             </Field>
@@ -10341,13 +9674,13 @@ function PresumptiveTaxCalc() {
 }
 
 function ESOPCalc() {
-  const [grantPrice, setGrantPrice] = useState("120");
-  const [vestingPrice, setVestingPrice] = useState("450");
-  const [exercisePrice, setExercisePrice] = useState("200");
-  const [currentFMV, setCurrentFMV] = useState("600");
-  const [numberOfShares, setNumberOfShares] = useState("5000");
+  const [grantPrice, setGrantPrice] = useState("");
+  const [vestingPrice, setVestingPrice] = useState("");
+  const [exercisePrice, setExercisePrice] = useState("");
+  const [currentFMV, setCurrentFMV] = useState("");
+  const [numberOfShares, setNumberOfShares] = useState("");
   const [employmentType, setEmploymentType] = useState<"listed" | "unlisted">("listed");
-  const [holdingPeriodAfterExercise, setHoldingPeriodAfterExercise] = useState("18");
+  const [holdingPeriodAfterExercise, setHoldingPeriodAfterExercise] = useState("");
   const [result, setResult] = useState({
     perquisiteValue: 0,
     perquisiteTaxAtVesting: 0,
@@ -10409,7 +9742,7 @@ function ESOPCalc() {
           <Field label="Company Type">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
               {(["listed", "unlisted"] as const).map((t) => (
-                <button key={t} onClick={() => setEmploymentType(t)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", employmentType === t ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{t}</button>
+                <button key={t} onClick={() => setEmploymentType(t)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", employmentType === t ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{t}</button>
               ))}
             </div>
           </Field>
@@ -10426,7 +9759,7 @@ function ESOPCalc() {
             <MiniStat label="Total Tax" value={`₹ ${result.totalTax.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />
             <MiniStat label="Net Profit" value={`₹ ${result.netProfit.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} green={result.netProfit > 0} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Capital Gains Rule Applied: <span className="text-white">{result.gainType}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Capital Gains Rule Applied: <span className="text-[var(--text-primary)]">{result.gainType}</span></div>
           <div className="card-surface p-5 overflow-hidden">
             <div className="text-sm font-semibold mb-3">Timeline</div>
             <div className="grid grid-cols-4 gap-2 text-xs">
@@ -10438,7 +9771,7 @@ function ESOPCalc() {
               ].map((item, index) => (
                 <div key={item} className="p-3 rounded-md border border-white/10 bg-card-elevated text-center">
                   <div className="text-tertiary">Step {index + 1}</div>
-                  <div className="mt-1 text-white font-medium">{item}</div>
+                  <div className="mt-1 text-[var(--text-primary)] font-medium">{item}</div>
                 </div>
               ))}
             </div>
@@ -10450,9 +9783,9 @@ function ESOPCalc() {
 }
 
 function ForeignIncomeCalc() {
-  const [indianIncome, setIndianIncome] = useState("1800000");
-  const [foreignIncome, setForeignIncome] = useState("600000");
-  const [foreignTaxPaid, setForeignTaxPaid] = useState("90000");
+  const [indianIncome, setIndianIncome] = useState("");
+  const [foreignIncome, setForeignIncome] = useState("");
+  const [foreignTaxPaid, setForeignTaxPaid] = useState("");
   const [sourceCountry, setSourceCountry] = useState<"USA" | "UK" | "UAE" | "Germany" | "Singapore" | "Other">("USA");
   const [foreignIncomeType, setForeignIncomeType] = useState<"Salary" | "Business" | "Dividend" | "Interest">("Dividend");
   const [result, setResult] = useState({
@@ -10622,7 +9955,7 @@ function AuditChecklistCalc() {
             <div key={category} className="space-y-2">
               <div className="text-xs uppercase tracking-wide text-tertiary font-semibold">{category}</div>
               {questions.filter((q) => q.category === category).map((q) => (
-                <button key={q.id} onClick={() => toggleQuestion(q.id)} className={cn("w-full text-left p-3 rounded-md border transition-all text-xs", q.yes ? "bg-gradient-orange text-white glow-orange border-transparent" : "border-white/10 text-secondary hover:text-white")}>
+                <button key={q.id} onClick={() => toggleQuestion(q.id)} className={cn("w-full text-left p-3 rounded-md border transition-all text-xs", q.yes ? "bg-gradient-orange text-white glow-orange border-transparent" : "border-white/10 text-secondary hover:text-[var(--text-primary)]")}>
                   {q.text}
                 </button>
               ))}
@@ -10643,7 +9976,7 @@ function AuditChecklistCalc() {
               <div key={`score-${category}`} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span>{category}</span>
-                  <span className="text-white">{result.categoryScores[category].toLocaleString('en-IN', { maximumFractionDigits: 0 })}%</span>
+                  <span className="text-[var(--text-primary)]">{result.categoryScores[category].toLocaleString('en-IN', { maximumFractionDigits: 0 })}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                   <div className={cn("h-full rounded-full", result.categoryScores[category] > 75 ? "bg-success" : result.categoryScores[category] > 40 ? "bg-warning" : "bg-red-400")} style={{ width: `${Math.min(100, result.categoryScores[category])}%` }} />
@@ -10673,12 +10006,12 @@ function AuditChecklistCalc() {
 }
 
 function GoldReturnsCalc() {
-  const [investmentAmount, setInvestmentAmount] = useState("500000");
-  const [purchaseYear, setPurchaseYear] = useState("2018");
-  const [currentYear, setCurrentYear] = useState("2026");
+  const [investmentAmount, setInvestmentAmount] = useState("");
+  const [purchaseYear, setPurchaseYear] = useState("");
+  const [currentYear, setCurrentYear] = useState("");
   const [investmentType, setInvestmentType] = useState<"Physical Gold" | "Sovereign Gold Bond" | "Gold ETF">("Physical Gold");
-  const [purchasePricePerGram, setPurchasePricePerGram] = useState("3000");
-  const [currentPricePerGram, setCurrentPricePerGram] = useState("7800");
+  const [purchasePricePerGram, setPurchasePricePerGram] = useState("");
+  const [currentPricePerGram, setCurrentPricePerGram] = useState("");
   const [result, setResult] = useState({
     grams: 0,
     currentValue: 0,
@@ -10815,11 +10148,11 @@ function GoldReturnsCalc() {
 }
 
 function RetrenchmentCalc() {
-  const [monthlyBasic, setMonthlyBasic] = useState("45000");
-  const [monthlyDA, setMonthlyDA] = useState("12000");
-  const [yearsOfService, setYearsOfService] = useState("11");
+  const [monthlyBasic, setMonthlyBasic] = useState("");
+  const [monthlyDA, setMonthlyDA] = useState("");
+  const [yearsOfService, setYearsOfService] = useState("");
   const [retrenchmentType, setRetrenchmentType] = useState<"Retrenchment" | "VRS" | "Closure">("Retrenchment");
-  const [remainingMonths, setRemainingMonths] = useState("24");
+  const [remainingMonths, setRemainingMonths] = useState("");
   const [result, setResult] = useState({
     compensation: 0,
     taxExemptAmount: 0,
@@ -10888,7 +10221,7 @@ function RetrenchmentCalc() {
             <MiniStat label="Taxable Amount" value={`₹ ${result.taxableAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />
             <MiniStat label="Monthly Equivalent" value={`₹ ${result.monthlyEquivalent.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Applicable note: <span className="text-white">{result.sectionNote}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Applicable note: <span className="text-[var(--text-primary)]">{result.sectionNote}</span></div>
         </div>
       )}
     />
@@ -10896,10 +10229,10 @@ function RetrenchmentCalc() {
 }
 
 function TDSPropertyCalc() {
-  const [propertyValue, setPropertyValue] = useState("8500000");
+  const [propertyValue, setPropertyValue] = useState("");
   const [sellerType, setSellerType] = useState<"Resident" | "NRI">("Resident");
   const [isRuralAgriculturalLand, setIsRuralAgriculturalLand] = useState(false);
-  const [holdingPeriodMonths, setHoldingPeriodMonths] = useState("30");
+  const [holdingPeriodMonths, setHoldingPeriodMonths] = useState("");
   const [deductionDate, setDeductionDate] = useState(new Date().toISOString().slice(0, 10));
   const [result, setResult] = useState({
     tdsRate: 0,
@@ -10953,13 +10286,13 @@ function TDSPropertyCalc() {
           <Field label="Seller Type">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
               {(["Resident", "NRI"] as const).map((type) => (
-                <button key={type} onClick={() => setSellerType(type)} className={cn("py-2 text-xs font-medium rounded-md transition-all", sellerType === type ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{type}</button>
+                <button key={type} onClick={() => setSellerType(type)} className={cn("py-2 text-xs font-medium rounded-md transition-all", sellerType === type ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{type}</button>
               ))}
             </div>
           </Field>
           {sellerType === "NRI" && <NumberInput label="Seller Holding Period (Months)" value={holdingPeriodMonths} onChange={setHoldingPeriodMonths} />}
           <Field label="Rural Agricultural Land">
-            <button onClick={() => setIsRuralAgriculturalLand((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", isRuralAgriculturalLand ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{isRuralAgriculturalLand ? "Yes" : "No"}</button>
+            <button onClick={() => setIsRuralAgriculturalLand((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", isRuralAgriculturalLand ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{isRuralAgriculturalLand ? "Yes" : "No"}</button>
           </Field>
           <Field label="Date of Deduction">
             <input type="date" value={deductionDate} onChange={(e) => setDeductionDate(e.target.value)} className="glass-input w-full h-11 px-3 text-sm" />
@@ -10987,10 +10320,10 @@ function AdvanceRulingCalc() {
   const [transactionType, setTransactionType] = useState<
     "Sale of Goods" | "Export of Services" | "Import of Services" | "Works Contract" | "Real Estate (under construction)" | "Real Estate (ready to move)" | "Restaurant Services" | "Healthcare Services" | "Educational Services"
   >("Sale of Goods");
-  const [transactionValue, setTransactionValue] = useState("300000");
+  const [transactionValue, setTransactionValue] = useState("");
   const [stateOfSupply, setStateOfSupply] = useState("Karnataka");
   const [isRegistered, setIsRegistered] = useState(true);
-  const [saleGoodsRate, setSaleGoodsRate] = useState("18");
+  const [saleGoodsRate, setSaleGoodsRate] = useState("");
   const [realEstateWithITC, setRealEstateWithITC] = useState(false);
   const [result, setResult] = useState({
     gstLiability: 0,
@@ -11077,14 +10410,14 @@ function AdvanceRulingCalc() {
             <input value={stateOfSupply} onChange={(e) => setStateOfSupply(e.target.value)} className="glass-input w-full h-11 px-3 text-sm" />
           </Field>
           <Field label="GST Registered">
-            <button onClick={() => setIsRegistered((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", isRegistered ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{isRegistered ? "Yes" : "No"}</button>
+            <button onClick={() => setIsRegistered((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", isRegistered ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{isRegistered ? "Yes" : "No"}</button>
           </Field>
           {transactionType === "Sale of Goods" && <NumberInput label="GST Rate for Sale of Goods (%)" value={saleGoodsRate} onChange={setSaleGoodsRate} />}
           {transactionType === "Real Estate (under construction)" && (
             <Field label="Choose Scheme">
               <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
                 {(["5% no ITC", "12% with ITC"] as const).map((option, idx) => (
-                  <button key={option} onClick={() => setRealEstateWithITC(idx === 1)} className={cn("py-2 text-xs font-medium rounded-md transition-all", (idx === 1) === realEstateWithITC ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{option}</button>
+                  <button key={option} onClick={() => setRealEstateWithITC(idx === 1)} className={cn("py-2 text-xs font-medium rounded-md transition-all", (idx === 1) === realEstateWithITC ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{option}</button>
                 ))}
               </div>
             </Field>
@@ -11099,7 +10432,7 @@ function AdvanceRulingCalc() {
             <MiniStat label="Reverse Charge" value={result.reverseChargeApplicable ? "Applicable" : "Not Applicable"} />
             <MiniStat label="Exempt" value={result.isExempt ? "Yes" : "No"} green={result.isExempt} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Filing requirement: <span className="text-white">{result.filingRequirement}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Filing requirement: <span className="text-[var(--text-primary)]">{result.filingRequirement}</span></div>
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">ITC note: {result.itcEligibilityNote}</div>
         </div>
       )}
@@ -11108,8 +10441,8 @@ function AdvanceRulingCalc() {
 }
 
 function CustomsDutyCalc() {
-  const [assessableValue, setAssessableValue] = useState("12000");
-  const [exchangeRate, setExchangeRate] = useState("84");
+  const [assessableValue, setAssessableValue] = useState("");
+  const [exchangeRate, setExchangeRate] = useState("");
   const [productCategory, setProductCategory] = useState<"Electronics" | "Mobile Phones" | "Machinery" | "Raw Materials" | "Luxury Goods" | "Food Products">("Electronics");
   const [result, setResult] = useState({
     inrValue: 0,
@@ -11200,8 +10533,8 @@ function CustomsDutyCalc() {
 }
 
 function PFWithdrawalCalc() {
-  const [totalPFBalance, setTotalPFBalance] = useState("420000");
-  const [yearsOfService, setYearsOfService] = useState("3");
+  const [totalPFBalance, setTotalPFBalance] = useState("");
+  const [yearsOfService, setYearsOfService] = useState("");
   const [reason, setReason] = useState<"Resignation" | "Retirement" | "Medical" | "Housing">("Resignation");
   const [hasPAN, setHasPAN] = useState(true);
   const [result, setResult] = useState({ taxableAmount: 0, tdsDeductible: 0, netAmount: 0, note: "", formNote: "" });
@@ -11231,7 +10564,7 @@ function PFWithdrawalCalc() {
             </select>
           </Field>
           <Field label="PAN Provided">
-            <button onClick={() => setHasPAN((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasPAN ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{hasPAN ? "Yes" : "No"}</button>
+            <button onClick={() => setHasPAN((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasPAN ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{hasPAN ? "Yes" : "No"}</button>
           </Field>
         </div>
       )}
@@ -11251,7 +10584,7 @@ function PFWithdrawalCalc() {
 }
 
 function NRITaxCalc() {
-  const [indianSourceIncome, setIndianSourceIncome] = useState("1200000");
+  const [indianSourceIncome, setIndianSourceIncome] = useState("");
   const [incomeType, setIncomeType] = useState<"Salary" | "Rent" | "Interest" | "Capital Gains" | "Dividend">("Salary");
   const [capitalGainNature, setCapitalGainNature] = useState<"LTCG" | "STCG">("LTCG");
   const [residencyStatus, setResidencyStatus] = useState<"NRI" | "RNOR" | "Resident">("NRI");
@@ -11306,7 +10639,7 @@ function NRITaxCalc() {
           <Field label="Residency Status">
             <div className="grid grid-cols-3 p-1 rounded-lg bg-card-elevated border border-white/10">
               {(["NRI", "RNOR", "Resident"] as const).map((status) => (
-                <button key={status} onClick={() => setResidencyStatus(status)} className={cn("py-2 text-xs font-medium rounded-md transition-all", residencyStatus === status ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{status}</button>
+                <button key={status} onClick={() => setResidencyStatus(status)} className={cn("py-2 text-xs font-medium rounded-md transition-all", residencyStatus === status ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{status}</button>
               ))}
             </div>
           </Field>
@@ -11328,11 +10661,11 @@ function NRITaxCalc() {
 }
 
 function HomeLoanTaxCalc() {
-  const [loanAmount, setLoanAmount] = useState("4500000");
-  const [interestRate, setInterestRate] = useState("8.5");
-  const [tenureYears, setTenureYears] = useState("20");
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("");
+  const [tenureYears, setTenureYears] = useState("");
   const [propertyType, setPropertyType] = useState<"Self-occupied" | "Let-out">("Self-occupied");
-  const [annualRent, setAnnualRent] = useState("240000");
+  const [annualRent, setAnnualRent] = useState("");
   const [ownershipType, setOwnershipType] = useState<"Sole" | "Joint 50-50">("Sole");
   const [affordableHousing, setAffordableHousing] = useState(false);
   const [result, setResult] = useState({ annualEMI: 0, annualInterest: 0, annualPrincipal: 0, section24Deduction: 0, section80CDeduction: 0, section80EEDeduction: 0, totalDeduction: 0, taxSavingAt30: 0, taxSavingAt20: 0, netCostOfLoan: 0, rentalNetImpact: 0, rows: [] as Array<{ year: number; opening: number; interest: number; principal: number; closing: number }> });
@@ -11385,17 +10718,17 @@ function HomeLoanTaxCalc() {
           <NumberInput label="Tenure (Years)" value={tenureYears} onChange={setTenureYears} />
           <Field label="Property Type">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {(["Self-occupied", "Let-out"] as const).map((type) => (<button key={type} onClick={() => setPropertyType(type)} className={cn("py-2 text-xs font-medium rounded-md transition-all", propertyType === type ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{type}</button>))}
+              {(["Self-occupied", "Let-out"] as const).map((type) => (<button key={type} onClick={() => setPropertyType(type)} className={cn("py-2 text-xs font-medium rounded-md transition-all", propertyType === type ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{type}</button>))}
             </div>
           </Field>
           {propertyType === "Let-out" && <MoneyInput label="Annual Rent" value={annualRent} onChange={setAnnualRent} />}
           <Field label="Ownership Type">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {(["Sole", "Joint 50-50"] as const).map((type) => (<button key={type} onClick={() => setOwnershipType(type)} className={cn("py-2 text-xs font-medium rounded-md transition-all", ownershipType === type ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{type}</button>))}
+              {(["Sole", "Joint 50-50"] as const).map((type) => (<button key={type} onClick={() => setOwnershipType(type)} className={cn("py-2 text-xs font-medium rounded-md transition-all", ownershipType === type ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{type}</button>))}
             </div>
           </Field>
           <Field label="Affordable Housing (80EEA)">
-            <button onClick={() => setAffordableHousing((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", affordableHousing ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{affordableHousing ? "Yes" : "No"}</button>
+            <button onClick={() => setAffordableHousing((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", affordableHousing ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{affordableHousing ? "Yes" : "No"}</button>
           </Field>
         </div>
       )}
@@ -11411,7 +10744,7 @@ function HomeLoanTaxCalc() {
             <MiniStat label="Total Deduction" value={`₹ ${result.totalDeduction.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} green />
             <MiniStat label="Net Cost of Loan" value={`₹ ${result.netCostOfLoan.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />
           </div>
-          {propertyType === "Let-out" && <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Net rental impact after interest: <span className="text-white">₹ {result.rentalNetImpact.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>}
+          {propertyType === "Let-out" && <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Net rental impact after interest: <span className="text-[var(--text-primary)]">₹ {result.rentalNetImpact.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>}
           <div className="card-surface p-5 overflow-hidden">
             <div className="text-sm font-semibold mb-3">First 5 Years</div>
             <div className="overflow-x-auto -mx-5">
@@ -11509,7 +10842,7 @@ function ITRFormSelectorCalc() {
           </Field>
           <div className="space-y-2">
             {questions.map(([key, text]) => (
-              <button key={key} onClick={() => toggle(key)} className={cn("w-full text-left p-3 rounded-md border transition-all text-xs", answers[key] ? "bg-gradient-orange text-white glow-orange border-transparent" : "border-white/10 text-secondary hover:text-white")}>
+              <button key={key} onClick={() => toggle(key)} className={cn("w-full text-left p-3 rounded-md border transition-all text-xs", answers[key] ? "bg-gradient-orange text-white glow-orange border-transparent" : "border-white/10 text-secondary hover:text-[var(--text-primary)]")}>
                 {text}
               </button>
             ))}
@@ -11522,7 +10855,7 @@ function ITRFormSelectorCalc() {
             <MiniStat label="Recommended ITR Form" value={result.form} green />
             <MiniStat label="Due Date" value={result.dueDate} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Reason: <span className="text-white">{result.reason}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Reason: <span className="text-[var(--text-primary)]">{result.reason}</span></div>
           <div className="card-surface p-5 overflow-hidden">
             <div className="text-sm font-semibold mb-3">Schedules to Fill</div>
             <div className="overflow-x-auto -mx-5"><table className="w-full text-xs"><tbody>{result.schedules.map((item, index) => (<tr key={item} className={index % 2 ? "bg-white/[0.02]" : ""}><td className="px-5 py-2 text-secondary">{item}</td></tr>))}</tbody></table></div>
@@ -11538,22 +10871,22 @@ function ITRFormSelectorCalc() {
 }
 
 function BalanceSheetAnalysisCalc() {
-  const [cashAndBank, setCashAndBank] = useState("1200000");
-  const [shortTermInvestments, setShortTermInvestments] = useState("500000");
-  const [receivables, setReceivables] = useState("850000");
-  const [inventory, setInventory] = useState("750000");
-  const [otherCurrentAssets, setOtherCurrentAssets] = useState("150000");
-  const [fixedAssets, setFixedAssets] = useState("3200000");
-  const [intangibles, setIntangibles] = useState("300000");
-  const [otherNonCurrentAssets, setOtherNonCurrentAssets] = useState("100000");
-  const [shortTermDebt, setShortTermDebt] = useState("600000");
-  const [payables, setPayables] = useState("400000");
-  const [otherCurrentLiab, setOtherCurrentLiab] = useState("100000");
-  const [longTermDebt, setLongTermDebt] = useState("1800000");
-  const [otherNonCurrentLiab, setOtherNonCurrentLiab] = useState("200000");
-  const [shareCapital, setShareCapital] = useState("2000000");
-  const [reserves, setReserves] = useState("1300000");
-  const [sharesOutstanding, setSharesOutstanding] = useState("100000");
+  const [cashAndBank, setCashAndBank] = useState("");
+  const [shortTermInvestments, setShortTermInvestments] = useState("");
+  const [receivables, setReceivables] = useState("");
+  const [inventory, setInventory] = useState("");
+  const [otherCurrentAssets, setOtherCurrentAssets] = useState("");
+  const [fixedAssets, setFixedAssets] = useState("");
+  const [intangibles, setIntangibles] = useState("");
+  const [otherNonCurrentAssets, setOtherNonCurrentAssets] = useState("");
+  const [shortTermDebt, setShortTermDebt] = useState("");
+  const [payables, setPayables] = useState("");
+  const [otherCurrentLiab, setOtherCurrentLiab] = useState("");
+  const [longTermDebt, setLongTermDebt] = useState("");
+  const [otherNonCurrentLiab, setOtherNonCurrentLiab] = useState("");
+  const [shareCapital, setShareCapital] = useState("");
+  const [reserves, setReserves] = useState("");
+  const [sharesOutstanding, setSharesOutstanding] = useState("");
   const [result, setResult] = useState({ currentRatio: 0, quickRatio: 0, cashRatio: 0, debtEquity: 0, debtAssets: 0, equityRatio: 0, bvps: 0, tangibleNetWorth: 0, score: 0, balanced: false, totalAssets: 0, totalLiabilities: 0, totalEquity: 0, totalCurrentAssets: 0, totalNonCurrentAssets: 0, totalCurrentLiab: 0, totalNonCurrentLiab: 0 });
 
   useEffect(() => {
@@ -11653,7 +10986,7 @@ function BalanceSheetAnalysisCalc() {
 }
 
 function Rebate87ACalc() {
-  const [totalIncome, setTotalIncome] = useState("700000");
+  const [totalIncome, setTotalIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [result, setResult] = useState({ taxBeforeRebate: 0, rebateAmount: 0, taxAfterRebate: 0, cessAmount: 0, totalTax: 0, marginalReliefNote: "" });
 
@@ -11692,7 +11025,7 @@ function Rebate87ACalc() {
           <MoneyInput label="Total Income" value={totalIncome} onChange={setTotalIncome} />
           <Field label="Regime">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {(["new", "old"] as const).map((item) => (<button key={item} onClick={() => setRegime(item)} className={cn("py-2 text-xs font-medium rounded-md transition-all uppercase", regime === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{item}</button>))}
+              {(["new", "old"] as const).map((item) => (<button key={item} onClick={() => setRegime(item)} className={cn("py-2 text-xs font-medium rounded-md transition-all uppercase", regime === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{item}</button>))}
             </div>
           </Field>
         </div>
@@ -11721,17 +11054,17 @@ function Rebate87ACalc() {
 }
 
 function SalaryRestructureCalc() {
-  const [currentCTC, setCurrentCTC] = useState("1800000");
-  const [currentBasicPercent, setCurrentBasicPercent] = useState("45");
+  const [currentCTC, setCurrentCTC] = useState("");
+  const [currentBasicPercent, setCurrentBasicPercent] = useState("");
   const [payingRent, setPayingRent] = useState(true);
-  const [monthlyRent, setMonthlyRent] = useState("30000");
+  const [monthlyRent, setMonthlyRent] = useState("");
   const [cityType, setCityType] = useState<"metro" | "non-metro">("metro");
   const [hasCarLease, setHasCarLease] = useState(false);
-  const [carLeaseAmount, setCarLeaseAmount] = useState("0");
+  const [carLeaseAmount, setCarLeaseAmount] = useState("");
   const [hasMealVoucher, setHasMealVoucher] = useState(false);
-  const [mealVoucherAmount, setMealVoucherAmount] = useState("2200");
+  const [mealVoucherAmount, setMealVoucherAmount] = useState("");
   const [hasLTA, setHasLTA] = useState(false);
-  const [ltaAmount, setLtaAmount] = useState("50000");
+  const [ltaAmount, setLtaAmount] = useState("");
   const [result, setResult] = useState({ currentTax: 0, optimizedTax: 0, monthlySaving: 0, annualSaving: 0, currentTaxable: 0, optimizedTaxable: 0, rows: [] as Array<{ label: string; currentValue: number; optimizedValue: number; annualSaving: number }> });
 
   useEffect(() => {
@@ -11773,24 +11106,24 @@ function SalaryRestructureCalc() {
           <MoneyInput label="Current CTC" value={currentCTC} onChange={setCurrentCTC} />
           <NumberInput label="Current Basic (% of CTC)" value={currentBasicPercent} onChange={setCurrentBasicPercent} />
           <Field label="Paying Rent">
-            <button onClick={() => setPayingRent((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", payingRent ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{payingRent ? "Yes" : "No"}</button>
+            <button onClick={() => setPayingRent((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", payingRent ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{payingRent ? "Yes" : "No"}</button>
           </Field>
           {payingRent && <MoneyInput label="Monthly Rent" value={monthlyRent} onChange={setMonthlyRent} />}
           <Field label="City Type">
             <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-              {(["metro", "non-metro"] as const).map((item) => (<button key={item} onClick={() => setCityType(item)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", cityType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-white")}>{item}</button>))}
+              {(["metro", "non-metro"] as const).map((item) => (<button key={item} onClick={() => setCityType(item)} className={cn("py-2 text-xs font-medium rounded-md transition-all capitalize", cityType === item ? "bg-gradient-orange text-white glow-orange" : "text-secondary hover:text-[var(--text-primary)]")}>{item}</button>))}
             </div>
           </Field>
           <Field label="Car Lease Benefit">
-            <button onClick={() => setHasCarLease((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasCarLease ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{hasCarLease ? "Yes" : "No"}</button>
+            <button onClick={() => setHasCarLease((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasCarLease ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{hasCarLease ? "Yes" : "No"}</button>
           </Field>
           {hasCarLease && <MoneyInput label="Car Lease Amount" value={carLeaseAmount} onChange={setCarLeaseAmount} />}
           <Field label="Meal Voucher Benefit">
-            <button onClick={() => setHasMealVoucher((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasMealVoucher ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{hasMealVoucher ? "Yes" : "No"}</button>
+            <button onClick={() => setHasMealVoucher((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasMealVoucher ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{hasMealVoucher ? "Yes" : "No"}</button>
           </Field>
           {hasMealVoucher && <MoneyInput label="Meal Voucher Amount / Month" value={mealVoucherAmount} onChange={setMealVoucherAmount} />}
           <Field label="LTA Benefit">
-            <button onClick={() => setHasLTA((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasLTA ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{hasLTA ? "Yes" : "No"}</button>
+            <button onClick={() => setHasLTA((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", hasLTA ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{hasLTA ? "Yes" : "No"}</button>
           </Field>
           {hasLTA && <MoneyInput label="LTA Amount" value={ltaAmount} onChange={setLtaAmount} />}
         </div>
@@ -11814,13 +11147,13 @@ function SalaryRestructureCalc() {
 }
 
 function InterestIncomeCalc() {
-  const [savingsAccountInterest, setSavingsAccountInterest] = useState("12000");
-  const [fdInterest, setFdInterest] = useState("65000");
-  const [rdInterest, setRdInterest] = useState("12000");
-  const [nscInterest, setNscInterest] = useState("8000");
-  const [ppfInterest, setPpfInterest] = useState("30000");
-  const [epfInterest, setEpfInterest] = useState("0");
-  const [bondInterest, setBondInterest] = useState("5000");
+  const [savingsAccountInterest, setSavingsAccountInterest] = useState("");
+  const [fdInterest, setFdInterest] = useState("");
+  const [rdInterest, setRdInterest] = useState("");
+  const [nscInterest, setNscInterest] = useState("");
+  const [ppfInterest, setPpfInterest] = useState("");
+  const [epfInterest, setEpfInterest] = useState("");
+  const [bondInterest, setBondInterest] = useState("");
   const [isSeniorCitizen, setIsSeniorCitizen] = useState(false);
   const [result, setResult] = useState({ totalExempt: 0, totalTaxable: 0, estimatedTaxAt30: 0, tdsDeducted: 0, netInterestIncome: 0, deductionAmount: 0, rows: [] as Array<{ label: string; amount: number; exempt: number; taxable: number }> });
 
@@ -11866,7 +11199,7 @@ function InterestIncomeCalc() {
           <MoneyInput label="EPF Taxable Interest (Excess over cap)" value={epfInterest} onChange={setEpfInterest} />
           <MoneyInput label="Bond Interest" value={bondInterest} onChange={setBondInterest} />
           <Field label="Senior Citizen">
-            <button onClick={() => setIsSeniorCitizen((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", isSeniorCitizen ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-white")}>{isSeniorCitizen ? "Yes" : "No"}</button>
+            <button onClick={() => setIsSeniorCitizen((v) => !v)} className={cn("w-full py-2 text-sm font-medium rounded-md transition-all border", isSeniorCitizen ? "bg-gradient-orange text-white glow-orange border-transparent" : "text-secondary border-white/10 hover:text-[var(--text-primary)]")}>{isSeniorCitizen ? "Yes" : "No"}</button>
           </Field>
         </div>
       )}
@@ -11949,7 +11282,7 @@ function LTCGMutualFundCalc() {
       subtitle="Aggregate LTCG / STCG / debt taxation under post-budget 2024 rules"
       inputPanel={(
         <div className="card-surface p-5 space-y-3">
-          <div className="flex items-center justify-between"><h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Redemptions (Max 5)</h2><button onClick={addRow} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-white">Add Redemption</button></div>
+          <div className="flex items-center justify-between"><h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Redemptions (Max 5)</h2><button onClick={addRow} className="px-3 py-1.5 text-xs rounded-md border border-white/10 text-secondary hover:text-[var(--text-primary)]">Add Redemption</button></div>
           {redemptions.map((row, index) => (
             <div key={`mf-${index}`} className="grid grid-cols-1 sm:grid-cols-[1fr_110px_110px_120px_120px_110px] gap-2">
               <input value={row.fundName} onChange={(e) => updateRow(index, "fundName", e.target.value)} className="glass-input h-10 px-3 text-sm" placeholder="Fund Name" />
@@ -11987,7 +11320,7 @@ function LTCGMutualFundCalc() {
 }
 
 function ProfessionalTaxCalc() {
-  const [monthlyGrossSalary, setMonthlyGrossSalary] = useState("25000");
+  const [monthlyGrossSalary, setMonthlyGrossSalary] = useState("");
   const [state, setState] = useState<"Maharashtra" | "Karnataka" | "West Bengal" | "Tamil Nadu" | "Andhra Pradesh" | "Telangana" | "Gujarat" | "Delhi">("Maharashtra");
   const [result, setResult] = useState({ monthlyPT: 0, annualPT: 0, specialMonthAmount: 0, section16Deduction: 0, taxSavingAt30: 0, note: "" });
 
@@ -12055,7 +11388,7 @@ function ProfessionalTaxCalc() {
             <MiniStat label="February PT / Special Month" value={`₹ ${result.specialMonthAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />
             <MiniStat label="Tax Saving @30%" value={`₹ ${result.taxSavingAt30.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />
           </div>
-          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Section 16(iii) deduction: <span className="text-white">₹ {result.section16Deduction.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
+          <div className="card-surface p-4 border border-white/10 text-sm text-secondary">Section 16(iii) deduction: <span className="text-[var(--text-primary)]">₹ {result.section16Deduction.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span></div>
           <div className="card-surface p-4 border border-white/10 text-sm text-secondary">{result.note}</div>
         </div>
       )}
@@ -12123,7 +11456,7 @@ function CalculatorShell({
           <select
             value={clientId}
             onChange={(event) => setClientId(event.target.value)}
-            className="glass-input w-full h-10 px-3 text-sm"
+            className="glass-select w-full h-10 px-3 text-sm"
           >
             {clients.map((client) => (
               <option key={client.id} value={client.id}>
