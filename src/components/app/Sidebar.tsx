@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import React, { useState } from "react";
 import {
-  LayoutDashboard, Users, FolderOpen, CalendarCheck,
+  LayoutDashboard, Users, CalendarCheck,
   Calculator, Settings, GitBranch,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
@@ -22,7 +22,6 @@ const workspace = [
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/compliance", label: "Compliance", icon: CalendarCheck },
   { to: "/workflows", label: "Workflows", icon: GitBranch },
-  { to: "/documents", label: "Documents", icon: FolderOpen },
 ];
 
 const tools = [

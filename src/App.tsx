@@ -14,8 +14,6 @@ import Dashboard from "@/pages/app/Dashboard";
 import Clients from "@/pages/app/Clients";
 import ClientDetails from "@/pages/app/ClientDetails";
 import Compliance from "@/pages/app/Compliance";
-import Documents from "@/pages/app/Documents";
-import DocumentDetails from "@/pages/app/DocumentDetails";
 import Workflows from "@/pages/app/Workflows";
 import NotFound from "./pages/NotFound";
 
@@ -67,8 +65,6 @@ const App = () => (
                   <Route path="/clients/:id" element={<ClientDetails />} />
                   <Route path="/workflows" element={<Workflows />} />
                   <Route path="/compliance" element={<Compliance />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/documents/:id" element={<DocumentDetails />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarCheck, GitBranch,
-  MoreHorizontal, FolderOpen, Calculator,
+  MoreHorizontal, Calculator,
   Settings, LogOut, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,6 @@ const primary = [
 ];
 
 const more = [
-  { to: "/documents", label: "Documents", icon: FolderOpen },
   { to: "/calculators", label: "Calculators", icon: Calculator },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
