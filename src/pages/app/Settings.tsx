@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   User, Bell, Palette, Globe, Shield, ChevronRight,
-  Check, Moon, Sun, Monitor, Mail, Smartphone, Save, Loader2,
+  Check, Moon, Sun, Monitor, Mail, Smartphone, Save, Loader2, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -673,7 +673,14 @@ function AccountTab() {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const ActiveComponent = { profile: ProfileTab, preferences: PreferencesTab, appearance: AppearanceTab, notifications: NotificationsTab, account: AccountTab }[activeTab];
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -695,6 +702,21 @@ export default function Settings() {
         </nav>
         <div className="flex-1 min-w-0"><ActiveComponent /></div>
       </div>
+
+      <button
+        onClick={handleSignOut}
+        className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition-colors"
+        style={{
+          color: "#ef4444",
+          border: "1px solid rgba(239,68,68,0.3)",
+          background: "transparent",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        <LogOut className="h-[18px] w-[18px]" />
+        Sign out
+      </button>
     </div>
   );
 }
