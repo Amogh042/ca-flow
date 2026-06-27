@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
-  ArrowRight,
   Building2,
   CalendarCheck,
   CheckCircle2,
@@ -18,7 +17,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useFilings } from "@/hooks/useFilings";
-import { useDocuments } from "@/hooks/useDocuments";
 import { useDocumentRequests } from "@/hooks/useDocumentRequests";
 import { useWorkflows } from "@/hooks/useWorkflows";
 import { useActivities } from "@/hooks/useActivities";
@@ -52,22 +50,20 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
   const clientsQuery = useClients();
   const filingsQuery = useFilings();
-  const documentsQuery = useDocuments();
   const docRequestsQuery = useDocumentRequests();
   const workflowsQuery = useWorkflows();
   const activitiesQuery = useActivities();
-  const loading = clientsQuery.isLoading || filingsQuery.isLoading || documentsQuery.isLoading || activitiesQuery.isLoading;
-  const hasError = !!(clientsQuery.error || filingsQuery.error || documentsQuery.error || activitiesQuery.error);
+  const loading = clientsQuery.isLoading || filingsQuery.isLoading || activitiesQuery.isLoading;
+  const hasError = !!(clientsQuery.error || filingsQuery.error || activitiesQuery.error);
 
   const activities = activitiesQuery.data ?? [];
   const clients = clientsQuery.data ?? [];
-  const documents = documentsQuery.data ?? [];
   const filings = filingsQuery.data ?? [];
   const docRequests = docRequestsQuery.data ?? [];
   const workflows = workflowsQuery.data ?? [];
 
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-  const showOnboarding = !onboardingDismissed && shouldShowOnboarding(clients.length, filings.length, documents.length);
+  const showOnboarding = !onboardingDismissed && shouldShowOnboarding(clients.length, filings.length, workflows.length);
 
   if (showOnboarding && !loading) {
     return (

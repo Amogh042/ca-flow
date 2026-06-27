@@ -17,14 +17,11 @@ import Compliance from "@/pages/app/Compliance";
 import Documents from "@/pages/app/Documents";
 import DocumentDetails from "@/pages/app/DocumentDetails";
 import Workflows from "@/pages/app/Workflows";
-import Reports from "@/pages/app/Reports";
-import Placeholder from "@/pages/app/Placeholder";
 import NotFound from "./pages/NotFound";
 
 const Calculators = lazy(() => import("@/pages/app/Calculators"));
 const CalculatorDetail = lazy(() => import("@/pages/app/CalculatorDetail"));
 const CalculatorHub = lazy(() => import("@/pages/app/CalculatorHub"));
-const CalcAI = lazy(() => import("@/pages/app/CalcAI"));
 const Settings = lazy(() => import("@/pages/app/Settings"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 
@@ -72,8 +69,6 @@ const App = () => (
                   <Route path="/compliance" element={<Compliance />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/documents/:id" element={<DocumentDetails />} />
-                  <Route path="/ai" element={<CalcAI />} />
-                  <Route path="/reports" element={<Reports />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
 

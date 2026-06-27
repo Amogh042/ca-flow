@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import React, { useState } from "react";
 import {
   LayoutDashboard, Users, FolderOpen, CalendarCheck,
-  Calculator, Sparkles, Download, Settings, GitBranch,
+  Calculator, Settings, GitBranch,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -23,12 +23,10 @@ const workspace = [
   { to: "/compliance", label: "Compliance", icon: CalendarCheck },
   { to: "/workflows", label: "Workflows", icon: GitBranch },
   { to: "/documents", label: "Documents", icon: FolderOpen },
-  { to: "/reports", label: "Reports", icon: Download },
 ];
 
 const tools = [
   { to: "/calculators", label: "Calculators", icon: Calculator },
-  { to: "/ai", label: "AI Assistant", icon: Sparkles, glow: true },
 ];
 
 const SectionHeader = ({ children, collapsed }: { children: string; collapsed?: boolean }) => (

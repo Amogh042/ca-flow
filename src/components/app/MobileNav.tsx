@@ -2,8 +2,8 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarCheck, GitBranch,
-  MoreHorizontal, FolderOpen, Download, Calculator,
-  Sparkles, Settings, LogOut, X,
+  MoreHorizontal, FolderOpen, Calculator,
+  Settings, LogOut, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,9 +18,7 @@ const primary = [
 
 const more = [
   { to: "/documents", label: "Documents", icon: FolderOpen },
-  { to: "/reports", label: "Reports", icon: Download },
   { to: "/calculators", label: "Calculators", icon: Calculator },
-  { to: "/ai", label: "AI Assistant", icon: Sparkles },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

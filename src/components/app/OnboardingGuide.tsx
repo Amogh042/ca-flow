@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle2, Users, CalendarCheck, FileText, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle2, Users, CalendarCheck, GitBranch, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useFilings } from "@/hooks/useFilings";
-import { useDocuments } from "@/hooks/useDocuments";
+import { useWorkflows } from "@/hooks/useWorkflows";
 
 const ONBOARDED_KEY = "caflow_onboarded";
 
@@ -21,15 +21,15 @@ export function markOnboarded() {
   } catch {}
 }
 
-export function shouldShowOnboarding(clientCount: number, filingCount: number, docCount: number): boolean {
+export function shouldShowOnboarding(clientCount: number, filingCount: number, workflowCount: number): boolean {
   if (isOnboarded()) return false;
-  return clientCount === 0 && filingCount === 0 && docCount === 0;
+  return clientCount === 0 && filingCount === 0 && workflowCount === 0;
 }
 
 export default function OnboardingGuide({ onDismiss }: { onDismiss: () => void }) {
   const clients = useClients().data ?? [];
   const filings = useFilings().data ?? [];
-  const documents = useDocuments().data ?? [];
+  const workflows = useWorkflows().data ?? [];
 
   const steps = [
     {
@@ -52,12 +52,12 @@ export default function OnboardingGuide({ onDismiss }: { onDismiss: () => void }
     },
     {
       num: 3,
-      title: "Request missing documents",
-      description: "Track which documents you need from each client and when they're due.",
-      cta: "Go to Documents",
-      to: "/documents",
-      icon: FileText,
-      done: documents.length > 0,
+      title: "Create your first task",
+      description: "Set up workflow tasks to track your work — assign deadlines, priorities, and team members.",
+      cta: "Go to Workflows",
+      to: "/workflows",
+      icon: GitBranch,
+      done: workflows.length > 0,
     },
   ];
 
