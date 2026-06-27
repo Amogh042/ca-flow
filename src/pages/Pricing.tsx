@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Check, ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoSrc from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -250,6 +250,8 @@ function CouponSection() {
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div
@@ -263,15 +265,27 @@ export default function Pricing() {
       <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-12 sm:py-20">
         {/* Nav */}
         <div className="flex items-center justify-between mb-16">
-          <Link to="/" className="inline-flex items-center">
+          <Link to={user ? "/dashboard" : "/"} className="inline-flex items-center">
             <img src={logoSrc} alt="CA-flow" style={{ height: 32, width: "auto", objectFit: "contain" }} />
           </Link>
-          <Link
-            to="/login"
-            className="text-sm text-secondary hover:text-[var(--text-primary)] transition-colors"
-          >
-            Sign in
-          </Link>
+          {user ? (
+            <button
+              onClick={() => navigate(-1)}
+              className="h-10 w-10 rounded-full grid place-items-center transition-colors"
+              style={{ border: "1px solid var(--border-color)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <X className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="text-sm text-secondary hover:text-[var(--text-primary)] transition-colors"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
 
         {/* Header */}
