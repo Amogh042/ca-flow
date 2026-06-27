@@ -6,7 +6,7 @@ import { useClients } from "@/hooks/useClients";
 import { useCreateCalculation } from "@/hooks/useCalculations";
 import { useCreateActivity } from "@/hooks/useActivities";
 
-const FY = ["FY 2024-25", "FY 2023-24", "FY 2022-23"];
+const FY = ["FY 2026-27", "FY 2025-26", "FY 2024-25", "FY 2023-24"];
 const AGE = ["Below 60", "60-80", "Above 80"];
 
 type CalculatorComponent = () => JSX.Element;
@@ -393,12 +393,13 @@ type Slab = { min: number; max: number | null; rate: number; label: string };
 type SlabRow = { slab: string; income: number; rate: number; tax: number };
 
 const NEW_REGIME_SLABS: Slab[] = [
-  { min: 0, max: 300000, rate: 0, label: "Up to ₹3L" },
-  { min: 300000, max: 700000, rate: 5, label: "₹3L - ₹7L" },
-  { min: 700000, max: 1000000, rate: 10, label: "₹7L - ₹10L" },
-  { min: 1000000, max: 1200000, rate: 15, label: "₹10L - ₹12L" },
-  { min: 1200000, max: 1500000, rate: 20, label: "₹12L - ₹15L" },
-  { min: 1500000, max: null, rate: 30, label: "Above ₹15L" },
+  { min: 0, max: 400000, rate: 0, label: "Up to ₹4L" },
+  { min: 400000, max: 800000, rate: 5, label: "₹4L - ₹8L" },
+  { min: 800000, max: 1200000, rate: 10, label: "₹8L - ₹12L" },
+  { min: 1200000, max: 1600000, rate: 15, label: "₹12L - ₹16L" },
+  { min: 1600000, max: 2000000, rate: 20, label: "₹16L - ₹20L" },
+  { min: 2000000, max: 2400000, rate: 25, label: "₹20L - ₹24L" },
+  { min: 2400000, max: null, rate: 30, label: "Above ₹24L" },
 ];
 
 const OLD_REGIME_SLABS: Slab[] = [
@@ -895,7 +896,7 @@ function GSTCalc() {
               onChange={(e) => setGstRate(e.target.value)}
               className="glass-select w-full h-11 px-3 rounded-[10px] text-sm focus:outline-none focus:border-[rgba(249,115,22,0.5)]"
             >
-              {[5, 12, 18, 28].map((rate) => (
+              {[0, 0.25, 3, 5, 12, 18, 28].map((rate) => (
                 <option key={rate} value={rate}>{rate}%</option>
               ))}
             </select>

@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, Receipt, Landmark, TrendingDown, BarChart3, Briefcase, ShieldCheck, DollarSign, Building2, LineChart, FileText } from "lucide-react";
+import {
+  Search, X, Receipt, Landmark, TrendingDown, BarChart3, Briefcase,
+  ShieldCheck, DollarSign, Building2, LineChart, FileText, Users, GitBranch,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClients } from "@/hooks/useClients";
+import { useWorkflows } from "@/hooks/useWorkflows";
+import type { ClientRecord } from "@/data/workspace";
+import type { Workflow } from "@/services/workflows";
 
 type CalcEntry = {
   slug: string;
@@ -13,7 +20,6 @@ type CalcEntry = {
 };
 
 const ALL_CALCS: CalcEntry[] = [
-  // Tax
   { slug: "income-tax", name: "Income Tax Slab", desc: "Old vs New regime, all FYs", category: "tax", categoryLabel: "Tax", icon: Receipt },
   { slug: "tds", name: "TDS Calculator", desc: "Section-wise rates, surcharge", category: "tax", categoryLabel: "Tax", icon: Receipt },
   { slug: "advance-tax", name: "Advance Tax", desc: "Quarter-wise obligation", category: "tax", categoryLabel: "Tax", icon: Receipt },
@@ -41,7 +47,6 @@ const ALL_CALCS: CalcEntry[] = [
   { slug: "rebate-87a", name: "Section 87A Rebate", desc: "Rebate + marginal relief", category: "tax", categoryLabel: "Tax", icon: Receipt },
   { slug: "interest-income", name: "Interest Income Tax", desc: "Source-wise with exemptions", category: "tax", categoryLabel: "Tax", icon: DollarSign },
   { slug: "ltcg-mutual-fund", name: "Mutual Fund Capital Gains", desc: "LTCG/STCG post-budget 2024", category: "tax", categoryLabel: "Tax", icon: LineChart },
-  // Loans
   { slug: "emi", name: "EMI Calculator", desc: "Monthly instalment + amortisation", category: "loans", categoryLabel: "Loans & EMI", icon: Landmark },
   { slug: "home-loan", name: "Home Loan EMI", desc: "With prepayment scenarios", category: "loans", categoryLabel: "Loans & EMI", icon: Building2 },
   { slug: "car-loan", name: "Car Loan EMI", desc: "Tenure comparison + total cost", category: "loans", categoryLabel: "Loans & EMI", icon: Landmark },
@@ -51,13 +56,11 @@ const ALL_CALCS: CalcEntry[] = [
   { slug: "prepayment", name: "Prepayment Savings", desc: "Reduced tenure vs reduced EMI", category: "loans", categoryLabel: "Loans & EMI", icon: Landmark },
   { slug: "emi-moratorium", name: "EMI Moratorium Impact", desc: "Interest-only vs full deferment", category: "loans", categoryLabel: "Loans & EMI", icon: Landmark },
   { slug: "home-loan-tax", name: "Home Loan Tax Benefit", desc: "Section 24 / 80C / 80EEA", category: "loans", categoryLabel: "Loans & EMI", icon: Building2 },
-  // Depreciation
   { slug: "wdv", name: "WDV Method", desc: "Written down value depreciation", category: "depreciation", categoryLabel: "Depreciation", icon: TrendingDown },
   { slug: "slm", name: "Straight Line Depreciation", desc: "Equal annual depreciation", category: "depreciation", categoryLabel: "Depreciation", icon: TrendingDown },
   { slug: "depreciation-it", name: "IT Act Depreciation", desc: "Block-rate with half-year rule", category: "depreciation", categoryLabel: "Depreciation", icon: TrendingDown },
   { slug: "depreciation-syd", name: "Sum of Years Digits", desc: "Accelerated depreciation", category: "depreciation", categoryLabel: "Depreciation", icon: TrendingDown },
   { slug: "depreciation-comparison", name: "Depreciation Comparison", desc: "SLM vs WDV vs SYD vs DDB", category: "depreciation", categoryLabel: "Depreciation", icon: TrendingDown },
-  // Ratios
   { slug: "current-ratio", name: "Financial Ratios Dashboard", desc: "20+ ratios from P&L + Balance Sheet", category: "ratios", categoryLabel: "Ratios", icon: BarChart3 },
   { slug: "debt-equity", name: "Debt to Equity & Leverage", desc: "6 solvency ratios with health flags", category: "ratios", categoryLabel: "Ratios", icon: BarChart3 },
   { slug: "roe", name: "ROE — DuPont Analysis", desc: "Margin, efficiency & leverage", category: "ratios", categoryLabel: "Ratios", icon: BarChart3 },
@@ -70,7 +73,6 @@ const ALL_CALCS: CalcEntry[] = [
   { slug: "partnership-profit", name: "Partnership Profit Sharing", desc: "Salary, interest & ratio split", category: "ratios", categoryLabel: "Ratios", icon: BarChart3 },
   { slug: "receivables-aging", name: "Receivables Aging", desc: "Debtor buckets & provisioning", category: "ratios", categoryLabel: "Ratios", icon: BarChart3 },
   { slug: "balance-sheet-analysis", name: "Balance Sheet Analyser", desc: "Financial strength score", category: "ratios", categoryLabel: "Ratios", icon: BarChart3 },
-  // Payroll
   { slug: "salary", name: "Salary Breakup", desc: "CTC to take-home breakdown", category: "payroll", categoryLabel: "Payroll", icon: Briefcase },
   { slug: "gratuity", name: "Gratuity", desc: "As per Payment of Gratuity Act", category: "payroll", categoryLabel: "Payroll", icon: Briefcase },
   { slug: "pf", name: "PF Calculator", desc: "Employee + employer share", category: "payroll", categoryLabel: "Payroll", icon: Briefcase },
@@ -81,11 +83,9 @@ const ALL_CALCS: CalcEntry[] = [
   { slug: "retrenchment-compensation", name: "Retrenchment Compensation", desc: "VRS / closure computation", category: "payroll", categoryLabel: "Payroll", icon: Briefcase },
   { slug: "pf-withdrawal", name: "PF Withdrawal Tax", desc: "TDS on EPF withdrawal", category: "payroll", categoryLabel: "Payroll", icon: Briefcase },
   { slug: "professional-tax", name: "Professional Tax", desc: "State-wise PT slabs", category: "payroll", categoryLabel: "Payroll", icon: Briefcase },
-  // Audit
   { slug: "materiality", name: "Materiality", desc: "Planning materiality + tolerable misstatement", category: "audit", categoryLabel: "Audit", icon: ShieldCheck },
   { slug: "sample-size", name: "Sample Size", desc: "Statistical sampling", category: "audit", categoryLabel: "Audit", icon: ShieldCheck },
   { slug: "audit-checklist", name: "Audit Checklist Score", desc: "20-point readiness assessment", category: "audit", categoryLabel: "Audit", icon: ShieldCheck },
-  // Valuation
   { slug: "dcf", name: "DCF Valuation", desc: "Discounted cash flow valuation", category: "valuation", categoryLabel: "Valuation", icon: DollarSign },
   { slug: "wacc", name: "WACC Calculator", desc: "Weighted average cost of capital", category: "valuation", categoryLabel: "Valuation", icon: DollarSign },
   { slug: "npv", name: "NPV Calculator", desc: "Discounted cash flow analysis", category: "valuation", categoryLabel: "Valuation", icon: DollarSign },
@@ -94,12 +94,10 @@ const ALL_CALCS: CalcEntry[] = [
   { slug: "bond-valuation", name: "Bond Valuation", desc: "Present value pricing & yield", category: "valuation", categoryLabel: "Valuation", icon: DollarSign },
   { slug: "equity-valuation", name: "Equity Valuation", desc: "DDM & P/E multi-method", category: "valuation", categoryLabel: "Valuation", icon: DollarSign },
   { slug: "startup-valuation", name: "Startup Valuation", desc: "Revenue, Berkus & VC method", category: "valuation", categoryLabel: "Valuation", icon: DollarSign },
-  // Real Estate
   { slug: "rental-yield", name: "Rental Yield", desc: "Gross & net yield", category: "realestate", categoryLabel: "Real Estate", icon: Building2 },
   { slug: "stamp-duty", name: "Stamp Duty", desc: "State-wise rates", category: "realestate", categoryLabel: "Real Estate", icon: Building2 },
   { slug: "rent-vs-buy", name: "Rent vs Buy Analysis", desc: "Ownership economics comparison", category: "realestate", categoryLabel: "Real Estate", icon: Building2 },
   { slug: "capital-gains-property", name: "Property Capital Gains", desc: "LTCG/STCG with indexation", category: "realestate", categoryLabel: "Real Estate", icon: Building2 },
-  // Investment
   { slug: "sip", name: "SIP Calculator", desc: "Future value of monthly investment", category: "investment", categoryLabel: "Investment", icon: LineChart },
   { slug: "lumpsum", name: "Lumpsum Investment", desc: "One-time investment growth", category: "investment", categoryLabel: "Investment", icon: LineChart },
   { slug: "ppf", name: "PPF Calculator", desc: "15-year tax-free returns", category: "investment", categoryLabel: "Investment", icon: LineChart },
@@ -109,7 +107,6 @@ const ALL_CALCS: CalcEntry[] = [
   { slug: "nps-calculator", name: "NPS Calculator", desc: "Retirement corpus & pension", category: "investment", categoryLabel: "Investment", icon: LineChart },
   { slug: "senior-citizen-fd", name: "Senior Citizen FD", desc: "FD comparison with TDS", category: "investment", categoryLabel: "Investment", icon: LineChart },
   { slug: "gold-returns", name: "Gold Returns", desc: "Physical vs SGB vs ETF", category: "investment", categoryLabel: "Investment", icon: LineChart },
-  // GST
   { slug: "gst", name: "GST Calculator", desc: "Forward & reverse, all slabs", category: "gst", categoryLabel: "GST", icon: FileText },
   { slug: "gst-late-fee", name: "GST Late Fee", desc: "GSTR-1/3B/9 late fee + interest", category: "gst", categoryLabel: "GST", icon: FileText },
   { slug: "itc-reconciliation", name: "ITC Reconciliation", desc: "GSTR-2B vs 3B vs reversed", category: "gst", categoryLabel: "GST", icon: FileText },
@@ -132,6 +129,19 @@ const categoryColors: Record<string, string> = {
   realestate: "text-pink-400 bg-pink-400/10",
   investment: "text-emerald-400 bg-emerald-400/10",
   gst: "text-orange-400 bg-orange-400/10",
+  client: "text-blue-400 bg-blue-400/10",
+  task: "text-violet-400 bg-violet-400/10",
+};
+
+type SearchItem = {
+  id: string;
+  type: "client" | "task" | "calculator";
+  title: string;
+  subtitle: string;
+  badge?: string;
+  badgeColor?: string;
+  icon: React.ElementType;
+  path: string;
 };
 
 function fuzzyMatch(text: string, query: string): boolean {
@@ -142,6 +152,13 @@ function fuzzyMatch(text: string, query: string): boolean {
   const words = q.split(" ").filter(Boolean);
   return words.every((w) => t.includes(w));
 }
+
+const statusColors: Record<string, string> = {
+  pending: "text-yellow-400 bg-yellow-400/10",
+  "in-progress": "text-blue-400 bg-blue-400/10",
+  done: "text-green-400 bg-green-400/10",
+  blocked: "text-red-400 bg-red-400/10",
+};
 
 interface SearchModalProps {
   open: boolean;
@@ -155,14 +172,68 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const results = query.trim()
-    ? ALL_CALCS.filter(
-        (c) =>
-          fuzzyMatch(c.name, query) ||
-          fuzzyMatch(c.desc, query) ||
-          fuzzyMatch(c.categoryLabel, query)
-      ).slice(0, 8)
-    : ALL_CALCS.slice(0, 8);
+  const { data: clients = [] } = useClients();
+  const { data: workflows = [] } = useWorkflows();
+
+  const { sections, flatItems } = useMemo(() => {
+    const q = query.trim();
+
+    const matchingClients: SearchItem[] = (q
+      ? clients.filter((c: ClientRecord) =>
+          fuzzyMatch(c.name, q) || fuzzyMatch(c.entityType, q) || fuzzyMatch(c.serviceLine, q)
+        )
+      : clients.slice(0, 3)
+    ).slice(0, 3).map((c: ClientRecord) => ({
+      id: `client-${c.id}`,
+      type: "client" as const,
+      title: c.name,
+      subtitle: `${c.entityType} · ${c.serviceLine}`,
+      badge: c.entityType,
+      badgeColor: categoryColors.client,
+      icon: Users,
+      path: `/clients`,
+    }));
+
+    const matchingTasks: SearchItem[] = (q
+      ? workflows.filter((w: Workflow) =>
+          w.status !== "done" && (fuzzyMatch(w.title, q) || fuzzyMatch(w.client || "", q))
+        )
+      : workflows.filter((w: Workflow) => w.status !== "done").slice(0, 3)
+    ).slice(0, 3).map((w: Workflow) => ({
+      id: `task-${w.id}`,
+      type: "task" as const,
+      title: w.title,
+      subtitle: w.client ? `Client: ${w.client}` : w.status,
+      badge: w.status,
+      badgeColor: statusColors[w.status] || "text-secondary bg-white/10",
+      icon: GitBranch,
+      path: "/workflows",
+    }));
+
+    const matchingCalcs: SearchItem[] = (q
+      ? ALL_CALCS.filter((c) =>
+          fuzzyMatch(c.name, q) || fuzzyMatch(c.desc, q) || fuzzyMatch(c.categoryLabel, q)
+        )
+      : ALL_CALCS.slice(0, 5)
+    ).slice(0, 3).map((c) => ({
+      id: `calc-${c.slug}`,
+      type: "calculator" as const,
+      title: c.name,
+      subtitle: c.desc,
+      badge: c.categoryLabel,
+      badgeColor: categoryColors[c.category] || "text-orange-400 bg-orange-400/10",
+      icon: c.icon,
+      path: `/calculator/${c.slug}`,
+    }));
+
+    const secs: { label: string; items: SearchItem[] }[] = [];
+    if (matchingClients.length > 0) secs.push({ label: q ? "CLIENTS" : "Recent clients", items: matchingClients });
+    if (matchingTasks.length > 0) secs.push({ label: q ? "TASKS" : "Open tasks", items: matchingTasks });
+    if (matchingCalcs.length > 0) secs.push({ label: q ? "CALCULATORS" : "Popular calculators", items: matchingCalcs });
+
+    const flat = secs.flatMap((s) => s.items);
+    return { sections: secs, flatItems: flat };
+  }, [query, clients, workflows]);
 
   useEffect(() => {
     if (open) {
@@ -175,8 +246,8 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   useEffect(() => { setSelected(0); }, [query]);
 
   const go = useCallback(
-    (calc: CalcEntry) => {
-      navigate(`/calculator/${calc.slug}`);
+    (item: SearchItem) => {
+      navigate(item.path);
       onClose();
     },
     [navigate, onClose]
@@ -186,20 +257,22 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
     const handleKey = (e: KeyboardEvent) => {
       if (!open) return;
       if (e.key === "Escape") { onClose(); return; }
-      if (e.key === "ArrowDown") { e.preventDefault(); setSelected((s) => Math.min(s + 1, results.length - 1)); }
+      if (e.key === "ArrowDown") { e.preventDefault(); setSelected((s) => Math.min(s + 1, flatItems.length - 1)); }
       if (e.key === "ArrowUp") { e.preventDefault(); setSelected((s) => Math.max(s - 1, 0)); }
-      if (e.key === "Enter" && results[selected]) go(results[selected]);
+      if (e.key === "Enter" && flatItems[selected]) go(flatItems[selected]);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [open, results, selected, go, onClose]);
+  }, [open, flatItems, selected, go, onClose]);
 
   useEffect(() => {
-    const item = listRef.current?.children[selected] as HTMLElement;
-    item?.scrollIntoView({ block: "nearest" });
+    const el = listRef.current?.querySelector(`[data-idx="${selected}"]`) as HTMLElement;
+    el?.scrollIntoView({ block: "nearest" });
   }, [selected]);
 
   if (!open) return null;
+
+  let globalIdx = -1;
 
   return (
     <div
@@ -222,7 +295,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search 100+ calculators..."
+            placeholder="Search clients, tasks, or calculators..."
             className="flex-1 bg-transparent text-base outline-none placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)]"
           />
           {query && (
@@ -235,40 +308,50 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
 
         {/* Results list */}
         <div ref={listRef} className="max-h-[400px] overflow-y-auto py-2">
-          {results.length === 0 ? (
-            <div className="py-12 text-center text-sm text-[var(--text-tertiary)]">No calculators found for "{query}"</div>
+          {flatItems.length === 0 ? (
+            <div className="py-12 text-center text-sm text-[var(--text-tertiary)]">No results found for "{query}"</div>
           ) : (
-            results.map((calc, i) => {
-              const Icon = calc.icon;
-              const colorParts = (categoryColors[calc.category] ?? "text-orange-400 bg-orange-400/10").split(" ");
-              return (
-                <button
-                  key={calc.slug + i}
-                  onMouseEnter={() => setSelected(i)}
-                  onClick={() => go(calc)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                    selected === i ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
-                  )}
-                >
-                  <div className={cn("h-9 w-9 rounded-xl grid place-items-center shrink-0", colorParts[1])}>
-                    <Icon className={cn("h-4 w-4", colorParts[0])} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate text-[var(--text-primary)]">{calc.name}</span>
-                    </div>
-                    <div className="text-xs truncate mt-0.5 text-[var(--text-tertiary)]">{calc.desc}</div>
-                  </div>
-                  <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 hidden sm:block", categoryColors[calc.category] ?? "text-orange-400 bg-orange-400/10")}>
-                    {calc.categoryLabel}
-                  </span>
-                  {selected === i && (
-                    <kbd className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-[var(--text-tertiary)] shrink-0">↵</kbd>
-                  )}
-                </button>
-              );
-            })
+            sections.map((section) => (
+              <div key={section.label}>
+                <div className="px-4 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                  {section.label}
+                </div>
+                {section.items.map((item) => {
+                  globalIdx++;
+                  const idx = globalIdx;
+                  const Icon = item.icon;
+                  const badgeColors = (item.badgeColor ?? "text-orange-400 bg-orange-400/10").split(" ");
+                  return (
+                    <button
+                      key={item.id}
+                      data-idx={idx}
+                      onMouseEnter={() => setSelected(idx)}
+                      onClick={() => go(item)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                        selected === idx ? "bg-white/[0.06]" : "hover:bg-white/[0.03]"
+                      )}
+                    >
+                      <div className={cn("h-9 w-9 rounded-xl grid place-items-center shrink-0", badgeColors[1])}>
+                        <Icon className={cn("h-4 w-4", badgeColors[0])} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate text-[var(--text-primary)]">{item.title}</div>
+                        <div className="text-xs truncate mt-0.5 text-[var(--text-tertiary)]">{item.subtitle}</div>
+                      </div>
+                      {item.badge && (
+                        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 hidden sm:block", item.badgeColor)}>
+                          {item.badge}
+                        </span>
+                      )}
+                      {selected === idx && (
+                        <kbd className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 text-[var(--text-tertiary)] shrink-0">↵</kbd>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))
           )}
         </div>
 

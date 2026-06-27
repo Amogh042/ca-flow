@@ -216,7 +216,7 @@ function ProfileTab() {
 
 // ─── Preferences ─────────────────────────────────────────────────────────────
 function PreferencesTab() {
-  const [defaultFY, setDefaultFY] = useState(() => loadPref("pref_fy", "FY 2024-25"));
+  const [defaultFY, setDefaultFY] = useState(() => loadPref("pref_fy", "FY 2025-26"));
   const [taxRegime, setTaxRegime] = useState(() => loadPref("pref_regime", "new"));
   const [numberFormat, setNumberFormat] = useState(() => loadPref("pref_numformat", "indian"));
   const [saved, setSaved] = useState(false);
@@ -232,7 +232,7 @@ function PreferencesTab() {
       <SectionCard title="Tax Defaults" desc="Pre-fill calculators with your preferred settings">
         <Field label="Default Financial Year">
           <select value={defaultFY} onChange={(e) => setDefaultFY(e.target.value)} className="glass-select w-full h-10 px-3 text-sm rounded-[10px]">
-            {["FY 2025-26", "FY 2024-25", "FY 2023-24"].map((fy) => <option key={fy}>{fy}</option>)}
+            {["FY 2026-27", "FY 2025-26", "FY 2024-25", "FY 2023-24"].map((fy) => <option key={fy}>{fy}</option>)}
           </select>
         </Field>
         <Field label="Default Tax Regime">
@@ -436,8 +436,9 @@ function AccountTab() {
     else { setCouponSuccess(res.message); setCouponCode(""); }
   };
 
-  const freeFeatures = ["15 core calculators", "Basic compliance tracker", "Client management (up to 5)", "CalcAI (5 queries/day)"];
-  const proFeatures = ["All 100+ calculators", "Unlimited CalcAI queries", "PDF export for all calculators", "Unlimited clients", "Priority support", "Advanced audit tools"];
+  const starterFeatures = ["Up to 5 clients", "Core compliance tracker", "15 calculators", "Document upload (500MB)", "Email support"];
+  const proFeatures = ["Up to 25 clients", "Full compliance tracker", "All 100+ calculators", "CalcAI assistant", "Document upload (5GB)", "Priority support", "Calculation history", "Client reports"];
+  const firmFeatures = ["Everything in Professional", "Unlimited clients", "Team management & roles", "Workflow assignment", "Advanced reports", "Dedicated support"];
 
   async function handleExport() {
     setExporting(true);
@@ -496,48 +497,61 @@ function AccountTab() {
   return (
     <div className="space-y-5">
       <SectionCard title="Your Plan" desc="Manage your CA-flow subscription">
-        {activePlan !== "free" ? (
-          <div className="p-5 rounded-xl border-2 border-primary/50 bg-primary/5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Starter */}
+          <div className={cn("p-5 rounded-xl border-2", activePlan === "free" ? "border-primary/50 bg-primary/5" : "border-white/10")}>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-[var(--text-primary)]">{activePlan === "firm" ? "Firm" : "Pro"}</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">Starter</span>
+              {activePlan === "free" && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">CURRENT</span>}
             </div>
-            <p className="text-sm text-secondary">
-              Your {activePlan === "firm" ? "Firm" : "Pro"} plan is active{planExpiry ? ` until ${planExpiry}` : ""}.
-            </p>
-            <ul className="space-y-1.5 mt-3">
-              {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
+            <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹0 <span className="text-sm font-normal text-secondary">/ month</span></div>
+            <p className="text-xs text-tertiary mb-3">For solo CAs starting out</p>
+            <ul className="space-y-1.5">
+              {starterFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
             </ul>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-5 rounded-xl border-2 border-primary/50 bg-primary/5">
+
+          {/* Professional */}
+          <div className={cn("relative p-5 rounded-xl border-2 overflow-hidden", activePlan === "pro" ? "border-primary/50 bg-primary/5" : "border-white/10 bg-gradient-to-br from-primary/5 to-warning/5")}>
+            <div className="absolute inset-0 bg-gradient-orange opacity-[0.03]" />
+            <div className="relative">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-[var(--text-primary)]">Free</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">CURRENT</span>
-              </div>
-              <div className="text-2xl font-bold text-[var(--text-primary)] mb-3">₹0 <span className="text-sm font-normal text-secondary">/ month</span></div>
-              <ul className="space-y-1.5">
-                {freeFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
-              </ul>
-            </div>
-            <div className="relative p-5 rounded-xl border border-white/10 bg-gradient-to-br from-primary/5 to-warning/5 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-orange opacity-[0.03]" />
-              <div className="relative">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">Pro</span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">Professional</span>
+                {activePlan === "pro" ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>
+                ) : activePlan === "free" ? (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20">RECOMMENDED</span>
-                </div>
-                <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹999 <span className="text-sm font-normal text-secondary">/ year</span></div>
-                <p className="text-xs text-tertiary mb-3">≈ ₹83/month · Less than a chai daily</p>
-                <ul className="space-y-1.5 mb-4">
-                  {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
-                </ul>
-                <Link to="/pricing" className="block w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange text-center">Upgrade to Pro</Link>
+                ) : null}
               </div>
+              <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹699 <span className="text-sm font-normal text-secondary">/ month</span></div>
+              <p className="text-xs text-tertiary mb-3">For growing CA practices</p>
+              <ul className="space-y-1.5 mb-4">
+                {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
+              </ul>
+              {activePlan !== "pro" && activePlan !== "firm" && (
+                <Link to="/pricing" className="block w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange text-center">Upgrade to Pro</Link>
+              )}
+              {activePlan === "pro" && planExpiry && <p className="text-xs text-secondary">Active until {planExpiry}</p>}
             </div>
           </div>
-        )}
+
+          {/* Firm */}
+          <div className={cn("p-5 rounded-xl border-2", activePlan === "firm" ? "border-primary/50 bg-primary/5" : "border-white/10")}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-[var(--text-primary)]">Firm</span>
+              {activePlan === "firm" && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>}
+            </div>
+            <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹1,599 <span className="text-sm font-normal text-secondary">/ month</span></div>
+            <p className="text-xs text-tertiary mb-3">For CA firms with teams</p>
+            <ul className="space-y-1.5 mb-4">
+              {firmFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
+            </ul>
+            {activePlan !== "firm" && (
+              <Link to="/pricing" className="block w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange text-center">Upgrade to Firm</Link>
+            )}
+            {activePlan === "firm" && planExpiry && <p className="text-xs text-secondary">Active until {planExpiry}</p>}
+          </div>
+        </div>
 
         <div className="mt-4 p-4 rounded-xl border border-white/[0.06] bg-card space-y-3">
           <div className="text-xs font-medium text-secondary">Redeem a coupon code</div>
