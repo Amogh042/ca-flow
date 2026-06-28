@@ -516,48 +516,115 @@ export default function CalculatorDetail() {
   );
 }
 
+function getSlabsForFYAndRegime(fy: string, regime: "new" | "old", age: string): Slab[] {
+  if (regime === "new") {
+    if (fy === "FY 2024-25" || fy === "FY 2023-24") {
+      return [
+        { min: 0, max: 300000, rate: 0, label: "Up to ₹3L" },
+        { min: 300000, max: 700000, rate: 5, label: "₹3L - ₹7L" },
+        { min: 700000, max: 1000000, rate: 10, label: "₹7L - ₹10L" },
+        { min: 1000000, max: 1200000, rate: 15, label: "₹10L - ₹12L" },
+        { min: 1200000, max: 1500000, rate: 20, label: "₹12L - ₹15L" },
+        { min: 1500000, max: null, rate: 30, label: "Above ₹15L" },
+      ];
+    }
+    return NEW_REGIME_SLABS;
+  }
+  if (age === "60-80") {
+    return [
+      { min: 0, max: 300000, rate: 0, label: "Up to ₹3L" },
+      { min: 300000, max: 500000, rate: 5, label: "₹3L - ₹5L" },
+      { min: 500000, max: 1000000, rate: 20, label: "₹5L - ₹10L" },
+      { min: 1000000, max: null, rate: 30, label: "Above ₹10L" },
+    ];
+  }
+  if (age === "Above 80") {
+    return [
+      { min: 0, max: 500000, rate: 0, label: "Up to ₹5L" },
+      { min: 500000, max: 1000000, rate: 20, label: "₹5L - ₹10L" },
+      { min: 1000000, max: null, rate: 30, label: "Above ₹10L" },
+    ];
+  }
+  return OLD_REGIME_SLABS;
+}
+
+function computeIncomeTax(income: number, fy: string, regime: "new" | "old", age: string) {
+  const stdDeduction = regime === "new" ? 75000 : 50000;
+  const taxableIncome = Math.max(0, income - stdDeduction);
+  const slabs = getSlabsForFYAndRegime(fy, regime, age);
+  const { slabBreakdown, baseTax } = calculateSlabTax(taxableIncome, slabs);
+
+  let rebate87a = 0;
+  let marginalRelief = 0;
+  let taxAfterRebate = baseTax;
+
+  if (regime === "new") {
+    if (fy === "FY 2025-26" || fy === "FY 2026-27") {
+      if (taxableIncome <= 1200000) {
+        rebate87a = Math.min(baseTax, 60000);
+        taxAfterRebate = baseTax - rebate87a;
+      } else if (taxableIncome <= 1275000) {
+        const normalTax = baseTax;
+        const excessOverThreshold = taxableIncome - 1200000;
+        taxAfterRebate = Math.min(normalTax, excessOverThreshold);
+        marginalRelief = normalTax - taxAfterRebate;
+      }
+    } else {
+      if (taxableIncome <= 700000) {
+        rebate87a = Math.min(baseTax, 25000);
+        taxAfterRebate = baseTax - rebate87a;
+      }
+    }
+  } else {
+    if (taxableIncome <= 500000) {
+      rebate87a = Math.min(baseTax, 12500);
+      taxAfterRebate = baseTax - rebate87a;
+    }
+  }
+
+  let surchargeRate = 0;
+  if (regime === "new") {
+    if (taxableIncome > 20000000) surchargeRate = 25;
+    else if (taxableIncome > 10000000) surchargeRate = 15;
+    else if (taxableIncome > 5000000) surchargeRate = 10;
+  } else {
+    if (taxableIncome > 50000000) surchargeRate = 37;
+    else if (taxableIncome > 20000000) surchargeRate = 25;
+    else if (taxableIncome > 10000000) surchargeRate = 15;
+    else if (taxableIncome > 5000000) surchargeRate = 10;
+  }
+  const surcharge = (taxAfterRebate * surchargeRate) / 100;
+  const cess = (taxAfterRebate + surcharge) * 0.04;
+  const totalTax = taxAfterRebate + surcharge + cess;
+
+  return {
+    taxableIncome,
+    stdDeduction,
+    slabBreakdown,
+    baseTax,
+    rebate87a,
+    marginalRelief,
+    taxAfterRebate,
+    surchargeRate,
+    surcharge,
+    cess,
+    totalTax,
+    effectiveRate: income > 0 ? (totalTax / income) * 100 : 0,
+    monthlyTax: totalTax / 12,
+    monthlyTakeHome: (income - totalTax) / 12,
+  };
+}
+
 function IncomeTaxCalc() {
   const [annualIncome, setAnnualIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [age, setAge] = useState(AGE[0]);
   const [fy, setFy] = useState(FY[0]);
   const [calculatedAt, setCalculatedAt] = useState<string>("Never");
-  const [result, setResult] = useState({
-    taxableIncome: 0,
-    baseTax: 0,
-    surcharge: 0,
-    cess: 0,
-    totalTax: 0,
-    effectiveRate: 0,
-    monthlyTax: 0,
-    monthlyTakeHome: 0,
-    slabBreakdown: [] as SlabRow[],
-  });
+  const [result, setResult] = useState(() => computeIncomeTax(0, FY[0], "new", AGE[0]));
 
   useEffect(() => {
-    const income = toNum(annualIncome);
-    const stdDeduction = regime === "new" ? 75000 : 50000;
-    const taxableIncome = Math.max(0, income - stdDeduction);
-    const slabs = regime === "new" ? NEW_REGIME_SLABS : OLD_REGIME_SLABS;
-
-    const { slabBreakdown, baseTax } = calculateSlabTax(taxableIncome, slabs);
-
-    const surchargeRate = taxableIncome > 10000000 ? 15 : taxableIncome > 5000000 ? 10 : 0;
-    const surcharge = (baseTax * surchargeRate) / 100;
-    const cess = (baseTax + surcharge) * 0.04;
-    const totalTax = baseTax + surcharge + cess;
-
-    setResult({
-      taxableIncome,
-      baseTax,
-      surcharge,
-      cess,
-      totalTax,
-      effectiveRate: income > 0 ? (totalTax / income) * 100 : 0,
-      monthlyTax: totalTax / 12,
-      monthlyTakeHome: (income - totalTax) / 12,
-      slabBreakdown,
-    });
+    setResult(computeIncomeTax(toNum(annualIncome), fy, regime, age));
   }, [annualIncome, regime, age, fy]);
 
   const incomeValue = toNum(annualIncome);
@@ -567,7 +634,7 @@ function IncomeTaxCalc() {
       <div className="flex flex-col md:flex-row md:items-end gap-4 justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Income Tax Calculator</h1>
-          <p className="mt-1 text-secondary text-sm">Slab-wise tax for selected financial year</p>
+          <p className="mt-1 text-secondary text-sm">Slab-wise tax with Section 87A rebate for selected FY</p>
         </div>
         <div className="text-xs text-tertiary">
           Last calculated: <span className="text-secondary">{calculatedAt}</span>
@@ -579,7 +646,7 @@ function IncomeTaxCalc() {
           <div className="card-surface p-6 space-y-5">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-tertiary">Inputs</h2>
 
-            <Field label="Annual Income">
+            <Field label="Annual Income (Gross Salary)">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-sm">₹</span>
                 <input
@@ -604,7 +671,7 @@ function IncomeTaxCalc() {
 
             <Field label="Tax Regime">
               <div className="grid grid-cols-2 p-1 rounded-lg bg-card-elevated border border-white/10">
-                {(["old", "new"] as const).map((item) => (
+                {(["new", "old"] as const).map((item) => (
                   <button
                     key={item}
                     onClick={() => setRegime(item)}
@@ -670,12 +737,12 @@ function IncomeTaxCalc() {
           </div>
 
           <div className="card-surface p-5 overflow-hidden">
-            <div className="text-sm font-semibold mb-3">Slab Breakdown</div>
+            <div className="text-sm font-semibold mb-3">Tax Computation</div>
             <div className="overflow-x-auto -mx-5">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-tertiary">
-                    <th className="text-left font-medium px-5 py-2 bg-primary/10">Slab</th>
+                    <th className="text-left font-medium px-5 py-2 bg-primary/10">Item</th>
                     <th className="text-right font-medium px-3 py-2 bg-primary/10">Income</th>
                     <th className="text-right font-medium px-3 py-2 bg-primary/10">Rate</th>
                     <th className="text-right font-medium px-5 py-2 bg-primary/10">Tax</th>
@@ -690,20 +757,44 @@ function IncomeTaxCalc() {
                       <td className="px-5 py-2 text-right font-medium">{formatINR(row.tax)}</td>
                     </tr>
                   ))}
-                  <tr>
-                    <td className="px-5 py-2 text-secondary">Surcharge</td>
-                    <td className="px-3 py-2 text-right">-</td>
-                    <td className="px-3 py-2 text-right text-tertiary">Auto</td>
-                    <td className="px-5 py-2 text-right font-medium">{formatINR(result.surcharge)}</td>
+                  <tr className="border-t border-white/[0.06]">
+                    <td className="px-5 py-2 text-secondary font-medium">Tax before rebate</td>
+                    <td colSpan={2}></td>
+                    <td className="px-5 py-2 text-right font-medium">{formatINR(result.baseTax)}</td>
                   </tr>
+                  {result.rebate87a > 0 && (
+                    <tr className="bg-emerald-500/[0.04]">
+                      <td className="px-5 py-2 text-emerald-400 font-medium">Section 87A Rebate</td>
+                      <td colSpan={2}></td>
+                      <td className="px-5 py-2 text-right font-medium text-emerald-400">- {formatINR(result.rebate87a)}</td>
+                    </tr>
+                  )}
+                  {result.marginalRelief > 0 && (
+                    <tr className="bg-emerald-500/[0.04]">
+                      <td className="px-5 py-2 text-emerald-400 font-medium">Marginal Relief</td>
+                      <td colSpan={2}></td>
+                      <td className="px-5 py-2 text-right font-medium text-emerald-400">- {formatINR(result.marginalRelief)}</td>
+                    </tr>
+                  )}
+                  <tr className="border-t border-white/[0.06]">
+                    <td className="px-5 py-2 text-secondary font-medium">Tax after rebate</td>
+                    <td colSpan={2}></td>
+                    <td className="px-5 py-2 text-right font-medium">{formatINR(result.taxAfterRebate)}</td>
+                  </tr>
+                  {result.surcharge > 0 && (
+                    <tr>
+                      <td className="px-5 py-2 text-secondary">Surcharge ({result.surchargeRate}%)</td>
+                      <td colSpan={2}></td>
+                      <td className="px-5 py-2 text-right font-medium">{formatINR(result.surcharge)}</td>
+                    </tr>
+                  )}
                   <tr>
-                    <td className="px-5 py-2 text-secondary">Health & Education Cess (4%)</td>
-                    <td className="px-3 py-2 text-right">-</td>
-                    <td className="px-3 py-2 text-right text-tertiary">4%</td>
+                    <td className="px-5 py-2 text-secondary">Health & Education Cess</td>
+                    <td colSpan={2} className="px-3 py-2 text-right text-tertiary">4%</td>
                     <td className="px-5 py-2 text-right font-medium">{formatINR(result.cess)}</td>
                   </tr>
                   <tr className="border-t border-primary/20 bg-primary/5">
-                    <td className="px-5 py-2.5 font-bold">Total</td>
+                    <td className="px-5 py-2.5 font-bold">Total Tax Payable</td>
                     <td colSpan={2}></td>
                     <td className="px-5 py-2.5 text-right font-bold text-primary">{formatINR(result.totalTax)}</td>
                   </tr>
@@ -716,7 +807,7 @@ function IncomeTaxCalc() {
             <MiniStat label="Monthly Tax" value={formatINR(result.monthlyTax)} />
             <MiniStat label="Take-home/mo" value={formatINR(result.monthlyTakeHome)} green />
             <MiniStat label="Taxable Income" value={formatINR(result.taxableIncome)} />
-            <MiniStat label="Annual Income" value={formatINR(incomeValue)} />
+            <MiniStat label="Std. Deduction" value={formatINR(result.stdDeduction)} />
           </div>
           </>)}
         </div>
