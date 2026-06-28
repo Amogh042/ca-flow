@@ -323,6 +323,7 @@ const CII_TABLE: Record<number, number> = {
   2022: 331,
   2023: 348,
   2024: 363,
+  2025: 364,
 };
 
 const TDS_CONFIG = {
@@ -1177,7 +1178,7 @@ function GratuityCalc() {
     const eligible = years >= 5;
     const computedGratuity = (basic * 15 * years) / 26;
     const gratuityAmount = eligible ? computedGratuity : 0;
-    const taxFreeLimit = 2000000;
+    const taxFreeLimit = 2500000;
     const taxableGratuity = Math.max(0, gratuityAmount - taxFreeLimit);
 
     setResult({ eligible, gratuityAmount, taxFreeLimit, taxableGratuity });
@@ -1225,9 +1226,10 @@ function PFCalc() {
 
   useEffect(() => {
     const basic = toNum(basicSalary);
-    const employeeContribution = basic > 15000 ? 1800 : basic * 0.12;
-    const employerEPF = basic * 0.0367;
-    const employerEPS = basic * 0.0833;
+    const employeeContribution = basic * 0.12;
+    const epsBasic = Math.min(basic, 15000);
+    const employerEPS = epsBasic * 0.0833;
+    const employerEPF = basic * 0.12 - employerEPS;
     const adminCharges = basic * 0.005;
     const totalMonthly = employeeContribution + employerEPF + employerEPS + adminCharges;
 
@@ -1697,9 +1699,7 @@ function AdvanceTaxCalc() {
   useEffect(() => {
     const income = toNum(estimatedAnnualIncome);
     const tds = toNum(taxAlreadyDeducted);
-    const taxableIncome = Math.max(0, income - 75000);
-    const { baseTax } = calculateSlabTax(taxableIncome, NEW_REGIME_SLABS);
-    const totalTaxLiability = baseTax * 1.04;
+    const totalTaxLiability = computeIncomeTax(income, "FY 2025-26", "new", "Below 60").totalTax;
     const netTaxAfterTDS = Math.max(0, totalTaxLiability - tds);
 
     const scheduleConfig = [
@@ -2501,9 +2501,7 @@ function TDSCalc() {
     let rateUsed = 0;
     if (paymentType === "Salary (192)") {
       if (recipientType === "resident") {
-        const taxableIncome = Math.max(0, amount - 75000);
-        const { baseTax } = calculateSlabTax(taxableIncome, NEW_REGIME_SLABS);
-        const totalTax = baseTax * 1.04;
+        const totalTax = computeIncomeTax(amount, "FY 2025-26", "new", "Below 60").totalTax;
         rateUsed = amount > 0 ? (totalTax / amount) * 100 : 0;
       } else {
         rateUsed = config.nriRate;
