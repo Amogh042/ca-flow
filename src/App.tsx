@@ -14,7 +14,6 @@ import Dashboard from "@/pages/app/Dashboard";
 import Clients from "@/pages/app/Clients";
 import ClientDetails from "@/pages/app/ClientDetails";
 import Compliance from "@/pages/app/Compliance";
-import Workflows from "@/pages/app/Workflows";
 import NotFound from "./pages/NotFound";
 
 const Calculators = lazy(() => import("@/pages/app/Calculators"));
@@ -63,7 +62,6 @@ const App = () => (
                   <Route path="/calculator/:slug" element={<CalculatorDetail />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/clients/:id" element={<ClientDetails />} />
-                  <Route path="/workflows" element={<Workflows />} />
                   <Route path="/compliance" element={<Compliance />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>

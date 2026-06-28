@@ -8,42 +8,20 @@ import { useRedeemCoupon } from "@/hooks/usePlan";
 
 const plans = [
   {
-    name: "Starter",
-    tag: null,
-    desc: "For solo CAs starting out",
-    monthly: 0,
-    annual: 0,
-    annualSaving: 0,
-    features: [
-      "Up to 5 clients",
-      "Core compliance tracker",
-      "15 calculators",
-      "Document upload (500 MB)",
-      "Email support",
-    ],
-    cta: "Get started free",
-    ctaLink: "/signup",
-    ctaStyle: "border border-white/10 text-[var(--text-primary)] hover:bg-white/5" as const,
-    highlight: false,
-  },
-  {
-    name: "Professional",
+    name: "Solo",
     tag: "Most Popular",
-    desc: "For growing CA practices",
-    monthly: 699,
-    annual: 7550,
-    annualSaving: 838,
+    desc: "For individual CAs",
+    monthly: 199,
+    annual: 2149,
+    annualSaving: 239,
     features: [
-      "Up to 25 clients",
-      "Full compliance tracker",
-      "All 100+ calculators",
-      "CalcAI assistant",
-      "Document upload (5 GB)",
-      "Priority support",
-      "Calculation history",
-      "Client reports",
+      "Unlimited clients",
+      "All calculators",
+      "Compliance tracker",
+      "Task management",
+      "PDF export",
     ],
-    cta: "Start free trial",
+    cta: "Get started",
     ctaLink: "/signup",
     ctaStyle: "bg-gradient-orange text-white glow-orange hover:glow-orange-strong" as const,
     highlight: true,
@@ -52,20 +30,18 @@ const plans = [
     name: "Firm",
     tag: null,
     desc: "For CA firms with teams",
-    monthly: 1599,
-    annual: 17270,
-    annualSaving: 1918,
+    monthly: 999,
+    annual: 10790,
+    annualSaving: 1198,
     features: [
-      "Everything in Professional",
-      "Unlimited clients",
+      "Everything in Solo",
+      "Up to 10 team members",
+      "+₹99 per additional member",
       "Team management & roles",
-      "Workflow assignment",
-      "Advanced reports",
-      "API access (coming soon)",
       "Dedicated support",
     ],
-    cta: "Contact us",
-    ctaLink: "mailto:hello@ca-flow.in",
+    cta: "Get started",
+    ctaLink: "/signup",
     ctaStyle: "border border-white/10 text-[var(--text-primary)] hover:bg-white/5" as const,
     highlight: false,
   },
@@ -300,7 +276,7 @@ export default function Pricing() {
             Simple pricing for CA firms
           </h1>
           <p className="mt-3 text-secondary text-sm sm:text-base">
-            Start free. Upgrade when your firm grows.
+            Two plans. No hidden fees. Cancel anytime.
           </p>
 
           {/* Toggle */}
@@ -344,7 +320,7 @@ export default function Pricing() {
         </div>
 
         {/* Plan Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto mb-20">
           {plans.map((plan) => (
             <div
               key={plan.name}

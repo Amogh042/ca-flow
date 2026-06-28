@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import React, { useState } from "react";
 import {
   LayoutDashboard, Users, CalendarCheck,
-  Calculator, Settings, GitBranch,
+  Calculator, Settings,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -17,14 +17,10 @@ import {
 } from "@/components/ui/tooltip";
 import type { ComponentType, SVGProps } from "react";
 
-const workspace = [
+const navItems = [
   { to: "/dashboard", label: "Home", icon: LayoutDashboard },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/compliance", label: "Compliance", icon: CalendarCheck },
-  { to: "/workflows", label: "Workflows", icon: GitBranch },
-];
-
-const tools = [
   { to: "/calculators", label: "Calculators", icon: Calculator },
 ];
 
@@ -141,10 +137,7 @@ export const Sidebar = React.memo(function Sidebar() {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin pb-3">
           <SectionHeader collapsed={collapsed}>Workspace</SectionHeader>
-          {workspace.map((i) => <NavItem key={i.to} {...i} collapsed={collapsed} />)}
-
-          <SectionHeader collapsed={collapsed}>Tools</SectionHeader>
-          {tools.map((i) => <NavItem key={i.to} {...i} collapsed={collapsed} />)}
+          {navItems.map((i) => <NavItem key={i.to} {...i} collapsed={collapsed} />)}
         </nav>
 
         {/* Bottom section */}
@@ -189,23 +182,6 @@ export const Sidebar = React.memo(function Sidebar() {
                   <div className="h-2.5 w-28 rounded bg-white/5 animate-pulse" />
                 </div>
               )}
-            </div>
-          )}
-
-          {!collapsed && (
-            <div className="rounded-xl p-3 bg-gradient-orange/10 border border-primary/20 relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-orange opacity-10" />
-              <div className="relative">
-                <div className="text-xs font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-                  Unlock all 100+ tools
-                </div>
-                <div className="text-[11px] mb-2" style={{ color: "var(--text-secondary)" }}>
-                  PDF export, CalcAI, premium calculators
-                </div>
-                <NavLink to="/pricing" className="block w-full text-center text-xs font-semibold py-1.5 rounded-md bg-gradient-orange text-white glow-orange hover:glow-orange-strong transition-shadow">
-                  Upgrade to Pro
-                </NavLink>
-              </div>
             </div>
           )}
         </div>

@@ -436,9 +436,8 @@ function AccountTab() {
     else { setCouponSuccess(res.message); setCouponCode(""); }
   };
 
-  const starterFeatures = ["Up to 5 clients", "Core compliance tracker", "15 calculators", "Document upload (500MB)", "Email support"];
-  const proFeatures = ["Up to 25 clients", "Full compliance tracker", "All 100+ calculators", "CalcAI assistant", "Document upload (5GB)", "Priority support", "Calculation history", "Client reports"];
-  const firmFeatures = ["Everything in Professional", "Unlimited clients", "Team management & roles", "Workflow assignment", "Advanced reports", "Dedicated support"];
+  const soloFeatures = ["Unlimited clients", "All calculators", "Compliance tracker", "Task management", "PDF export"];
+  const firmFeatures = ["Everything in Solo", "Up to 10 team members", "+₹99 per additional member", "Team management & roles", "Dedicated support"];
 
   async function handleExport() {
     setExporting(true);
@@ -497,39 +496,22 @@ function AccountTab() {
   return (
     <div className="space-y-5">
       <SectionCard title="Your Plan" desc="Manage your CA-flow subscription">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Starter */}
-          <div className={cn("p-5 rounded-xl border-2", activePlan === "free" ? "border-primary/50 bg-primary/5" : "border-white/10")}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-[var(--text-primary)]">Starter</span>
-              {activePlan === "free" && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">CURRENT</span>}
-            </div>
-            <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹0 <span className="text-sm font-normal text-secondary">/ month</span></div>
-            <p className="text-xs text-tertiary mb-3">For solo CAs starting out</p>
-            <ul className="space-y-1.5">
-              {starterFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
-            </ul>
-          </div>
-
-          {/* Professional */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Solo */}
           <div className={cn("relative p-5 rounded-xl border-2 overflow-hidden", activePlan === "pro" ? "border-primary/50 bg-primary/5" : "border-white/10 bg-gradient-to-br from-primary/5 to-warning/5")}>
             <div className="absolute inset-0 bg-gradient-orange opacity-[0.03]" />
             <div className="relative">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-[var(--text-primary)]">Professional</span>
-                {activePlan === "pro" ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>
-                ) : activePlan === "free" ? (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20">RECOMMENDED</span>
-                ) : null}
+                <span className="text-sm font-semibold text-[var(--text-primary)]">Solo</span>
+                {activePlan === "pro" && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>}
               </div>
-              <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹699 <span className="text-sm font-normal text-secondary">/ month</span></div>
-              <p className="text-xs text-tertiary mb-3">For growing CA practices</p>
+              <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹199 <span className="text-sm font-normal text-secondary">/ month</span></div>
+              <p className="text-xs text-tertiary mb-3">For individual CAs</p>
               <ul className="space-y-1.5 mb-4">
-                {proFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
+                {soloFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}
               </ul>
               {activePlan !== "pro" && activePlan !== "firm" && (
-                <Link to="/pricing" className="block w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange text-center">Upgrade to Pro</Link>
+                <Link to="/pricing" className="block w-full py-2 rounded-lg text-sm font-semibold bg-gradient-orange text-white glow-orange text-center">Upgrade to Solo</Link>
               )}
               {activePlan === "pro" && planExpiry && <p className="text-xs text-secondary">Active until {planExpiry}</p>}
             </div>
@@ -541,7 +523,7 @@ function AccountTab() {
               <span className="text-sm font-semibold text-[var(--text-primary)]">Firm</span>
               {activePlan === "firm" && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>}
             </div>
-            <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹1,599 <span className="text-sm font-normal text-secondary">/ month</span></div>
+            <div className="text-2xl font-bold text-[var(--text-primary)] mb-1">₹999 <span className="text-sm font-normal text-secondary">/ month</span></div>
             <p className="text-xs text-tertiary mb-3">For CA firms with teams</p>
             <ul className="space-y-1.5 mb-4">
               {firmFeatures.map((f) => <li key={f} className="flex items-center gap-2 text-xs text-secondary"><Check className="h-3 w-3 text-primary shrink-0" />{f}</li>)}

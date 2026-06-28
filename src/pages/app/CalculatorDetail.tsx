@@ -496,6 +496,80 @@ function calculateLoanFromEMI(emi: number, annualRate: number, tenureMonths: num
   return monthlyEmi * (((1 + r) ** n - 1) / (r * (1 + r) ** n));
 }
 
+function SaveToClient({ calcSlug, calcName }: { calcSlug: string; calcName: string }) {
+  const clients = useClients().data ?? [];
+  const createCalc = useCreateCalculation();
+  const createAct = useCreateActivity();
+  const [clientId, setClientId] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  function handleSave() {
+    if (!clientId) return;
+    const clientName = clients.find((c) => c.id === clientId)?.name ?? "Client";
+    createCalc.mutate({
+      clientId,
+      title: calcName,
+      subtitle: calcSlug,
+      savedAt: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      owner: "",
+    }, {
+      onSuccess() {
+        createAct.mutate({
+          id: `act-${Date.now()}`,
+          clientId,
+          title: `Calculation saved`,
+          detail: `${calcName} saved to ${clientName}`,
+          actor: "",
+          time: new Date().toISOString(),
+          kind: "calculation",
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      },
+    });
+  }
+
+  if (clients.length === 0) {
+    return (
+      <div className="card-surface p-5">
+        <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Save this calculation</div>
+        <p className="text-sm text-secondary">
+          <Link to="/clients" className="text-primary hover:underline">Add a client first</Link> to save calculations.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card-surface p-5">
+      <div className="text-sm font-semibold text-[var(--text-primary)] mb-3">Save this calculation</div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <select
+          value={clientId}
+          onChange={(e) => { setClientId(e.target.value); setSaved(false); }}
+          className="glass-select flex-1 h-10 px-3 rounded-[10px] text-sm"
+        >
+          <option value="">Choose a client...</option>
+          {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button
+          onClick={handleSave}
+          disabled={!clientId || createCalc.status === "pending"}
+          className="h-10 px-5 rounded-lg bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          <Save className="h-4 w-4" />
+          {createCalc.status === "pending" ? "Saving…" : "Save to Client"}
+        </button>
+      </div>
+      {saved && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
+          <Check className="h-3.5 w-3.5" /> Saved to {clients.find((c) => c.id === clientId)?.name}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CalculatorDetail() {
   const { slug = "income-tax" } = useParams();
   const CalcComponent = CALC_REGISTRY[slug];
@@ -513,6 +587,8 @@ export default function CalculatorDetail() {
       </nav>
 
       {CalcComponent ? <CalcComponent /> : <ComingSoonCard slug={slug} />}
+
+      {CalcComponent && <SaveToClient calcSlug={slug} calcName={title} />}
     </div>
   );
 }
