@@ -500,11 +500,22 @@ function SaveToClient({ calcSlug, calcName }: { calcSlug: string; calcName: stri
   const clients = useClients().data ?? [];
   const createCalc = useCreateCalculation();
   const createAct = useCreateActivity();
-  const [clientId, setClientId] = useState("");
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [saved, setSaved] = useState(false);
+  const dropdownRef = useState<HTMLDivElement | null>(null);
 
-  function handleSave() {
-    if (!clientId) return;
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const el = dropdownRef[0];
+      if (el && !el.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open, dropdownRef]);
+
+  function handleSave(clientId: string) {
     const clientName = clients.find((c) => c.id === clientId)?.name ?? "Client";
     createCalc.mutate({
       clientId,
@@ -524,46 +535,65 @@ function SaveToClient({ calcSlug, calcName }: { calcSlug: string; calcName: stri
           kind: "calculation",
         });
         setSaved(true);
+        setOpen(false);
         setTimeout(() => setSaved(false), 3000);
       },
     });
   }
 
-  if (clients.length === 0) {
-    return (
-      <div className="card-surface p-5">
-        <div className="text-sm font-semibold text-[var(--text-primary)] mb-2">Save this calculation</div>
-        <p className="text-sm text-secondary">
-          <Link to="/clients" className="text-primary hover:underline">Add a client first</Link> to save calculations.
-        </p>
-      </div>
-    );
-  }
+  const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="card-surface p-5">
-      <div className="text-sm font-semibold text-[var(--text-primary)] mb-3">Save this calculation</div>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <select
-          value={clientId}
-          onChange={(e) => { setClientId(e.target.value); setSaved(false); }}
-          className="glass-select flex-1 h-10 px-3 rounded-[10px] text-sm"
-        >
-          <option value="">Choose a client...</option>
-          {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <button
-          onClick={handleSave}
-          disabled={!clientId || createCalc.status === "pending"}
-          className="h-10 px-5 rounded-lg bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          <Save className="h-4 w-4" />
-          {createCalc.status === "pending" ? "Saving…" : "Save to Client"}
-        </button>
-      </div>
+    <div className="relative inline-block w-full sm:w-auto" ref={(el) => { dropdownRef[0] = el; }}>
+      <button
+        onClick={() => { setOpen(!open); setSaved(false); setSearch(""); }}
+        disabled={createCalc.status === "pending"}
+        className="h-9 px-4 rounded-lg bg-gradient-orange text-white text-[13px] font-medium glow-orange hover:glow-orange-strong transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 w-full sm:w-auto"
+      >
+        <Save className="h-3.5 w-3.5" />
+        {createCalc.status === "pending" ? "Saving…" : "Save to Client"}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-full sm:w-64 rounded-lg border border-white/10 bg-[var(--drawer-bg,#1a1a2e)] shadow-xl z-50 overflow-hidden">
+          {clients.length === 0 ? (
+            <div className="p-3 text-sm text-secondary">
+              No clients yet. <Link to="/clients" className="text-primary hover:underline">Add one</Link>
+            </div>
+          ) : (
+            <>
+              <div className="p-2">
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search clients..."
+                  className="w-full h-8 px-2.5 rounded-md bg-white/5 border border-white/10 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-[200px] overflow-y-auto">
+                {filtered.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-secondary">No clients match</div>
+                ) : (
+                  filtered.slice(0, 50).map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => handleSave(c.id)}
+                      className="w-full text-left px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-white/5 transition-colors truncate"
+                    >
+                      {c.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {saved && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
-          <Check className="h-3.5 w-3.5" /> Saved to {clients.find((c) => c.id === clientId)?.name}
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
+          <Check className="h-3.5 w-3.5" /> Saved successfully
         </div>
       )}
     </div>

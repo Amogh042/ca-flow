@@ -174,25 +174,27 @@ export default function ClientDetails() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Link to="/clients" className="text-sm text-primary ml-3">Back to clients</Link>
+            <button onClick={() => navigate("/clients")} className="h-9 px-3 rounded-md bg-white/5 text-sm text-[var(--text-primary)] flex items-center gap-1.5">Back</button>
           </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => { setShowTaskForm(true); setActiveTab("tasks"); }}
-          className="flex-1 h-11 rounded-xl bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all flex items-center justify-center gap-2"
-        >
-          <Plus className="h-4 w-4" /> Create Task
-        </button>
-        <button
-          onClick={() => { setShowFilingForm(true); setActiveTab("filings"); }}
-          className="flex-1 h-11 rounded-xl bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all flex items-center justify-center gap-2"
-        >
-          <Plus className="h-4 w-4" /> Create Filing
-        </button>
+      {/* Stats Row */}
+      <div className="grid gap-4 grid-cols-3">
+        <div className="card-surface p-4">
+          <div className="text-[10px] uppercase tracking-wider text-secondary font-semibold">Active Tasks</div>
+          <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{clientTasks.filter((t) => t.status !== "done").length}</div>
+        </div>
+        <div className="card-surface p-4">
+          <div className="text-[10px] uppercase tracking-wider text-secondary font-semibold">Active Filings</div>
+          <div className="mt-2 text-2xl font-bold text-[var(--text-primary)]">{selectedFilings.filter((f) => f.status !== "filed").length}</div>
+        </div>
+        <div className="card-surface p-4">
+          <div className="text-[10px] uppercase tracking-wider text-secondary font-semibold">Attention Needed</div>
+          <div className="mt-2 text-2xl font-bold text-amber-300">
+            {clientTasks.filter((t) => t.dueDate && t.status !== "done" && new Date(t.dueDate) < today).length + selectedFilings.filter((f) => f.status !== "filed" && f.dueDate && new Date(f.dueDate) < today).length}
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -214,6 +216,14 @@ export default function ClientDetails() {
       {/* Tab Content */}
       {activeTab === "tasks" && (
         <div className="card-surface p-5 space-y-3">
+          {!showTaskForm && (
+            <button
+              onClick={() => setShowTaskForm(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-orange text-white glow-orange transition-all"
+            >
+              <Plus className="h-4 w-4" /> Create Task
+            </button>
+          )}
           {showTaskForm && (
             <form onSubmit={handleCreateTask} className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
               <div className="flex items-center justify-between">
@@ -261,6 +271,14 @@ export default function ClientDetails() {
 
       {activeTab === "filings" && (
         <div className="card-surface p-5 space-y-3">
+          {!showFilingForm && (
+            <button
+              onClick={() => setShowFilingForm(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-orange text-white glow-orange transition-all"
+            >
+              <Plus className="h-4 w-4" /> Create Filing
+            </button>
+          )}
           {showFilingForm && (
             <form onSubmit={handleCreateFiling} className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
               <div className="flex items-center justify-between">

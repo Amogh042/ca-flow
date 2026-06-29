@@ -685,20 +685,23 @@ export default function Settings() {
         <div className="flex-1 min-w-0"><ActiveComponent /></div>
       </div>
 
-      <button
-        onClick={handleSignOut}
-        className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-medium transition-colors"
-        style={{
-          color: "#ef4444",
-          border: "1px solid rgba(239,68,68,0.3)",
-          background: "transparent",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-      >
-        <LogOut className="h-[18px] w-[18px]" />
-        Sign out
-      </button>
+      <div className="mt-6 mb-10">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 rounded-lg text-[13px] font-medium transition-colors"
+          style={{
+            color: "#ef4444",
+            border: "1px solid rgba(239,68,68,0.3)",
+            background: "transparent",
+            padding: "8px 20px",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
     </div>
   );
 }
