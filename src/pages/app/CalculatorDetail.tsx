@@ -544,7 +544,7 @@ function SaveToClient({ calcSlug, calcName }: { calcSlug: string; calcName: stri
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="relative inline-block w-full sm:w-auto" ref={(el) => { dropdownRef[0] = el; }}>
+    <div className="relative inline-block w-auto" ref={(el) => { dropdownRef[0] = el; }}>
       <button
         onClick={() => { setOpen(!open); setSaved(false); setSearch(""); }}
         disabled={createCalc.status === "pending"}
@@ -616,13 +616,9 @@ export default function CalculatorDetail() {
         <span className="text-[var(--text-primary)] capitalize">{title}</span>
       </nav>
 
-      {CalcComponent ? <CalcComponent /> : <ComingSoonCard slug={slug} />}
+      {CalcComponent && <SaveToClient calcSlug={slug} calcName={title} />}
 
-      {CalcComponent && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6">
-          <SaveToClient calcSlug={slug} calcName={title} />
-        </div>
-      )}
+      {CalcComponent ? <CalcComponent /> : <ComingSoonCard slug={slug} />}
     </div>
   );
 }
