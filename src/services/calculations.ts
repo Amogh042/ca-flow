@@ -1,16 +1,15 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import type { CalculationRecord } from "@/data/workspace";
 import type { DBCalculation, DBCalculationInsert } from "@/types/database";
-import { toISOTimestampOrNull } from "@/lib/date";
 
 function mapRowToCalculation(r: DBCalculation): CalculationRecord {
   return {
     id: r.id,
     clientId: r.client_id,
-    title: r.title,
-    subtitle: r.subtitle ?? "",
-    savedAt: r.saved_at ?? "",
-    owner: r.owner ?? "",
+    title: r.calculator_name,
+    subtitle: r.calculator_slug ?? "",
+    savedAt: r.created_at ?? "",
+    owner: r.created_by ?? "",
   };
 }
 
@@ -26,21 +25,20 @@ export async function createCalculation(input: Omit<CalculationRecord, "id">): P
     return { id: `calc-local-${Date.now()}`, ...input } as CalculationRecord;
   }
   try {
-    let ownerVal: string | null | undefined = input.owner;
+    let createdBy: string | null = null;
     try {
       const { data: userData } = await supabase!.auth.getUser();
       if (!userData?.user) throw new Error("Authentication required to save calculations");
-      if (!ownerVal && userData.user?.id) ownerVal = userData.user.id;
+      createdBy = userData.user.id;
     } catch (e) {
       throw new Error("Authentication required to save calculations");
     }
 
     const payload: DBCalculationInsert = {
       client_id: input.clientId,
-      title: input.title,
-      subtitle: input.subtitle || null,
-      saved_at: toISOTimestampOrNull(input.savedAt),
-      owner: ownerVal || null,
+      calculator_name: input.title,
+      calculator_slug: input.subtitle || null,
+      created_by: createdBy,
     };
 
     const { data, error } = await supabase!.from<DBCalculation>("calculations").insert(payload).select().single();

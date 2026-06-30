@@ -128,15 +128,15 @@ export type DBReportInsert = Omit<DBReport, "id" | "created_at" | "updated_at">;
 export type DBCalculation = {
   id: string;
   client_id: string;
-  title: string;
-  subtitle?: string | null;
-  saved_at?: string | null;
-  owner?: string | null;
+  calculator_name: string;
+  calculator_slug?: string | null;
+  inputs?: any | null;
+  outputs?: any | null;
+  created_by?: string | null;
   created_at?: string | null;
-  updated_at?: string | null;
 };
 
-export type DBCalculationInsert = Omit<DBCalculation, "id" | "created_at" | "updated_at">;
+export type DBCalculationInsert = Omit<DBCalculation, "id" | "created_at">;
 
 // Workflows (lightweight representation)
 export type DBWorkflow = {
