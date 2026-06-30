@@ -44,10 +44,14 @@ export async function createCalculation(input: Omit<CalculationRecord, "id">): P
     };
 
     const { data, error } = await supabase!.from<DBCalculation>("calculations").insert(payload).select().single();
-    if (error) throw error;
+    if (error) {
+      console.error("Create calculation error:", error.message, error.details, error.hint);
+      throw error;
+    }
     return mapRowToCalculation(data as DBCalculation);
   } catch (err: any) {
     const message = err?.message || "Failed to save calculation";
+    console.error("Create calculation failed:", message);
     throw new Error(message);
   }
 }

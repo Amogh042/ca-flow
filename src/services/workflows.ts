@@ -55,7 +55,10 @@ export async function createWorkflow(input: Omit<Workflow, "id">): Promise<Workf
   };
 
   const { data, error } = await supabase!.from<DBWorkflow>("workflows").insert(payload).select().single();
-  if (error) throw error;
+  if (error) {
+    console.error("Create workflow error:", error.message, error.details, error.hint);
+    throw error;
+  }
   return mapRowToWorkflow(data as DBWorkflow);
 }
 
@@ -74,7 +77,10 @@ export async function updateWorkflow(id: string, patch: Partial<Workflow>): Prom
   if (patch.completedSubtasks !== undefined) payload.completed_subtasks = patch.completedSubtasks;
 
   const { data, error } = await supabase!.from<DBWorkflow>("workflows").update(payload).eq("id", id).select().single();
-  if (error) throw error;
+  if (error) {
+    console.error("Update workflow error:", error.message, error.details, error.hint);
+    throw error;
+  }
   return mapRowToWorkflow(data as DBWorkflow);
 }
 

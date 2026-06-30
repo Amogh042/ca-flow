@@ -49,7 +49,7 @@ export function useCreateFiling() {
 export function useUpdateFiling() {
   const qc = useQueryClient();
   return useMutation<Filing, unknown, [string, Partial<Filing>], { previous?: Filing[] }>({
-    mutationFn: filingsService.updateFiling,
+    mutationFn: ([id, patch]: [string, Partial<Filing>]) => filingsService.updateFiling(id, patch),
     onMutate: async ([id, patch]: [string, Partial<Filing>]) => {
       await qc.cancelQueries(queryKeys.filings());
       const previous = qc.getQueryData<Filing[]>(queryKeys.filings());

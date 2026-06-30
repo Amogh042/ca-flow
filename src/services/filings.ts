@@ -61,10 +61,14 @@ export async function createFiling(input: Omit<Filing, "id">): Promise<Filing> {
     };
 
     const { data, error } = await supabase!.from<DBFiling>("filings").insert(payload).select().single();
-    if (error) throw error;
+    if (error) {
+      console.error("Create filing error:", error.message, error.details, error.hint);
+      throw error;
+    }
     return mapRowToFiling(data as DBFiling);
   } catch (err: any) {
     const message = err?.message || "Failed to create filing";
+    console.error("Create filing failed:", message);
     throw new Error(message);
   }
 }
@@ -81,7 +85,10 @@ export async function updateFiling(id: string, patch: Partial<Filing>): Promise<
   if (patch.blocker !== undefined) payload.blocker = patch.blocker;
 
   const { data, error } = await supabase!.from<DBFiling>("filings").update(payload).eq("id", id).select().single();
-  if (error) throw error;
+  if (error) {
+    console.error("Update filing error:", error.message, error.details, error.hint);
+    throw error;
+  }
   return mapRowToFiling(data as DBFiling);
 }
 

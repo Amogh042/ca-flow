@@ -72,7 +72,7 @@ export function useCreateClient() {
 export function useUpdateClient() {
   const qc = useQueryClient();
   return useMutation<ClientRecord, unknown, [string, Partial<ClientRecord>], { previous?: ClientRecord[] }>({
-    mutationFn: clientsService.updateClient,
+    mutationFn: ([id, patch]: [string, Partial<ClientRecord>]) => clientsService.updateClient(id, patch),
     onMutate: async ([id, patch]: [string, Partial<ClientRecord>]) => {
       await qc.cancelQueries(queryKeys.clients());
       const previous = qc.getQueryData<ClientRecord[]>(queryKeys.clients());

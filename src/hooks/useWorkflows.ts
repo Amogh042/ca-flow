@@ -37,7 +37,7 @@ export function useCreateWorkflow() {
 export function useUpdateWorkflow() {
   const qc = useQueryClient();
   return useMutation<Workflow, unknown, [string, Partial<Workflow>], { previous?: Workflow[] }>({
-    mutationFn: workflowsService.updateWorkflow,
+    mutationFn: ([id, patch]: [string, Partial<Workflow>]) => workflowsService.updateWorkflow(id, patch),
     onMutate: async ([id, patch]: [string, Partial<Workflow>]) => {
       await qc.cancelQueries(queryKeys.workflows());
       const previous = qc.getQueryData<Workflow[]>(queryKeys.workflows());
