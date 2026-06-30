@@ -49,3 +49,12 @@ export async function createCalculation(input: Omit<CalculationRecord, "id">): P
   }
   return mapRowToCalculation(data);
 }
+
+export async function deleteCalculations(ids: string[]): Promise<void> {
+  if (!isSupabaseConfigured() || ids.length === 0) return;
+  const { error } = await supabase!.from("calculations").delete().in("id", ids);
+  if (error) {
+    console.error("Delete calculations error:", error.message, error.details, error.hint);
+    throw error;
+  }
+}

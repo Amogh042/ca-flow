@@ -13,6 +13,21 @@ export function useCalculations() {
   });
 }
 
+export function useDeleteCalculations() {
+  const qc = useQueryClient();
+  return useMutation<void, unknown, string[]>({
+    mutationFn: calculationsService.deleteCalculations,
+    onSuccess() {
+      qc.invalidateQueries(queryKeys.calculations());
+      toast({ title: "Deleted", description: "Calculations removed" });
+    },
+    onError(err) {
+      const message = (err as any)?.message || "Could not delete calculations";
+      toast({ title: "Delete failed", description: message });
+    },
+  });
+}
+
 export function useCreateCalculation() {
   const qc = useQueryClient();
   return useMutation<CalculationRecord, unknown, Omit<CalculationRecord, "id">, { previous?: CalculationRecord[] }>({
