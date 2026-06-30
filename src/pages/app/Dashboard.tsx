@@ -19,17 +19,18 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
   const clientsQuery = useClients();
   const filingsQuery = useFilings();
-  const loading = clientsQuery.isLoading || filingsQuery.isLoading;
 
   const clients = clientsQuery.data ?? [];
   const filings = filingsQuery.data ?? [];
 
+  const dataSettled = !clientsQuery.isFetching && !filingsQuery.isFetching;
+
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  if (loading) {
+  if (!dataSettled) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>Loading...</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh" }}>
+        <div style={{ width: 24, height: 24, border: "2px solid var(--border-color)", borderTopColor: "var(--color-primary)", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
       </div>
     );
   }

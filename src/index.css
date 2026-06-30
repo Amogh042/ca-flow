@@ -148,6 +148,10 @@
   }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @layer components {
   .card-surface {
     transition-property: transform, box-shadow, border-color;
