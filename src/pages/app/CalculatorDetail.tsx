@@ -618,7 +618,11 @@ export default function CalculatorDetail() {
 
       {CalcComponent ? <CalcComponent /> : <ComingSoonCard slug={slug} />}
 
-      {CalcComponent && <SaveToClient calcSlug={slug} calcName={title} />}
+      {CalcComponent && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6">
+          <SaveToClient calcSlug={slug} calcName={title} />
+        </div>
+      )}
     </div>
   );
 }
