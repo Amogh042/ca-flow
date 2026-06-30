@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Calculator, Check, ChevronRight, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,8 @@ import { useCreateActivity } from "@/hooks/useActivities";
 const FY = ["FY 2026-27", "FY 2025-26", "FY 2024-25", "FY 2023-24"];
 const AGE = ["Below 60", "60-80", "Above 80"];
 
-type CalculatorComponent = () => JSX.Element;
+type CalcDataRef = MutableRefObject<{ inputs: Record<string, any>; outputs: Record<string, any> }>;
+type CalculatorComponent = (props: { dataRef?: CalcDataRef }) => JSX.Element;
 
 const CALC_REGISTRY: Record<string, CalculatorComponent> = {
   "income-tax": IncomeTaxCalc,
@@ -496,7 +497,7 @@ function calculateLoanFromEMI(emi: number, annualRate: number, tenureMonths: num
   return monthlyEmi * (((1 + r) ** n - 1) / (r * (1 + r) ** n));
 }
 
-function SaveToClient({ calcSlug, calcName }: { calcSlug: string; calcName: string }) {
+function SaveToClient({ calcSlug, calcName, dataRef }: { calcSlug: string; calcName: string; dataRef?: CalcDataRef }) {
   const clients = useClients().data ?? [];
   const createCalc = useCreateCalculation();
   const createAct = useCreateActivity();
@@ -517,12 +518,15 @@ function SaveToClient({ calcSlug, calcName }: { calcSlug: string; calcName: stri
 
   function handleSave(clientId: string) {
     const clientName = clients.find((c) => c.id === clientId)?.name ?? "Client";
+    const calcData = dataRef?.current ?? { inputs: {}, outputs: {} };
     createCalc.mutate({
       clientId,
       title: calcName,
       subtitle: calcSlug,
       savedAt: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
       owner: "",
+      inputs: calcData.inputs,
+      outputs: calcData.outputs,
     }, {
       onSuccess() {
         createAct.mutate({
@@ -605,6 +609,7 @@ export default function CalculatorDetail() {
   const CalcComponent = CALC_REGISTRY[slug];
   const title = titleMap[slug] ?? slug.replace(/-/g, " ");
   const category = categoryMap[slug] ?? "tax";
+  const calcDataRef = useRef<{ inputs: Record<string, any>; outputs: Record<string, any> }>({ inputs: {}, outputs: {} });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -616,9 +621,9 @@ export default function CalculatorDetail() {
         <span className="text-[var(--text-primary)] capitalize">{title}</span>
       </nav>
 
-      {CalcComponent && <SaveToClient calcSlug={slug} calcName={title} />}
+      {CalcComponent && <SaveToClient calcSlug={slug} calcName={title} dataRef={calcDataRef} />}
 
-      {CalcComponent ? <CalcComponent /> : <ComingSoonCard slug={slug} />}
+      {CalcComponent ? <CalcComponent dataRef={calcDataRef} /> : <ComingSoonCard slug={slug} />}
     </div>
   );
 }
@@ -722,7 +727,7 @@ function computeIncomeTax(income: number, fy: string, regime: "new" | "old", age
   };
 }
 
-function IncomeTaxCalc() {
+function IncomeTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [annualIncome, setAnnualIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [age, setAge] = useState(AGE[0]);
@@ -735,6 +740,16 @@ function IncomeTaxCalc() {
   }, [annualIncome, regime, age, fy]);
 
   const incomeValue = toNum(annualIncome);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Annual Income": annualIncome, "Financial Year": fy, "Tax Regime": regime, "Age Group": age },
+        outputs: { "Taxable Income": result.taxableIncome, "Std. Deduction": result.stdDeduction, "Tax Before Rebate": result.baseTax, "Section 87A Rebate": result.rebate87a, "Tax After Rebate": result.taxAfterRebate, "Surcharge": result.surcharge, "Health & Education Cess": result.cess, "Total Tax Payable": result.totalTax, "Effective Rate": result.effectiveRate + "%", "Monthly Tax": result.monthlyTax, "Monthly Take-Home": result.monthlyTakeHome },
+      };
+    }
+  }, [annualIncome, fy, regime, age, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Annual Income": annualIncome, "Financial Year": fy, "Tax Regime": regime, "Age Group": age }, outputs: { "Taxable Income": result.taxableIncome, "Std. Deduction": result.stdDeduction, "Tax Before Rebate": result.baseTax, "Section 87A Rebate": result.rebate87a, "Tax After Rebate": result.taxAfterRebate, "Surcharge": result.surcharge, "Health & Education Cess": result.cess, "Total Tax Payable": result.totalTax, "Effective Rate": result.effectiveRate + "%", "Monthly Tax": result.monthlyTax, "Monthly Take-Home": result.monthlyTakeHome } }; }, [annualIncome, fy, regime, age, result]);
 
   return (
     <>
@@ -935,7 +950,7 @@ type EMIResult = {
   }>;
 };
 
-function EMICalc() {
+function EMICalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [principal, setPrincipal] = useState("");
   const [annualRate, setAnnualRate] = useState("");
   const [tenureMonths, setTenureMonths] = useState("");
@@ -981,6 +996,16 @@ function EMICalc() {
 
     setResult({ monthlyEMI: emi, totalAmount, totalInterest, amortization });
   }, [principal, annualRate, tenureMonths]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Principal Amount": principal, "Annual Interest Rate": annualRate + "%", "Tenure (Months)": tenureMonths },
+        outputs: { "Monthly EMI": result.monthlyEMI, "Total Interest": result.totalInterest, "Total Payment": result.totalAmount },
+      };
+    }
+  }, [principal, annualRate, tenureMonths, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Principal Amount": principal, "Annual Interest Rate": annualRate + "%", "Tenure (Months)": tenureMonths }, outputs: { "Monthly EMI": result.monthlyEMI, "Total Interest": result.totalInterest, "Total Payment": result.totalAmount } }; }, [principal, annualRate, tenureMonths, result]);
 
   return (
     <CalculatorShell
@@ -1039,7 +1064,7 @@ function EmptyResults() {
   return <div className="card-surface p-10 text-center"><p className="text-sm text-secondary">Enter values above to see results</p></div>;
 }
 
-function GSTCalc() {
+function GSTCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [amount, setAmount] = useState("");
   const [gstRate, setGstRate] = useState("18");
   const [direction, setDirection] = useState<"add" | "remove">("add");
@@ -1078,6 +1103,16 @@ function GSTCalc() {
       total: value,
     });
   }, [amount, gstRate, direction]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Amount": amount, "GST Rate": gstRate + "%", "Calculation Type": direction === "add" ? "Forward (Add GST)" : "Reverse (Remove GST)" },
+        outputs: { "Taxable Amount": result.taxableAmount, "GST Amount": result.gstAmount, "CGST": result.cgst, "SGST": result.sgst, "Total": result.total },
+      };
+    }
+  }, [amount, gstRate, direction, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Amount": amount, "GST Rate": gstRate + "%", "Calculation Type": direction === "add" ? "Forward (Add GST)" : "Reverse (Remove GST)" }, outputs: { "Taxable Amount": result.taxableAmount, "GST Amount": result.gstAmount, "CGST": result.cgst, "SGST": result.sgst, "Total": result.total } }; }, [amount, gstRate, direction, result]);
 
   return (
     <CalculatorShell
@@ -1134,7 +1169,7 @@ function GSTCalc() {
   );
 }
 
-function SalaryCalc() {
+function SalaryCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [ctc, setCtc] = useState("");
   const [result, setResult] = useState({
     basic: 0,
@@ -1169,6 +1204,16 @@ function SalaryCalc() {
       takeHome,
     });
   }, [ctc]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Annual CTC": ctc },
+        outputs: { "Basic Salary": result.basic, "HRA": result.hra, "Special Allowance": result.specialAllowance, "Employee PF": result.employeePF, "Employer PF": result.employerPF, "Professional Tax": result.pt, "Gross Salary": result.grossSalary, "Annual Take-Home": result.takeHome },
+      };
+    }
+  }, [ctc, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Annual CTC": ctc }, outputs: { "Basic Salary": result.basic, "HRA": result.hra, "Special Allowance": result.specialAllowance, "Employee PF": result.employeePF, "Employer PF": result.employerPF, "Professional Tax": result.pt, "Gross Salary": result.grossSalary, "Annual Take-Home": result.takeHome } }; }, [ctc, result]);
 
   return (
     <CalculatorShell
@@ -1208,7 +1253,7 @@ function SalaryCalc() {
   );
 }
 
-function SIPCalc() {
+function SIPCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [monthlyAmount, setMonthlyAmount] = useState("");
   const [annualRate, setAnnualRate] = useState("");
   const [years, setYears] = useState("");
@@ -1241,6 +1286,16 @@ function SIPCalc() {
     setResult({ futureValue, totalInvested, wealthGained, returnPercent });
   }, [monthlyAmount, annualRate, years]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Monthly Investment": monthlyAmount, "Expected Return Rate": annualRate + "%", "Investment Period": years + " years" },
+        outputs: { "Total Invested": result.totalInvested, "Wealth Gained": result.wealthGained, "Future Value": result.futureValue, "Return %": result.returnPercent + "%" },
+      };
+    }
+  }, [monthlyAmount, annualRate, years, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Monthly Investment": monthlyAmount, "Expected Return Rate": annualRate + "%", "Investment Period": years + " years" }, outputs: { "Total Invested": result.totalInvested, "Wealth Gained": result.wealthGained, "Future Value": result.futureValue, "Return %": result.returnPercent + "%" } }; }, [monthlyAmount, annualRate, years, result]);
+
   return (
     <CalculatorShell
       title="SIP Calculator"
@@ -1268,7 +1323,7 @@ function SIPCalc() {
   );
 }
 
-function GratuityCalc() {
+function GratuityCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [basicSalary, setBasicSalary] = useState("");
   const [yearsOfService, setYearsOfService] = useState("");
   const [result, setResult] = useState({
@@ -1289,6 +1344,16 @@ function GratuityCalc() {
 
     setResult({ eligible, gratuityAmount, taxFreeLimit, taxableGratuity });
   }, [basicSalary, yearsOfService]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Last Drawn Basic + DA": basicSalary, "Years of Service": yearsOfService },
+        outputs: { "Eligible": result.eligible ? "Yes" : "No", "Gratuity Amount": result.gratuityAmount, "Tax-Free Limit": result.taxFreeLimit, "Taxable Gratuity": result.taxableGratuity },
+      };
+    }
+  }, [basicSalary, yearsOfService, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Last Drawn Basic + DA": basicSalary, "Years of Service": yearsOfService }, outputs: { "Eligible": result.eligible ? "Yes" : "No", "Gratuity Amount": result.gratuityAmount, "Tax-Free Limit": result.taxFreeLimit, "Taxable Gratuity": result.taxableGratuity } }; }, [basicSalary, yearsOfService, result]);
 
   return (
     <CalculatorShell
@@ -1319,7 +1384,7 @@ function GratuityCalc() {
   );
 }
 
-function PFCalc() {
+function PFCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [basicSalary, setBasicSalary] = useState("");
   const [result, setResult] = useState({
     employeeContribution: 0,
@@ -1358,6 +1423,16 @@ function PFCalc() {
     });
   }, [basicSalary]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Basic Salary (Monthly)": basicSalary },
+        outputs: { "Employee Contribution (12%)": result.employeeContribution, "Employer EPF": result.employerEPF, "Employer EPS": result.employerEPS, "Admin Charges": result.adminCharges, "Total Monthly": result.totalMonthly, "Annual Corpus": result.annualCorpus },
+      };
+    }
+  }, [basicSalary, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Basic Salary (Monthly)": basicSalary }, outputs: { "Employee Contribution (12%)": result.employeeContribution, "Employer EPF": result.employerEPF, "Employer EPS": result.employerEPS, "Admin Charges": result.adminCharges, "Total Monthly": result.totalMonthly, "Annual Corpus": result.annualCorpus } }; }, [basicSalary, result]);
+
   return (
     <CalculatorShell
       title="PF Calculator"
@@ -1387,7 +1462,7 @@ function PFCalc() {
   );
 }
 
-function HRACalc() {
+function HRACalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [basicSalary, setBasicSalary] = useState("");
   const [hraReceived, setHraReceived] = useState("");
   const [rentPaid, setRentPaid] = useState("");
@@ -1419,6 +1494,16 @@ function HRACalc() {
       taxableHRA,
     });
   }, [basicSalary, hraReceived, rentPaid, cityType]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Basic Salary (Annual)": basicSalary, "HRA Received (Annual)": hraReceived, "Rent Paid (Annual)": rentPaid, "City Type": cityType },
+        outputs: { "Actual HRA Received": result.actualHRA, "Rent - 10% of Basic": result.rentMinusBasic, "50%/40% of Basic": result.salaryPercentLimit, "Exemption Amount": result.exemptionAmount, "Taxable HRA": result.taxableHRA },
+      };
+    }
+  }, [basicSalary, hraReceived, rentPaid, cityType, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Basic Salary (Annual)": basicSalary, "HRA Received (Annual)": hraReceived, "Rent Paid (Annual)": rentPaid, "City Type": cityType }, outputs: { "Actual HRA Received": result.actualHRA, "Rent - 10% of Basic": result.rentMinusBasic, "50%/40% of Basic": result.salaryPercentLimit, "Exemption Amount": result.exemptionAmount, "Taxable HRA": result.taxableHRA } }; }, [basicSalary, hraReceived, rentPaid, cityType, result]);
 
   return (
     <CalculatorShell
@@ -1475,7 +1560,7 @@ function HRACalc() {
   );
 }
 
-function STCGCalc() {
+function STCGCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("2025-01-01");
@@ -1517,6 +1602,16 @@ function STCGCalc() {
 
     setResult({ gainAmount, holdingPeriod, isSTCG, taxRate, estimatedTax });
   }, [purchasePrice, salePrice, purchaseDate, saleDate, assetType]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Purchase Price": purchasePrice, "Sale Price": salePrice, "Purchase Date": purchaseDate, "Sale Date": saleDate, "Asset Type": assetType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Purchase Price": purchasePrice, "Sale Price": salePrice, "Purchase Date": purchaseDate, "Sale Date": saleDate, "Asset Type": assetType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -1588,7 +1683,7 @@ function STCGCalc() {
   );
 }
 
-function WDVCalc() {
+function WDVCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [assetName, setAssetName] = useState<keyof typeof WDV_DEFAULT_RATES>("Plant & Machinery");
   const [purchaseCost, setPurchaseCost] = useState("");
   const [rate, setRate] = useState(String(WDV_DEFAULT_RATES["Plant & Machinery"]));
@@ -1621,6 +1716,16 @@ function WDVCalc() {
 
     setResult({ schedule, totalDepreciation });
   }, [purchaseCost, rate, years]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Asset Name": assetName, "Purchase Cost": purchaseCost, "Rate": rate, "Years": years },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Asset Name": assetName, "Purchase Cost": purchaseCost, "Rate": rate, "Years": years }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -1685,7 +1790,7 @@ function WDVCalc() {
   );
 }
 
-function LTCGCalc() {
+function LTCGCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [purchaseYear, setPurchaseYear] = useState("");
@@ -1739,6 +1844,16 @@ function LTCGCalc() {
     });
   }, [purchasePrice, salePrice, purchaseYear, saleYear, assetType]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Purchase Price": purchasePrice, "Sale Price": salePrice, "Purchase Year": purchaseYear, "Sale Year": saleYear, "Asset Type": assetType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Purchase Price": purchasePrice, "Sale Price": salePrice, "Purchase Year": purchaseYear, "Sale Year": saleYear, "Asset Type": assetType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="LTCG Calculator"
@@ -1787,7 +1902,7 @@ function LTCGCalc() {
   );
 }
 
-function AdvanceTaxCalc() {
+function AdvanceTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [estimatedAnnualIncome, setEstimatedAnnualIncome] = useState("");
   const [taxAlreadyDeducted, setTaxAlreadyDeducted] = useState("");
   const [result, setResult] = useState({
@@ -1835,6 +1950,16 @@ function AdvanceTaxCalc() {
       schedule,
     });
   }, [estimatedAnnualIncome, taxAlreadyDeducted]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Estimated Annual Income": estimatedAnnualIncome, "TDS Already Deducted": taxAlreadyDeducted },
+        outputs: { "Total Tax Liability": result.totalTaxLiability, "Net Tax After TDS": result.netTaxAfterTDS },
+      };
+    }
+  }, [estimatedAnnualIncome, taxAlreadyDeducted, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Estimated Annual Income": estimatedAnnualIncome, "TDS Already Deducted": taxAlreadyDeducted }, outputs: { "Total Tax Liability": result.totalTaxLiability, "Net Tax After TDS": result.netTaxAfterTDS } }; }, [estimatedAnnualIncome, taxAlreadyDeducted, result]);
 
   return (
     <CalculatorShell
@@ -1893,7 +2018,7 @@ function AdvanceTaxCalc() {
   );
 }
 
-function FinancialRatiosCalc() {
+function FinancialRatiosCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [currentAssets, setCurrentAssets] = useState("");
   const [currentLiabilities, setCurrentLiabilities] = useState("");
   const [inventory, setInventory] = useState("");
@@ -1955,6 +2080,16 @@ function FinancialRatiosCalc() {
     interestExpense,
   ]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Current Assets": currentAssets, "Current Liabilities": currentLiabilities, "Inventory": inventory, "Total Revenue": totalRevenue, "Gross Profit": grossProfit, "Net Profit": netProfit, "Total Debt": totalDebt, "Total Equity": totalEquity, "Total Assets": totalAssets, "Ebit": ebit, "Interest Expense": interestExpense, "Ratios": ratios },
+        outputs: {  },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Current Assets": currentAssets, "Current Liabilities": currentLiabilities, "Inventory": inventory, "Total Revenue": totalRevenue, "Gross Profit": grossProfit, "Net Profit": netProfit, "Total Debt": totalDebt, "Total Equity": totalEquity, "Total Assets": totalAssets, "Ebit": ebit, "Interest Expense": interestExpense, "Ratios": ratios }, outputs: {  } }; });
+
   return (
     <CalculatorShell
       title="Financial Ratios Dashboard"
@@ -2001,7 +2136,7 @@ function FinancialRatiosCalc() {
   );
 }
 
-function BreakEvenCalc() {
+function BreakEvenCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [fixedCosts, setFixedCosts] = useState("");
   const [variableCostPerUnit, setVariableCostPerUnit] = useState("");
   const [sellingPricePerUnit, setSellingPricePerUnit] = useState("");
@@ -2049,6 +2184,16 @@ function BreakEvenCalc() {
       scenarios,
     });
   }, [fixedCosts, variableCostPerUnit, sellingPricePerUnit]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Fixed Costs": fixedCosts, "Variable Cost Per Unit": variableCostPerUnit, "Selling Price Per Unit": sellingPricePerUnit },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Fixed Costs": fixedCosts, "Variable Cost Per Unit": variableCostPerUnit, "Selling Price Per Unit": sellingPricePerUnit }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -2104,7 +2249,7 @@ function BreakEvenCalc() {
   );
 }
 
-function CompoundInterestCalc() {
+function CompoundInterestCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [principal, setPrincipal] = useState("");
   const [annualRate, setAnnualRate] = useState("");
   const [years, setYears] = useState("");
@@ -2152,6 +2297,16 @@ function CompoundInterestCalc() {
       growthTable,
     });
   }, [principal, annualRate, years, compoundingFrequency]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Principal": principal, "Annual Rate": annualRate + "%", "Period": years + " years", "Compounding": compoundingFrequency },
+        outputs: { "Final Amount (CI)": result.finalAmount, "Total Interest (CI)": result.totalInterest, "Final Amount (SI)": result.simpleFinalAmount, "Simple Interest": result.simpleInterest },
+      };
+    }
+  }, [principal, annualRate, years, compoundingFrequency, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Principal": principal, "Annual Rate": annualRate + "%", "Period": years + " years", "Compounding": compoundingFrequency }, outputs: { "Final Amount (CI)": result.finalAmount, "Total Interest (CI)": result.totalInterest, "Final Amount (SI)": result.simpleFinalAmount, "Simple Interest": result.simpleInterest } }; }, [principal, annualRate, years, compoundingFrequency, result]);
 
   return (
     <CalculatorShell
@@ -2220,7 +2375,7 @@ function CompoundInterestCalc() {
   );
 }
 
-function LoanEligibilityCalc() {
+function LoanEligibilityCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [monthlyIncome, setMonthlyIncome] = useState("");
   const [existingEMIs, setExistingEMIs] = useState("");
   const [interestRate, setInterestRate] = useState("");
@@ -2259,6 +2414,16 @@ function LoanEligibilityCalc() {
 
     setResult({ availableForEMI, maxLoanAmount, scenarios });
   }, [monthlyIncome, existingEMIs, interestRate, tenureYears]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Monthly Income": monthlyIncome, "Existing Em Is": existingEMIs, "Interest Rate": interestRate, "Tenure Years": tenureYears },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Monthly Income": monthlyIncome, "Existing E M Is": existingEMIs, "Interest Rate": interestRate, "Tenure Years": tenureYears }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -2311,7 +2476,7 @@ function LoanEligibilityCalc() {
   );
 }
 
-function HomeLoanCalc() {
+function HomeLoanCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [propertyValue, setPropertyValue] = useState("");
   const [downPaymentPercent, setDownPaymentPercent] = useState("");
   const [interestRate, setInterestRate] = useState("");
@@ -2360,6 +2525,16 @@ function HomeLoanCalc() {
     });
   }, [propertyValue, downPaymentPercent, interestRate, tenureYears]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Property Value": propertyValue, "Down Payment": downPaymentPercent + "%", "Interest Rate": interestRate + "%", "Tenure": tenureYears + " years" },
+        outputs: { "Down Payment": result.downPayment, "Loan Amount": result.loanAmount, "Monthly EMI": result.monthlyEMI, "Total Interest": result.totalInterest, "Total Payment": result.totalPayment },
+      };
+    }
+  }, [propertyValue, downPaymentPercent, interestRate, tenureYears, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Property Value": propertyValue, "Down Payment": downPaymentPercent + "%", "Interest Rate": interestRate + "%", "Tenure": tenureYears + " years" }, outputs: { "Down Payment": result.downPayment, "Loan Amount": result.loanAmount, "Monthly EMI": result.monthlyEMI, "Total Interest": result.totalInterest, "Total Payment": result.totalPayment } }; }, [propertyValue, downPaymentPercent, interestRate, tenureYears, result]);
+
   return (
     <CalculatorShell
       title="Home Loan Calculator"
@@ -2399,7 +2574,7 @@ function HomeLoanCalc() {
   );
 }
 
-function RentalYieldCalc() {
+function RentalYieldCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [propertyValue, setPropertyValue] = useState("");
   const [monthlyRent, setMonthlyRent] = useState("");
   const [annualMaintenance, setAnnualMaintenance] = useState("");
@@ -2438,6 +2613,16 @@ function RentalYieldCalc() {
     });
   }, [propertyValue, monthlyRent, annualMaintenance, annualPropertyTax, vacancyRate]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Property Value": propertyValue, "Monthly Rent": monthlyRent, "Annual Maintenance": annualMaintenance, "Annual Property Tax": annualPropertyTax, "Vacancy Rate": vacancyRate + "%" },
+        outputs: { "Gross Yield": result.grossYield + "%", "Net Yield": result.netYield + "%", "Annual Gross Income": result.annualGrossIncome, "Annual Net Income": result.annualNetIncome, "Payback Period": result.paybackYears + " years" },
+      };
+    }
+  }, [propertyValue, monthlyRent, annualMaintenance, annualPropertyTax, vacancyRate, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Property Value": propertyValue, "Monthly Rent": monthlyRent, "Annual Maintenance": annualMaintenance, "Annual Property Tax": annualPropertyTax, "Vacancy Rate": vacancyRate + "%" }, outputs: { "Gross Yield": result.grossYield + "%", "Net Yield": result.netYield + "%", "Annual Gross Income": result.annualGrossIncome, "Annual Net Income": result.annualNetIncome, "Payback Period": result.paybackYears + " years" } }; }, [propertyValue, monthlyRent, annualMaintenance, annualPropertyTax, vacancyRate, result]);
+
   return (
     <CalculatorShell
       title="Rental Yield Calculator"
@@ -2466,7 +2651,7 @@ function RentalYieldCalc() {
   );
 }
 
-function NPVCalc() {
+function NPVCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [initialInvestment, setInitialInvestment] = useState("");
   const [discountRate, setDiscountRate] = useState("");
   const [cashFlows, setCashFlows] = useState<string[]>(["300000", "350000", "400000"]);
@@ -2528,6 +2713,16 @@ function NPVCalc() {
     setCashFlows((prev) => prev.map((item, i) => (i === index ? value : item)));
   };
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Initial Investment": initialInvestment, "Discount Rate": discountRate, "Cash Flows": cashFlows },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Initial Investment": initialInvestment, "Discount Rate": discountRate, "Cash Flows": cashFlows }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="NPV Calculator"
@@ -2583,7 +2778,7 @@ function NPVCalc() {
   );
 }
 
-function TDSCalc() {
+function TDSCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const paymentTypes = Object.keys(TDS_CONFIG) as TdsPaymentType[];
   const [paymentType, setPaymentType] = useState<TdsPaymentType>("Professional/Technical fees (194J)");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -2637,6 +2832,16 @@ function TDSCalc() {
       dueDate: "7th of next month",
     });
   }, [paymentType, paymentAmount, recipientType, contractorType]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Payment Type": paymentType, "Payment Amount": paymentAmount, "Recipient Type": recipientType, "Contractor Type": contractorType },
+        outputs: { "TDS Rate": result.rateUsed + "%", "TDS Amount": result.tdsAmount, "Net Payment": result.netPayment, "Section": result.sectionReference, "Threshold Limit": result.thresholdLimit, "Due Date": result.dueDate },
+      };
+    }
+  }, [paymentType, paymentAmount, recipientType, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Payment Type": paymentType, "Payment Amount": paymentAmount, "Recipient Type": recipientType, "Contractor Type": contractorType }, outputs: { "TDS Rate": result.rateUsed + "%", "TDS Amount": result.tdsAmount, "Net Payment": result.netPayment, "Section": result.sectionReference, "Threshold Limit": result.thresholdLimit, "Due Date": result.dueDate } }; }, [paymentType, paymentAmount, recipientType, contractorType, result]);
 
   return (
     <CalculatorShell
@@ -2719,7 +2924,7 @@ function TDSCalc() {
   );
 }
 
-function PPFCalc() {
+function PPFCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [annualInvestment, setAnnualInvestment] = useState("");
   const [years, setYears] = useState("");
   const [result, setResult] = useState({
@@ -2768,6 +2973,16 @@ function PPFCalc() {
       schedule,
     });
   }, [annualInvestment, years]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Annual Investment": annualInvestment, "Investment Period": years + " years" },
+        outputs: { "Maturity Amount": result.maturityAmount, "Total Invested": result.totalInvested, "Total Interest": result.totalInterest, "Effective Return": result.effectiveReturn + "%", "Tax Benefit (80C)": result.taxBenefit80C },
+      };
+    }
+  }, [annualInvestment, years, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Annual Investment": annualInvestment, "Investment Period": years + " years" }, outputs: { "Maturity Amount": result.maturityAmount, "Total Invested": result.totalInvested, "Total Interest": result.totalInterest, "Effective Return": result.effectiveReturn + "%", "Tax Benefit (80C)": result.taxBenefit80C } }; }, [annualInvestment, years, result]);
 
   return (
     <CalculatorShell
@@ -2822,7 +3037,7 @@ function PPFCalc() {
   );
 }
 
-function SLMCalc() {
+function SLMCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [assetName, setAssetName] = useState("Asset");
   const [purchaseCost, setPurchaseCost] = useState("");
   const [salvageValue, setSalvageValue] = useState("100000");
@@ -2865,6 +3080,16 @@ function SLMCalc() {
       table,
     });
   }, [purchaseCost, salvageValue, usefulLifeYears]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Asset Name": assetName, "Purchase Cost": purchaseCost, "Salvage Value": salvageValue, "Useful Life Years": usefulLifeYears },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Asset Name": assetName, "Purchase Cost": purchaseCost, "Salvage Value": salvageValue, "Useful Life Years": usefulLifeYears }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -2928,7 +3153,7 @@ function SLMCalc() {
   );
 }
 
-function MaterialityCalc() {
+function MaterialityCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [totalRevenue, setTotalRevenue] = useState("");
   const [totalAssets, setTotalAssets] = useState("");
   const [netProfit, setNetProfit] = useState("");
@@ -2969,6 +3194,16 @@ function MaterialityCalc() {
       trivialAmount,
     });
   }, [totalRevenue, totalAssets, netProfit, benchmark]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Total Revenue": totalRevenue, "Total Assets": totalAssets, "Net Profit": netProfit, "Benchmark": benchmark },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Total Revenue": totalRevenue, "Total Assets": totalAssets, "Net Profit": netProfit, "Benchmark": benchmark }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -3031,7 +3266,7 @@ function MaterialityCalc() {
   );
 }
 
-function StampDutyCalc() {
+function StampDutyCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const states = Object.keys(STAMP_DUTY_RATES) as Array<keyof typeof STAMP_DUTY_RATES>;
   const [propertyValue, setPropertyValue] = useState("");
   const [state, setState] = useState<keyof typeof STAMP_DUTY_RATES>("Maharashtra");
@@ -3109,6 +3344,16 @@ function StampDutyCalc() {
       rows,
     });
   }, [propertyValue, state, propertyType, ownerGender]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Property Value": propertyValue, "State": state, "Property Type": propertyType, "Owner Gender": ownerGender },
+        outputs: { "Stamp Duty": result.stampDuty, "Registration Charges": result.registrationCharge, "Total Charges": result.totalCharges, "Effective Rate": result.effectiveRate + "%" },
+      };
+    }
+  }, [propertyValue, state, propertyType, ownerGender, result]);
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Property Value": propertyValue, "State": state, "Property Type": propertyType, "Owner Gender": ownerGender }, outputs: { "Stamp Duty": result.stampDuty, "Registration Charges": result.registrationCharge, "Total Charges": result.totalCharges, "Effective Rate": result.effectiveRate + "%" } }; }, [propertyValue, state, propertyType, ownerGender, result]);
 
   return (
     <CalculatorShell
@@ -3214,7 +3459,7 @@ function StampDutyCalc() {
   );
 }
 
-function WACCCalc() {
+function WACCCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [equityValue, setEquityValue] = useState("");
   const [debtValue, setDebtValue] = useState("");
   const [costOfEquity, setCostOfEquity] = useState("");
@@ -3251,6 +3496,16 @@ function WACCCalc() {
       formulaText,
     });
   }, [equityValue, debtValue, costOfEquity, costOfDebt, taxRate]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Equity Value": equityValue, "Debt Value": debtValue, "Cost Of Equity": costOfEquity, "Cost Of Debt": costOfDebt, "Tax Rate": taxRate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Equity Value": equityValue, "Debt Value": debtValue, "Cost Of Equity": costOfEquity, "Cost Of Debt": costOfDebt, "Tax Rate": taxRate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -3289,7 +3544,7 @@ function WACCCalc() {
   );
 }
 
-function DCFCalc() {
+function DCFCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [cashFlows, setCashFlows] = useState<string[]>(["0", "250000", "300000", "360000", "420000", "480000"]);
   const [terminalGrowth, setTerminalGrowth] = useState("");
   const [discountRate, setDiscountRate] = useState("");
@@ -3350,6 +3605,16 @@ function DCFCalc() {
     if (cashFlows.length >= 10) return;
     setCashFlows((prev) => [...prev, "0"]);
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Cash Flows": cashFlows, "Terminal Growth": terminalGrowth, "Discount Rate": discountRate, "Net Debt": netDebt, "Shares Outstanding": sharesOutstanding },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Cash Flows": cashFlows, "Terminal Growth": terminalGrowth, "Discount Rate": discountRate, "Net Debt": netDebt, "Shares Outstanding": sharesOutstanding }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -3425,7 +3690,7 @@ function DCFCalc() {
   );
 }
 
-function SampleSizeCalc() {
+function SampleSizeCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [populationSize, setPopulationSize] = useState("");
   const [confidenceLevel, setConfidenceLevel] = useState<"90" | "95" | "99">("95");
   const [tolerableErrorRate, setTolerableErrorRate] = useState("");
@@ -3463,6 +3728,16 @@ function SampleSizeCalc() {
       zValue,
     });
   }, [populationSize, confidenceLevel, tolerableErrorRate, expectedErrorRate, populationValue, tolerableMisstatement]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Population Size": populationSize, "Confidence Level": confidenceLevel, "Tolerable Error Rate": tolerableErrorRate, "Expected Error Rate": expectedErrorRate, "Population Value": populationValue, "Tolerable Misstatement": tolerableMisstatement },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Population Size": populationSize, "Confidence Level": confidenceLevel, "Tolerable Error Rate": tolerableErrorRate, "Expected Error Rate": expectedErrorRate, "Population Value": populationValue, "Tolerable Misstatement": tolerableMisstatement }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -3514,7 +3789,7 @@ function SampleSizeCalc() {
   );
 }
 
-function Section80CCalc() {
+function Section80CCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [epf, setEpf] = useState("");
   const [ppf, setPpf] = useState("");
   const [elss, setElss] = useState("");
@@ -3584,6 +3859,16 @@ function Section80CCalc() {
     isSeniorCitizen,
     isParentsSeniorCitizen,
   ]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Epf": epf, "Ppf": ppf, "Elss": elss, "Lic": lic, "Home Principal": homePrincipal, "Tuition Fees": tuitionFees, "Nsc Fd": nscFd, "Health Self Family": healthSelfFamily, "Health Parents": healthParents, "Nps Additional": npsAdditional, "Is Senior Citizen": isSeniorCitizen, "Is Parents Senior Citizen": isParentsSeniorCitizen },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Epf": epf, "Ppf": ppf, "Elss": elss, "Lic": lic, "Home Principal": homePrincipal, "Tuition Fees": tuitionFees, "Nsc Fd": nscFd, "Health Self Family": healthSelfFamily, "Health Parents": healthParents, "Nps Additional": npsAdditional, "Is Senior Citizen": isSeniorCitizen, "Is Parents Senior Citizen": isParentsSeniorCitizen }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -3659,7 +3944,7 @@ function Section80CCalc() {
   );
 }
 
-function BalanceTransferCalc() {
+function BalanceTransferCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [currentLoanBalance, setCurrentLoanBalance] = useState("");
   const [currentInterestRate, setCurrentInterestRate] = useState("");
   const [currentRemainingTenure, setCurrentRemainingTenure] = useState("");
@@ -3716,6 +4001,16 @@ function BalanceTransferCalc() {
     prepaymentPenalty,
   ]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Current Loan Balance": currentLoanBalance, "Current Interest Rate": currentInterestRate, "Current Remaining Tenure": currentRemainingTenure, "New Interest Rate": newInterestRate, "Processing Fee": processingFee, "Prepayment Penalty": prepaymentPenalty },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Current Loan Balance": currentLoanBalance, "Current Interest Rate": currentInterestRate, "Current Remaining Tenure": currentRemainingTenure, "New Interest Rate": newInterestRate, "Processing Fee": processingFee, "Prepayment Penalty": prepaymentPenalty }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Loan Balance Transfer Calculator"
@@ -3755,7 +4050,7 @@ function BalanceTransferCalc() {
   );
 }
 
-function DividendTaxCalc() {
+function DividendTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [dividendAmount, setDividendAmount] = useState("");
   const [shareholderType, setShareholderType] = useState<"individual" | "company" | "NRI">("individual");
   const [taxSlab, setTaxSlab] = useState<"5" | "20" | "30">("30");
@@ -3806,6 +4101,16 @@ function DividendTaxCalc() {
       effectiveRate,
     });
   }, [dividendAmount, shareholderType, taxSlab, hasDTAA]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Dividend Amount": dividendAmount, "Shareholder Type": shareholderType, "Tax Slab": taxSlab, "Has Dtaa": hasDTAA },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Dividend Amount": dividendAmount, "Shareholder Type": shareholderType, "Tax Slab": taxSlab, "Has D T A A": hasDTAA }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -3887,7 +4192,7 @@ function DividendTaxCalc() {
   );
 }
 
-function ROEDetailCalc() {
+function ROEDetailCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [netIncome, setNetIncome] = useState("");
   const [revenue, setRevenue] = useState("");
   const [totalAssets, setTotalAssets] = useState("");
@@ -3935,6 +4240,16 @@ function ROEDetailCalc() {
     });
   }, [netIncome, revenue, totalAssets, shareholderEquity]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Net Income": netIncome, "Revenue": revenue, "Total Assets": totalAssets, "Shareholder Equity": shareholderEquity },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Net Income": netIncome, "Revenue": revenue, "Total Assets": totalAssets, "Shareholder Equity": shareholderEquity }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Return on Equity (ROE) — DuPont Analysis"
@@ -3981,7 +4296,7 @@ function ROEDetailCalc() {
   );
 }
 
-function IRRCalc() {
+function IRRCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [initialInvestment, setInitialInvestment] = useState("");
   const [cashFlows, setCashFlows] = useState<string[]>(["250000", "300000", "350000", "400000"]);
   const [reinvestmentRate, setReinvestmentRate] = useState("");
@@ -4045,6 +4360,16 @@ function IRRCalc() {
   const updateCashFlow = (index: number, value: string) => {
     setCashFlows((prev) => prev.map((item, i) => (i === index ? value : item)));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Initial Investment": initialInvestment, "Cash Flows": cashFlows, "Reinvestment Rate": reinvestmentRate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Initial Investment": initialInvestment, "Cash Flows": cashFlows, "Reinvestment Rate": reinvestmentRate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -4113,7 +4438,7 @@ function IRRCalc() {
   );
 }
 
-function PaybackCalc() {
+function PaybackCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [initialInvestment, setInitialInvestment] = useState("");
   const [discountRate, setDiscountRate] = useState("");
   const [cashFlows, setCashFlows] = useState<string[]>(["250000", "300000", "350000", "400000"]);
@@ -4206,6 +4531,16 @@ function PaybackCalc() {
     setCashFlows((prev) => prev.map((item, i) => (i === index ? value : item)));
   };
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Initial Investment": initialInvestment, "Discount Rate": discountRate, "Cash Flows": cashFlows },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Initial Investment": initialInvestment, "Discount Rate": discountRate, "Cash Flows": cashFlows }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Payback Period Calculator"
@@ -4274,7 +4609,7 @@ function PaybackCalc() {
   );
 }
 
-function LumpsumCalc() {
+function LumpsumCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [principalAmount, setPrincipalAmount] = useState("");
   const [expectedReturn, setExpectedReturn] = useState("");
   const [years, setYears] = useState("");
@@ -4323,6 +4658,16 @@ function LumpsumCalc() {
   }, [principalAmount, expectedReturn, years, inflationRate]);
 
   const latest = result.rows[result.rows.length - 1];
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Principal Amount": principalAmount, "Expected Return": expectedReturn, "Years": years, "Inflation Rate": inflationRate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Principal Amount": principalAmount, "Expected Return": expectedReturn, "Years": years, "Inflation Rate": inflationRate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -4408,7 +4753,7 @@ function LumpsumCalc() {
   );
 }
 
-function ESICalc() {
+function ESICalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [grossSalary, setGrossSalary] = useState("");
   const [result, setResult] = useState({
     applicable: true,
@@ -4444,6 +4789,16 @@ function ESICalc() {
       rows,
     });
   }, [grossSalary]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Gross Salary": grossSalary },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Gross Salary": grossSalary }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -4505,7 +4860,7 @@ function ESICalc() {
   );
 }
 
-function CarLoanCalc() {
+function CarLoanCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [carPrice, setCarPrice] = useState("");
   const [downPayment, setDownPayment] = useState("");
   const [interestRate, setInterestRate] = useState("");
@@ -4558,6 +4913,16 @@ function CarLoanCalc() {
     });
   }, [carPrice, downPayment, interestRate, tenureYears, processingFeePercent, insuranceAmount]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Car Price": carPrice, "Down Payment": downPayment, "Interest Rate": interestRate, "Tenure Years": tenureYears, "Processing Fee Percent": processingFeePercent, "Insurance Amount": insuranceAmount },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Car Price": carPrice, "Down Payment": downPayment, "Interest Rate": interestRate, "Tenure Years": tenureYears, "Processing Fee Percent": processingFeePercent, "Insurance Amount": insuranceAmount }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Car Loan EMI Calculator"
@@ -4599,7 +4964,7 @@ function CarLoanCalc() {
   );
 }
 
-function PersonalLoanCalc() {
+function PersonalLoanCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [loanAmount, setLoanAmount] = useState("");
   const [interestRate, setInterestRate] = useState("");
   const [tenureMonths, setTenureMonths] = useState("");
@@ -4646,6 +5011,16 @@ function PersonalLoanCalc() {
       amortization,
     });
   }, [loanAmount, interestRate, tenureMonths, processingFeePercent]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Loan Amount": loanAmount, "Interest Rate": interestRate, "Tenure Months": tenureMonths, "Processing Fee Percent": processingFeePercent },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Loan Amount": loanAmount, "Interest Rate": interestRate, "Tenure Months": tenureMonths, "Processing Fee Percent": processingFeePercent }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -4701,7 +5076,7 @@ function PersonalLoanCalc() {
   );
 }
 
-function PrepaymentCalc() {
+function PrepaymentCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [originalLoan, setOriginalLoan] = useState("");
   const [interestRate, setInterestRate] = useState("");
   const [originalTenureMonths, setOriginalTenureMonths] = useState("");
@@ -4784,6 +5159,16 @@ function PrepaymentCalc() {
     });
   }, [originalLoan, interestRate, originalTenureMonths, monthsPaid, prepaymentAmount, prepaymentPenaltyPercent]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Original Loan": originalLoan, "Interest Rate": interestRate, "Original Tenure Months": originalTenureMonths, "Months Paid": monthsPaid, "Prepayment Amount": prepaymentAmount, "Prepayment Penalty Percent": prepaymentPenaltyPercent },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Original Loan": originalLoan, "Interest Rate": interestRate, "Original Tenure Months": originalTenureMonths, "Months Paid": monthsPaid, "Prepayment Amount": prepaymentAmount, "Prepayment Penalty Percent": prepaymentPenaltyPercent }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Loan Prepayment Savings Calculator"
@@ -4827,7 +5212,7 @@ function PrepaymentCalc() {
   );
 }
 
-function GSTLateFeeCalc() {
+function GSTLateFeeCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [returnType, setReturnType] = useState<"GSTR-1" | "GSTR-3B" | "GSTR-9">("GSTR-3B");
   const [dueDate, setDueDate] = useState("2026-04-20");
   const [filingDate, setFilingDate] = useState("2026-04-25");
@@ -4891,6 +5276,16 @@ function GSTLateFeeCalc() {
       dailyRows,
     });
   }, [returnType, dueDate, filingDate, taxPayable, isNilReturn]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Return Type": returnType, "Due Date": dueDate, "Filing Date": filingDate, "Tax Payable": taxPayable, "Is Nil Return": isNilReturn },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Return Type": returnType, "Due Date": dueDate, "Filing Date": filingDate, "Tax Payable": taxPayable, "Is Nil Return": isNilReturn }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -5020,7 +5415,7 @@ function GSTLateFeeCalc() {
   );
 }
 
-function ITCReconciliationCalc() {
+function ITCReconciliationCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [igst2B, setIgst2B] = useState("");
   const [cgst2B, setCgst2B] = useState("");
   const [sgst2B, setSgst2B] = useState("");
@@ -5086,6 +5481,16 @@ function ITCReconciliationCalc() {
     cgstReversed,
     sgstReversed,
   ]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Igst2B": igst2B, "Cgst2B": cgst2B, "Sgst2B": sgst2B, "Igst Claimed": igstClaimed, "Cgst Claimed": cgstClaimed, "Sgst Claimed": sgstClaimed, "Igst Reversed": igstReversed, "Cgst Reversed": cgstReversed, "Sgst Reversed": sgstReversed },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Igst2 B": igst2B, "Cgst2 B": cgst2B, "Sgst2 B": sgst2B, "Igst Claimed": igstClaimed, "Cgst Claimed": cgstClaimed, "Sgst Claimed": sgstClaimed, "Igst Reversed": igstReversed, "Cgst Reversed": cgstReversed, "Sgst Reversed": sgstReversed }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -5173,7 +5578,7 @@ function ITCReconciliationCalc() {
   );
 }
 
-function DebtEquityCalc() {
+function DebtEquityCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [totalDebt, setTotalDebt] = useState("");
   const [totalEquity, setTotalEquity] = useState("");
   const [totalAssets, setTotalAssets] = useState("");
@@ -5275,6 +5680,16 @@ function DebtEquityCalc() {
     ].slice(0, 6));
   }, [totalDebt, totalEquity, totalAssets, ebit, interestExpense, netIncome, totalRevenue]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Total Debt": totalDebt, "Total Equity": totalEquity, "Total Assets": totalAssets, "Ebit": ebit, "Interest Expense": interestExpense, "Net Income": netIncome, "Total Revenue": totalRevenue, "Cards": cards },
+        outputs: {  },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Total Debt": totalDebt, "Total Equity": totalEquity, "Total Assets": totalAssets, "Ebit": ebit, "Interest Expense": interestExpense, "Net Income": netIncome, "Total Revenue": totalRevenue, "Cards": cards }, outputs: {  } }; });
+
   return (
     <CalculatorShell
       title="Debt to Equity & Leverage Ratios"
@@ -5317,7 +5732,7 @@ function DebtEquityCalc() {
   );
 }
 
-function LeaveEncashmentCalc() {
+function LeaveEncashmentCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [basicSalary, setBasicSalary] = useState("");
   const [daPay, setDaPay] = useState("");
   const [leavesEncashed, setLeavesEncashed] = useState("");
@@ -5363,6 +5778,16 @@ function LeaveEncashmentCalc() {
     const taxableAmount = Math.max(0, totalEncashment - exemptAmount);
     setResult({ totalEncashment, exemptAmount, taxableAmount, limits, appliedLimit });
   }, [basicSalary, daPay, leavesEncashed, totalServiceYears, isGovernmentEmployee]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Basic Salary": basicSalary, "Da Pay": daPay, "Leaves Encashed": leavesEncashed, "Total Service Years": totalServiceYears, "Is Government Employee": isGovernmentEmployee },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Basic Salary": basicSalary, "Da Pay": daPay, "Leaves Encashed": leavesEncashed, "Total Service Years": totalServiceYears, "Is Government Employee": isGovernmentEmployee }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -5432,7 +5857,7 @@ function LeaveEncashmentCalc() {
   );
 }
 
-function CapitalGainsPropertyCalc() {
+function CapitalGainsPropertyCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const ciiYears = Object.keys(CII_TABLE).map((y) => Number(y)).sort((a, b) => a - b);
   const [purchasePrice, setPurchasePrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
@@ -5510,6 +5935,16 @@ function CapitalGainsPropertyCalc() {
       gainType: "STCG",
     });
   }, [purchasePrice, salePrice, purchaseYear, saleYear, stampDutyPaid, improvementCost, brokerageSalePercent, slabRate]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Purchase Price": purchasePrice, "Sale Price": salePrice, "Purchase Year": purchaseYear, "Sale Year": saleYear, "Stamp Duty Paid": stampDutyPaid, "Improvement Cost": improvementCost, "Brokerage Sale Percent": brokerageSalePercent, "Slab Rate": slabRate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Purchase Price": purchasePrice, "Sale Price": salePrice, "Purchase Year": purchaseYear, "Sale Year": saleYear, "Stamp Duty Paid": stampDutyPaid, "Improvement Cost": improvementCost, "Brokerage Sale Percent": brokerageSalePercent, "Slab Rate": slabRate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -5590,7 +6025,7 @@ function CapitalGainsPropertyCalc() {
   );
 }
 
-function ITDepreciationCalc() {
+function ITDepreciationCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const assetRates = {
     "Buildings (residential)": 5,
     "Buildings (commercial)": 10,
@@ -5641,6 +6076,16 @@ function ITDepreciationCalc() {
 
     setResult({ fullYearDepreciation, applicableDepreciation, closingWDV, taxSavingAtSlab30, schedule });
   }, [assetBlock, purchaseCost, dateOfPurchase, financialYearEnd]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Asset Block": assetBlock, "Purchase Cost": purchaseCost, "Date Of Purchase": dateOfPurchase, "Financial Year End": financialYearEnd },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Asset Block": assetBlock, "Purchase Cost": purchaseCost, "Date Of Purchase": dateOfPurchase, "Financial Year End": financialYearEnd }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -5725,7 +6170,7 @@ function ITDepreciationCalc() {
   );
 }
 
-function NetWorthCalc() {
+function NetWorthCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type LineItem = { name: string; value: string };
 
   const [assets, setAssets] = useState<LineItem[]>([
@@ -5795,6 +6240,16 @@ function NetWorthCalc() {
     }
     setLiabilities((prev) => (prev.length >= 10 ? prev : [...prev, { name: "", value: "0" }]));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Assets": assets, "Liabilities": liabilities },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Assets": assets, "Liabilities": liabilities }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -5910,7 +6365,7 @@ function NetWorthCalc() {
   );
 }
 
-function WorkingCapitalCalc() {
+function WorkingCapitalCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [currentAssets, setCurrentAssets] = useState("");
   const [currentLiabilities, setCurrentLiabilities] = useState("");
   const [inventory, setInventory] = useState("");
@@ -5981,6 +6436,16 @@ function WorkingCapitalCalc() {
     : result.cashConversionCycle < 45
       ? "Efficient cycle: lower CCC improves liquidity."
       : "Long cycle: optimize inventory and collections to reduce CCC.";
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Current Assets": currentAssets, "Current Liabilities": currentLiabilities, "Inventory": inventory, "Accounts Receivable": accountsReceivable, "Accounts Payable": accountsPayable, "Annual Revenue": annualRevenue, "Annual Cogs": annualCOGS },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Current Assets": currentAssets, "Current Liabilities": currentLiabilities, "Inventory": inventory, "Accounts Receivable": accountsReceivable, "Accounts Payable": accountsPayable, "Annual Revenue": annualRevenue, "Annual C O G S": annualCOGS }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -6068,7 +6533,7 @@ function WorkingCapitalCalc() {
   );
 }
 
-function BondValuationCalc() {
+function BondValuationCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [faceValue, setFaceValue] = useState("");
   const [couponRate, setCouponRate] = useState("");
   const [marketRate, setMarketRate] = useState("");
@@ -6117,6 +6582,16 @@ function BondValuationCalc() {
 
     setResult({ bondPrice, premiumDiscount, currentYield, cashFlows });
   }, [faceValue, couponRate, marketRate, yearsToMaturity, couponFrequency]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Face Value": faceValue, "Coupon Rate": couponRate, "Market Rate": marketRate, "Years To Maturity": yearsToMaturity, "Coupon Frequency": couponFrequency },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Face Value": faceValue, "Coupon Rate": couponRate, "Market Rate": marketRate, "Years To Maturity": yearsToMaturity, "Coupon Frequency": couponFrequency }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -6191,7 +6666,7 @@ function BondValuationCalc() {
   );
 }
 
-function SYDCalc() {
+function SYDCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [assetCost, setAssetCost] = useState("");
   const [salvageValue, setSalvageValue] = useState("120000");
   const [usefulLife, setUsefulLife] = useState("");
@@ -6232,6 +6707,16 @@ function SYDCalc() {
       schedule,
     });
   }, [assetCost, salvageValue, usefulLife]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Asset Cost": assetCost, "Salvage Value": salvageValue, "Useful Life": usefulLife },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Asset Cost": assetCost, "Salvage Value": salvageValue, "Useful Life": usefulLife }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -6309,7 +6794,7 @@ function SYDCalc() {
   );
 }
 
-function ProfitabilityRatiosCalc() {
+function ProfitabilityRatiosCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [revenue, setRevenue] = useState("");
   const [grossProfit, setGrossProfit] = useState("");
   const [ebitda, setEbitda] = useState("");
@@ -6358,6 +6843,16 @@ function ProfitabilityRatiosCalc() {
     setCards(ratios);
   }, [revenue, grossProfit, ebitda, ebit, netIncome, totalAssets, totalEquity, capitalEmployed]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Revenue": revenue, "Gross Profit": grossProfit, "Ebitda": ebitda, "Ebit": ebit, "Net Income": netIncome, "Total Assets": totalAssets, "Total Equity": totalEquity, "Capital Employed": capitalEmployed, "Cards": cards },
+        outputs: {  },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Revenue": revenue, "Gross Profit": grossProfit, "Ebitda": ebitda, "Ebit": ebit, "Net Income": netIncome, "Total Assets": totalAssets, "Total Equity": totalEquity, "Capital Employed": capitalEmployed, "Cards": cards }, outputs: {  } }; });
+
   return (
     <CalculatorShell
       title="Profitability Ratios Dashboard"
@@ -6402,7 +6897,7 @@ function ProfitabilityRatiosCalc() {
   );
 }
 
-function RentVsBuyCalc() {
+function RentVsBuyCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [propertyPrice, setPropertyPrice] = useState("");
   const [downPaymentPercent, setDownPaymentPercent] = useState("");
   const [mortgageRate, setMortgageRate] = useState("8.5");
@@ -6486,6 +6981,16 @@ function RentVsBuyCalc() {
     investmentReturnPercent,
   ]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Property Price": propertyPrice, "Down Payment Percent": downPaymentPercent, "Mortgage Rate": mortgageRate, "Tenure Years": tenureYears, "Monthly Rent": monthlyRent, "Rent Increase Percent": rentIncreasePercent, "Property Appreciation Percent": propertyAppreciationPercent, "Maintenance Percent": maintenancePercent, "Investment Return Percent": investmentReturnPercent },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Property Price": propertyPrice, "Down Payment Percent": downPaymentPercent, "Mortgage Rate": mortgageRate, "Tenure Years": tenureYears, "Monthly Rent": monthlyRent, "Rent Increase Percent": rentIncreasePercent, "Property Appreciation Percent": propertyAppreciationPercent, "Maintenance Percent": maintenancePercent, "Investment Return Percent": investmentReturnPercent }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Rent vs Buy Analysis"
@@ -6553,7 +7058,7 @@ function RentVsBuyCalc() {
   );
 }
 
-function HUFTaxCalc() {
+function HUFTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type Member = { name: string; income: string };
 
   const [hufIncome, setHufIncome] = useState("");
@@ -6608,6 +7113,16 @@ function HUFTaxCalc() {
   const addMember = () => {
     setMemberIncomes((prev) => (prev.length >= 5 ? prev : [...prev, { name: `Member ${prev.length + 1}`, income: "0" }]));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Huf Income": hufIncome, "Regime": regime, "Member Incomes": memberIncomes },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Huf Income": hufIncome, "Regime": regime, "Member Incomes": memberIncomes }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -6709,7 +7224,7 @@ function HUFTaxCalc() {
   );
 }
 
-function Form16Calc() {
+function Form16Calc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [employerName, setEmployerName] = useState("ABC Private Limited");
   const [tan, setTan] = useState("BLRA12345A");
   const [pan, setPan] = useState("ABCDE1234F");
@@ -6784,6 +7299,16 @@ function Form16Calc() {
     { label: "Total Tax Liability", value: result.totalTax },
   ];
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Employer Name": employerName, "Tan": tan, "Pan": pan, "Gross Salary": grossSalary, "Allowances": allowances, "Perquisites": perquisites, "Hra Exemption": hraExemption, "Lta Exemption": ltaExemption, "Other Exemption": otherExemption, "Ded80C": ded80c, "Ded80D": ded80d, "Ded80Ccd1B": ded80ccd1b, "Other Deduction": otherDeduction },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Employer Name": employerName, "Tan": tan, "Pan": pan, "Gross Salary": grossSalary, "Allowances": allowances, "Perquisites": perquisites, "Hra Exemption": hraExemption, "Lta Exemption": ltaExemption, "Other Exemption": otherExemption, "Ded80c": ded80c, "Ded80d": ded80d, "Ded80ccd1b": ded80ccd1b, "Other Deduction": otherDeduction }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Form 16 / Salary Tax Computation"
@@ -6847,7 +7372,7 @@ function Form16Calc() {
   );
 }
 
-function TDSSalaryCalc() {
+function TDSSalaryCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [monthlyBasic, setMonthlyBasic] = useState("");
   const [monthlyHRA, setMonthlyHRA] = useState("");
   const [otherAllowances, setOtherAllowances] = useState("");
@@ -6896,6 +7421,16 @@ function TDSSalaryCalc() {
 
     setResult({ annualTaxableIncome, totalAnnualTax, monthlyTDS, effectiveMonthlyTakeHome, monthlyRows });
   }, [monthlyBasic, monthlyHRA, otherAllowances, employerPF, rentPaid, cityType, investments80C, insurance80D, nps80CCD]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Monthly Basic": monthlyBasic, "Monthly Hra": monthlyHRA, "Other Allowances": otherAllowances, "Employer Pf": employerPF, "Rent Paid": rentPaid, "City Type": cityType, "Investments80C": investments80C, "Insurance80D": insurance80D, "Nps80Ccd": nps80CCD },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Monthly Basic": monthlyBasic, "Monthly H R A": monthlyHRA, "Other Allowances": otherAllowances, "Employer P F": employerPF, "Rent Paid": rentPaid, "City Type": cityType, "Investments80 C": investments80C, "Insurance80 D": insurance80D, "Nps80 C C D": nps80CCD }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -6972,7 +7507,7 @@ function TDSSalaryCalc() {
   );
 }
 
-function GSTCompositionCalc() {
+function GSTCompositionCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [businessType, setBusinessType] = useState<"Manufacturer" | "Trader" | "Restaurant" | "Service">("Manufacturer");
   const [annualTurnover, setAnnualTurnover] = useState("");
   const [quarterlyTurnover, setQuarterlyTurnover] = useState("");
@@ -7021,6 +7556,16 @@ function GSTCompositionCalc() {
       sgstShare: annualTax / 2,
     });
   }, [businessType, annualTurnover, quarterlyTurnover]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Business Type": businessType, "Annual Turnover": annualTurnover, "Quarterly Turnover": quarterlyTurnover },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Business Type": businessType, "Annual Turnover": annualTurnover, "Quarterly Turnover": quarterlyTurnover }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -7075,7 +7620,7 @@ function GSTCompositionCalc() {
   );
 }
 
-function ExportGSTCalc() {
+function ExportGSTCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [exportValue, setExportValue] = useState("");
   const [exportType, setExportType] = useState<"Goods" | "Services">("Goods");
   const [hasLUT, setHasLUT] = useState(true);
@@ -7099,6 +7644,16 @@ function ExportGSTCalc() {
       refundAmount,
     });
   }, [exportValue, hasLUT, igstPaidOnInputs, refundType, exportType]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Export Value": exportValue, "Export Type": exportType, "Has Lut": hasLUT, "Igst Paid On Inputs": igstPaidOnInputs, "Refund Type": refundType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Export Value": exportValue, "Export Type": exportType, "Has L U T": hasLUT, "Igst Paid On Inputs": igstPaidOnInputs, "Refund Type": refundType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -7183,7 +7738,7 @@ function ExportGSTCalc() {
   );
 }
 
-function MISCalc() {
+function MISCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [accountType, setAccountType] = useState<"Single" | "Joint">("Single");
   const [result, setResult] = useState({
@@ -7208,6 +7763,16 @@ function MISCalc() {
 
     setResult({ monthlyPayout, totalInterestEarned, maturityAmount, fdMaturity, sipFutureValue });
   }, [investmentAmount, accountType]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Investment Amount": investmentAmount, "Account Type": accountType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Investment Amount": investmentAmount, "Account Type": accountType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -7270,7 +7835,7 @@ function MISCalc() {
   );
 }
 
-function SSYCalc() {
+function SSYCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [annualDeposit, setAnnualDeposit] = useState("");
   const [girlAge, setGirlAge] = useState("2");
   const [startYear, setStartYear] = useState(String(new Date().getFullYear()));
@@ -7315,6 +7880,16 @@ function SSYCalc() {
 
     setResult({ maturityAmount, totalDeposited, totalInterest, maturityYear, girlAgeAtMaturity, rows });
   }, [annualDeposit, girlAge, startYear]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Annual Deposit": annualDeposit, "Girl Age": girlAge, "Start Year": startYear },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Annual Deposit": annualDeposit, "Girl Age": girlAge, "Start Year": startYear }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -7375,7 +7950,7 @@ function SSYCalc() {
   );
 }
 
-function NPSCalc() {
+function NPSCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [monthlyContribution, setMonthlyContribution] = useState("");
   const [currentAge, setCurrentAge] = useState("30");
   const [retirementAge, setRetirementAge] = useState("60");
@@ -7426,6 +8001,16 @@ function NPSCalc() {
     });
   }, [monthlyContribution, currentAge, retirementAge, expectedReturn, annuityRate]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Monthly Contribution": monthlyContribution, "Current Age": currentAge, "Retirement Age": retirementAge, "Expected Return": expectedReturn, "Annuity Rate": annuityRate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Monthly Contribution": monthlyContribution, "Current Age": currentAge, "Retirement Age": retirementAge, "Expected Return": expectedReturn, "Annuity Rate": annuityRate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="NPS (National Pension System) Calculator"
@@ -7457,7 +8042,7 @@ function NPSCalc() {
   );
 }
 
-function SCFDCalc() {
+function SCFDCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [principal, setPrincipal] = useState("");
   const [tenureMonths, setTenureMonths] = useState("");
   const [bankName, setBankName] = useState<"SBI" | "HDFC" | "ICICI" | "Post Office TD" | "Small Finance Banks">("SBI");
@@ -7501,6 +8086,16 @@ function SCFDCalc() {
 
     setResult({ maturityAmount, totalInterest, effectiveYield, tdsDeductible, netInterest, comparisons });
   }, [principal, tenureMonths, bankName, isSeniorCitizen]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Principal": principal, "Tenure Months": tenureMonths, "Bank Name": bankName, "Is Senior Citizen": isSeniorCitizen },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Principal": principal, "Tenure Months": tenureMonths, "Bank Name": bankName, "Is Senior Citizen": isSeniorCitizen }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -7584,7 +8179,7 @@ function SCFDCalc() {
   );
 }
 
-function GratuityEligibilityCalc() {
+function GratuityEligibilityCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [employeeType, setEmployeeType] = useState<"Covered" | "Not Covered">("Covered");
   const [lastDrawnBasic, setLastDrawnBasic] = useState("");
   const [daPay, setDaPay] = useState("");
@@ -7654,6 +8249,16 @@ function GratuityEligibilityCalc() {
       serviceYearsForCalc,
     });
   }, [employeeType, lastDrawnBasic, daPay, dateOfJoining, dateOfLeaving, reasonForLeaving]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Employee Type": employeeType, "Last Drawn Basic": lastDrawnBasic, "Da Pay": daPay, "Date Of Joining": dateOfJoining, "Date Of Leaving": dateOfLeaving, "Reason For Leaving": reasonForLeaving },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Employee Type": employeeType, "Last Drawn Basic": lastDrawnBasic, "Da Pay": daPay, "Date Of Joining": dateOfJoining, "Date Of Leaving": dateOfLeaving, "Reason For Leaving": reasonForLeaving }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -7729,7 +8334,7 @@ function GratuityEligibilityCalc() {
   );
 }
 
-function CashFlowCalc() {
+function CashFlowCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [netIncome, setNetIncome] = useState("");
   const [depreciation, setDepreciation] = useState("");
   const [amortisation, setAmortisation] = useState("");
@@ -7808,6 +8413,16 @@ function CashFlowCalc() {
 
   const status = result.operatingCF > 0 ? "Healthy" : "Warning";
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Net Income": netIncome, "Depreciation": depreciation, "Amortisation": amortisation, "Change In Receivables": changeInReceivables, "Change In Inventory": changeInInventory, "Change In Payables": changeInPayables, "Other Operating": otherOperating, "Capex": capex, "Asset Sales": assetSales, "Acquisitions": acquisitions, "Other Investing": otherInvesting, "Debt Raised": debtRaised, "Debt Repaid": debtRepaid, "Equity Issued": equityIssued, "Dividends Paid": dividendsPaid, "Other Financing": otherFinancing, "Revenue": revenue },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Net Income": netIncome, "Depreciation": depreciation, "Amortisation": amortisation, "Change In Receivables": changeInReceivables, "Change In Inventory": changeInInventory, "Change In Payables": changeInPayables, "Other Operating": otherOperating, "Capex": capex, "Asset Sales": assetSales, "Acquisitions": acquisitions, "Other Investing": otherInvesting, "Debt Raised": debtRaised, "Debt Repaid": debtRepaid, "Equity Issued": equityIssued, "Dividends Paid": dividendsPaid, "Other Financing": otherFinancing, "Revenue": revenue }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Cash Flow Statement Analyser"
@@ -7874,7 +8489,7 @@ function CashFlowCalc() {
   );
 }
 
-function BudgetVarianceCalc() {
+function BudgetVarianceCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type VarianceItem = { label: string; budgeted: string; actual: string };
 
   const [items, setItems] = useState<VarianceItem[]>([
@@ -7937,6 +8552,16 @@ function BudgetVarianceCalc() {
   const updateItem = (index: number, key: keyof VarianceItem, value: string) => {
     setItems((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Items": items },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Items": items }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -8026,7 +8651,7 @@ function BudgetVarianceCalc() {
   );
 }
 
-function InvoiceGSTCalc() {
+function InvoiceGSTCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type InvoiceItem = { description: string; quantity: string; rate: string; gstRate: string };
 
   const [sellerState, setSellerState] = useState("Karnataka");
@@ -8077,6 +8702,16 @@ function InvoiceGSTCalc() {
   const addItem = () => {
     setItems((prev) => (prev.length >= 5 ? prev : [...prev, { description: "", quantity: "1", rate: "0", gstRate: "18" }]));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Seller State": sellerState, "Buyer State": buyerState, "Hsn Note": hsnNote, "Items": items },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Seller State": sellerState, "Buyer State": buyerState, "Hsn Note": hsnNote, "Items": items }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -8174,7 +8809,7 @@ function InvoiceGSTCalc() {
   );
 }
 
-function PartnershipProfitCalc() {
+function PartnershipProfitCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type Partner = { name: string; profitSharingRatio: string; salary: string; interestOnCapital: string; capital: string };
 
   const [totalProfit, setTotalProfit] = useState("");
@@ -8234,6 +8869,16 @@ function PartnershipProfitCalc() {
       capital: "0",
     }]));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Total Profit": totalProfit, "Partners": partners },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Total Profit": totalProfit, "Partners": partners }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -8305,7 +8950,7 @@ function PartnershipProfitCalc() {
   );
 }
 
-function DepreciationComparisonCalc() {
+function DepreciationComparisonCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [assetCost, setAssetCost] = useState("");
   const [salvageValue, setSalvageValue] = useState("100000");
   const [usefulLife, setUsefulLife] = useState("");
@@ -8381,6 +9026,16 @@ function DepreciationComparisonCalc() {
 
     setResult({ rows, totalSLM, totalWDV, totalSYD, totalDDB, earlyHighMethod });
   }, [assetCost, salvageValue, usefulLife, decliningRate]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Asset Cost": assetCost, "Salvage Value": salvageValue, "Useful Life": usefulLife, "Declining Rate": decliningRate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Asset Cost": assetCost, "Salvage Value": salvageValue, "Useful Life": usefulLife, "Declining Rate": decliningRate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -8469,7 +9124,7 @@ function DepreciationComparisonCalc() {
   );
 }
 
-function EquityValuationCalc() {
+function EquityValuationCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [currentEPS, setCurrentEPS] = useState("");
   const [epsGrowthRate, setEpsGrowthRate] = useState("");
   const [dividendPerShare, setDividendPerShare] = useState("");
@@ -8523,6 +9178,16 @@ function EquityValuationCalc() {
     });
   }, [currentEPS, epsGrowthRate, dividendPerShare, dividendGrowthRate, requiredReturn, industryPE, currentMarketPrice]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Current Eps": currentEPS, "Eps Growth Rate": epsGrowthRate, "Dividend Per Share": dividendPerShare, "Dividend Growth Rate": dividendGrowthRate, "Required Return": requiredReturn, "Industry Pe": industryPE, "Current Market Price": currentMarketPrice },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Current E P S": currentEPS, "Eps Growth Rate": epsGrowthRate, "Dividend Per Share": dividendPerShare, "Dividend Growth Rate": dividendGrowthRate, "Required Return": requiredReturn, "Industry P E": industryPE, "Current Market Price": currentMarketPrice }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Equity Valuation — DDM & P/E"
@@ -8557,7 +9222,7 @@ function EquityValuationCalc() {
   );
 }
 
-function EMIMoratoriumCalc() {
+function EMIMoratoriumCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [loanAmount, setLoanAmount] = useState("");
   const [interestRate, setInterestRate] = useState("");
   const [originalTenure, setOriginalTenure] = useState("");
@@ -8604,6 +9269,16 @@ function EMIMoratoriumCalc() {
 
     setResult({ originalEMI, newLoanAmount, newEMI, extraInterestDue, totalExtraCost, rows });
   }, [loanAmount, interestRate, originalTenure, moratoriumMonths, moratoriumType]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Loan Amount": loanAmount, "Interest Rate": interestRate, "Original Tenure": originalTenure, "Moratorium Months": moratoriumMonths, "Moratorium Type": moratoriumType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Loan Amount": loanAmount, "Interest Rate": interestRate, "Original Tenure": originalTenure, "Moratorium Months": moratoriumMonths, "Moratorium Type": moratoriumType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -8664,7 +9339,7 @@ function EMIMoratoriumCalc() {
   );
 }
 
-function IncomeTaxNoticeCalc() {
+function IncomeTaxNoticeCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [taxDemand, setTaxDemand] = useState("");
   const [noticeDate, setNoticeDate] = useState("2026-01-10");
   const [paymentDate, setPaymentDate] = useState("2026-04-25");
@@ -8703,6 +9378,16 @@ function IncomeTaxNoticeCalc() {
     setResult({ months, interest234A, interest234B, interest234C, totalInterest, totalDue, overdueDays: days, penaltyMin, penaltyMax });
   }, [taxDemand, noticeDate, paymentDate, noticeType]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Tax Demand": taxDemand, "Notice Date": noticeDate, "Payment Date": paymentDate, "Notice Type": noticeType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Tax Demand": taxDemand, "Notice Date": noticeDate, "Payment Date": paymentDate, "Notice Type": noticeType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Income Tax Notice Interest Calculator"
@@ -8740,7 +9425,7 @@ function IncomeTaxNoticeCalc() {
   );
 }
 
-function StartupValuationCalc() {
+function StartupValuationCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [annualRevenue, setAnnualRevenue] = useState("");
   const [revenueGrowthRate, setRevenueGrowthRate] = useState("");
   const [netMargin, setNetMargin] = useState("");
@@ -8790,6 +9475,16 @@ function StartupValuationCalc() {
     { label: "Product rollout/sales", value: berkusRollout, set: setBerkusRollout },
   ];
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Annual Revenue": annualRevenue, "Revenue Growth Rate": revenueGrowthRate, "Net Margin": netMargin, "Industry Revenue Multiple": industryRevenueMultiple, "Industry Ebitda Multiple": industryEBITDAMultiple, "Total Funding": totalFunding, "Berkus Idea": berkusIdea, "Berkus Prototype": berkusPrototype, "Berkus Management": berkusManagement, "Berkus Relations": berkusRelations, "Berkus Rollout": berkusRollout },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Annual Revenue": annualRevenue, "Revenue Growth Rate": revenueGrowthRate, "Net Margin": netMargin, "Industry Revenue Multiple": industryRevenueMultiple, "Industry E B I T D A Multiple": industryEBITDAMultiple, "Total Funding": totalFunding, "Berkus Idea": berkusIdea, "Berkus Prototype": berkusPrototype, "Berkus Management": berkusManagement, "Berkus Relations": berkusRelations, "Berkus Rollout": berkusRollout }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Startup Valuation Calculator"
@@ -8827,7 +9522,7 @@ function StartupValuationCalc() {
   );
 }
 
-function TaxPlanningCalc() {
+function TaxPlanningCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [annualIncome, setAnnualIncome] = useState("");
   const [currentRegime, setCurrentRegime] = useState<"new" | "old">("new");
   const [current80C, setCurrent80C] = useState("");
@@ -8882,6 +9577,16 @@ function TaxPlanningCalc() {
 
     setResult({ currentTaxNew: taxNew, currentTaxOld: taxOld, betterRegime, optimizedTax, totalPotentialSaving, actions });
   }, [annualIncome, currentRegime, current80C, current80D, hasNPS, rentPaid, basicSalary, cityType, homeLoanInterest]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Annual Income": annualIncome, "Current Regime": currentRegime, "Current80C": current80C, "Current80D": current80D, "Has Nps": hasNPS, "Rent Paid": rentPaid, "Basic Salary": basicSalary, "City Type": cityType, "Home Loan Interest": homeLoanInterest },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Annual Income": annualIncome, "Current Regime": currentRegime, "Current80 C": current80C, "Current80 D": current80D, "Has N P S": hasNPS, "Rent Paid": rentPaid, "Basic Salary": basicSalary, "City Type": cityType, "Home Loan Interest": homeLoanInterest }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -8944,7 +9649,7 @@ function TaxPlanningCalc() {
   );
 }
 
-function ReceivablesAgingCalc() {
+function ReceivablesAgingCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type Debtor = { clientName: string; invoiceAmount: string; invoiceDate: string; expectedCollection: string };
   type BucketKey = "Current (0-30)" | "31-60" | "61-90" | "91-180" | ">180";
 
@@ -9017,6 +9722,16 @@ function ReceivablesAgingCalc() {
   };
 
   const bucketOrder: BucketKey[] = ["Current (0-30)", "31-60", "61-90", "91-180", ">180"];
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Debtors": debtors },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Debtors": debtors }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -9099,7 +9814,7 @@ function ReceivablesAgingCalc() {
   );
 }
 
-function TDS26ASCalc() {
+function TDS26ASCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type TdsEntry = { deductorName: string; section: string; tdsDeducted: string; incomeAmount: string; quarter: "Q1" | "Q2" | "Q3" | "Q4" };
 
   const [entries, setEntries] = useState<TdsEntry[]>([
@@ -9149,6 +9864,16 @@ function TDS26ASCalc() {
   const addEntry = () => {
     setEntries((prev) => (prev.length >= 10 ? prev : [...prev, { deductorName: "", section: "194J", tdsDeducted: "0", incomeAmount: "0", quarter: "Q1" }]));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Entries": entries },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Entries": entries }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -9223,7 +9948,7 @@ function TDS26ASCalc() {
   );
 }
 
-function SalaryHikeCalc() {
+function SalaryHikeCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [currentCTC, setCurrentCTC] = useState("");
   const [hikePercent, setHikePercent] = useState("");
   const [currentBasicPercent, setCurrentBasicPercent] = useState("");
@@ -9300,6 +10025,16 @@ function SalaryHikeCalc() {
     { key: "takeHome", label: "Take Home" },
   ] as const;
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Current Ctc": currentCTC, "Hike Percent": hikePercent, "Current Basic Percent": currentBasicPercent, "Hra Percent": hraPercent, "Current Pf Employee": currentPFEmployee, "Current Pf Employer": currentPFEmployer },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Current C T C": currentCTC, "Hike Percent": hikePercent, "Current Basic Percent": currentBasicPercent, "Hra Percent": hraPercent, "Current P F Employee": currentPFEmployee, "Current P F Employer": currentPFEmployer }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Salary Hike & CTC Revision Calculator"
@@ -9360,7 +10095,7 @@ function SalaryHikeCalc() {
   );
 }
 
-function GSTAnnualReturnCalc() {
+function GSTAnnualReturnCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [outwardSupplies, setOutwardSupplies] = useState("");
   const [outwardIGST, setOutwardIGST] = useState("");
   const [outwardCGST, setOutwardCGST] = useState("");
@@ -9422,6 +10157,16 @@ function GSTAnnualReturnCalc() {
 
     setResult({ outwardTax: outward, netITC, taxLiability, netITCTotal, netTaxPayable, cashPaid, itcUsed, reconciliationDiff, daysLate, lateFee });
   }, [outwardIGST, outwardCGST, outwardSGST, availedIGST, availedCGST, availedSGST, reversedIGST, reversedCGST, reversedSGST, cashIGST, cashCGST, cashSGST, itcUsedIGST, itcUsedCGST, itcUsedSGST, dueDate, filingDate]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Outward Supplies": outwardSupplies, "Outward Igst": outwardIGST, "Outward Cgst": outwardCGST, "Outward Sgst": outwardSGST, "Availed Igst": availedIGST, "Availed Cgst": availedCGST, "Availed Sgst": availedSGST, "Reversed Igst": reversedIGST, "Reversed Cgst": reversedCGST, "Reversed Sgst": reversedSGST, "Cash Igst": cashIGST, "Cash Cgst": cashCGST, "Cash Sgst": cashSGST, "Itc Used Igst": itcUsedIGST, "Itc Used Cgst": itcUsedCGST, "Itc Used Sgst": itcUsedSGST, "Due Date": dueDate, "Filing Date": filingDate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Outward Supplies": outwardSupplies, "Outward I G S T": outwardIGST, "Outward C G S T": outwardCGST, "Outward S G S T": outwardSGST, "Availed I G S T": availedIGST, "Availed C G S T": availedCGST, "Availed S G S T": availedSGST, "Reversed I G S T": reversedIGST, "Reversed C G S T": reversedCGST, "Reversed S G S T": reversedSGST, "Cash I G S T": cashIGST, "Cash C G S T": cashCGST, "Cash S G S T": cashSGST, "Itc Used I G S T": itcUsedIGST, "Itc Used C G S T": itcUsedCGST, "Itc Used S G S T": itcUsedSGST, "Due Date": dueDate, "Filing Date": filingDate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -9510,7 +10255,7 @@ function GSTAnnualReturnCalc() {
   );
 }
 
-function CryptoTaxCalc() {
+function CryptoTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type VdaTx = { assetName: string; buyPrice: string; sellPrice: string; quantity: string; transactionDate: string };
 
   const [transactions, setTransactions] = useState<VdaTx[]>([
@@ -9554,6 +10299,16 @@ function CryptoTaxCalc() {
   const addTransaction = () => {
     setTransactions((prev) => (prev.length >= 8 ? prev : [...prev, { assetName: "", buyPrice: "0", sellPrice: "0", quantity: "0", transactionDate: "" }]));
   };
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Transactions": transactions },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Transactions": transactions }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -9623,7 +10378,7 @@ function CryptoTaxCalc() {
   );
 }
 
-function MarginalReliefCalc() {
+function MarginalReliefCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [totalIncome, setTotalIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [result, setResult] = useState({
@@ -9699,6 +10454,16 @@ function MarginalReliefCalc() {
     });
   }, [totalIncome, regime]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Total Income": totalIncome, "Regime": regime },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Total Income": totalIncome, "Regime": regime }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Marginal Relief & Surcharge Calculator"
@@ -9747,7 +10512,7 @@ function MarginalReliefCalc() {
   );
 }
 
-function PresumptiveTaxCalc() {
+function PresumptiveTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [schemeType, setSchemeType] = useState<"44AD" | "44ADA" | "44AE">("44AD");
   const [grossReceipts, setGrossReceipts] = useState("");
   const [paymentMode, setPaymentMode] = useState<"cash" | "digital">("digital");
@@ -9810,6 +10575,16 @@ function PresumptiveTaxCalc() {
     setResult({ presumptiveRate, presumptiveIncome, taxLiability, effectiveTaxRate, eligible, eligibilityMessage, actualProfitTax, taxSavingVsActual });
   }, [schemeType, grossReceipts, paymentMode, professionType, actualProfit, vehicleCount, monthsOwned]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Scheme Type": schemeType, "Gross Receipts": grossReceipts, "Payment Mode": paymentMode, "Profession Type": professionType, "Actual Profit": actualProfit, "Vehicle Count": vehicleCount, "Months Owned": monthsOwned },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Scheme Type": schemeType, "Gross Receipts": grossReceipts, "Payment Mode": paymentMode, "Profession Type": professionType, "Actual Profit": actualProfit, "Vehicle Count": vehicleCount, "Months Owned": monthsOwned }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Presumptive Tax Calculator (44AD/44ADA/44AE)"
@@ -9869,7 +10644,7 @@ function PresumptiveTaxCalc() {
   );
 }
 
-function ESOPCalc() {
+function ESOPCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [grantPrice, setGrantPrice] = useState("");
   const [vestingPrice, setVestingPrice] = useState("");
   const [exercisePrice, setExercisePrice] = useState("");
@@ -9923,6 +10698,16 @@ function ESOPCalc() {
 
     setResult({ perquisiteValue, perquisiteTaxAtVesting, capitalGainAtSale, capitalGainTax, totalTax, netProfit, gainType });
   }, [grantPrice, vestingPrice, exercisePrice, currentFMV, numberOfShares, employmentType, holdingPeriodAfterExercise]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Grant Price": grantPrice, "Vesting Price": vestingPrice, "Exercise Price": exercisePrice, "Current Fmv": currentFMV, "Number Of Shares": numberOfShares, "Employment Type": employmentType, "Holding Period After Exercise": holdingPeriodAfterExercise },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Grant Price": grantPrice, "Vesting Price": vestingPrice, "Exercise Price": exercisePrice, "Current F M V": currentFMV, "Number Of Shares": numberOfShares, "Employment Type": employmentType, "Holding Period After Exercise": holdingPeriodAfterExercise }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -9978,7 +10763,7 @@ function ESOPCalc() {
   );
 }
 
-function ForeignIncomeCalc() {
+function ForeignIncomeCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [indianIncome, setIndianIncome] = useState("");
   const [foreignIncome, setForeignIncome] = useState("");
   const [foreignTaxPaid, setForeignTaxPaid] = useState("");
@@ -10027,6 +10812,16 @@ function ForeignIncomeCalc() {
     });
   }, [indianIncome, foreignIncome, foreignTaxPaid, sourceCountry, foreignIncomeType]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Indian Income": indianIncome, "Foreign Income": foreignIncome, "Foreign Tax Paid": foreignTaxPaid, "Source Country": sourceCountry, "Foreign Income Type": foreignIncomeType },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Indian Income": indianIncome, "Foreign Income": foreignIncome, "Foreign Tax Paid": foreignTaxPaid, "Source Country": sourceCountry, "Foreign Income Type": foreignIncomeType }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Foreign Income & DTAA Calculator"
@@ -10072,7 +10867,7 @@ function ForeignIncomeCalc() {
   );
 }
 
-function AuditChecklistCalc() {
+function AuditChecklistCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type CategoryKey = "Internal Controls" | "Financial Reporting" | "Compliance" | "Operations" | "Risk";
   type ChecklistQuestion = { id: string; category: CategoryKey; text: string; yes: boolean };
 
@@ -10141,6 +10936,16 @@ function AuditChecklistCalc() {
 
   const categories: CategoryKey[] = ["Internal Controls", "Financial Reporting", "Compliance", "Operations", "Risk"];
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Questions": questions },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Questions": questions }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Statutory Audit Checklist Score"
@@ -10201,7 +11006,7 @@ function AuditChecklistCalc() {
   );
 }
 
-function GoldReturnsCalc() {
+function GoldReturnsCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [investmentAmount, setInvestmentAmount] = useState("");
   const [purchaseYear, setPurchaseYear] = useState("");
   const [currentYear, setCurrentYear] = useState("");
@@ -10278,6 +11083,16 @@ function GoldReturnsCalc() {
     });
   }, [investmentAmount, purchaseYear, currentYear, investmentType, purchasePricePerGram, currentPricePerGram]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Investment Amount": investmentAmount, "Purchase Year": purchaseYear, "Current Year": currentYear, "Investment Type": investmentType, "Purchase Price Per Gram": purchasePricePerGram, "Current Price Per Gram": currentPricePerGram },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Investment Amount": investmentAmount, "Purchase Year": purchaseYear, "Current Year": currentYear, "Investment Type": investmentType, "Purchase Price Per Gram": purchasePricePerGram, "Current Price Per Gram": currentPricePerGram }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Gold Investment Returns Calculator"
@@ -10343,7 +11158,7 @@ function GoldReturnsCalc() {
   );
 }
 
-function RetrenchmentCalc() {
+function RetrenchmentCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [monthlyBasic, setMonthlyBasic] = useState("");
   const [monthlyDA, setMonthlyDA] = useState("");
   const [yearsOfService, setYearsOfService] = useState("");
@@ -10389,6 +11204,16 @@ function RetrenchmentCalc() {
     setResult({ compensation, taxExemptAmount, taxableAmount, monthlyEquivalent, averagePay, sectionNote });
   }, [monthlyBasic, monthlyDA, yearsOfService, retrenchmentType, remainingMonths]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Monthly Basic": monthlyBasic, "Monthly Da": monthlyDA, "Years Of Service": yearsOfService, "Retrenchment Type": retrenchmentType, "Remaining Months": remainingMonths },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Monthly Basic": monthlyBasic, "Monthly D A": monthlyDA, "Years Of Service": yearsOfService, "Retrenchment Type": retrenchmentType, "Remaining Months": remainingMonths }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Retrenchment Compensation Calculator"
@@ -10424,7 +11249,7 @@ function RetrenchmentCalc() {
   );
 }
 
-function TDSPropertyCalc() {
+function TDSPropertyCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [propertyValue, setPropertyValue] = useState("");
   const [sellerType, setSellerType] = useState<"Resident" | "NRI">("Resident");
   const [isRuralAgriculturalLand, setIsRuralAgriculturalLand] = useState(false);
@@ -10472,6 +11297,16 @@ function TDSPropertyCalc() {
     setResult({ tdsRate, tdsAmount, netPaymentToSeller, depositDueDate, formToFile: "26QB", note });
   }, [propertyValue, sellerType, isRuralAgriculturalLand, holdingPeriodMonths, deductionDate]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Property Value": propertyValue, "Seller Type": sellerType, "Is Rural Agricultural Land": isRuralAgriculturalLand, "Holding Period Months": holdingPeriodMonths, "Deduction Date": deductionDate },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Property Value": propertyValue, "Seller Type": sellerType, "Is Rural Agricultural Land": isRuralAgriculturalLand, "Holding Period Months": holdingPeriodMonths, "Deduction Date": deductionDate }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="TDS on Property Purchase (Section 194IA)"
@@ -10512,7 +11347,7 @@ function TDSPropertyCalc() {
   );
 }
 
-function AdvanceRulingCalc() {
+function AdvanceRulingCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [transactionType, setTransactionType] = useState<
     "Sale of Goods" | "Export of Services" | "Import of Services" | "Works Contract" | "Real Estate (under construction)" | "Real Estate (ready to move)" | "Restaurant Services" | "Healthcare Services" | "Educational Services"
   >("Sale of Goods");
@@ -10578,6 +11413,16 @@ function AdvanceRulingCalc() {
     setResult({ gstLiability, reverseChargeApplicable, isExempt, effectiveRate, filingRequirement, itcEligibilityNote });
   }, [transactionType, transactionValue, stateOfSupply, isRegistered, saleGoodsRate, realEstateWithITC]);
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Transaction Type": transactionType, "Transaction Value": transactionValue, "State Of Supply": stateOfSupply, "Is Registered": isRegistered, "Sale Goods Rate": saleGoodsRate, "Real Estate With Itc": realEstateWithITC },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Transaction Type": transactionType, "Transaction Value": transactionValue, "State Of Supply": stateOfSupply, "Is Registered": isRegistered, "Sale Goods Rate": saleGoodsRate, "Real Estate With I T C": realEstateWithITC }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="GST Liability Quick Estimator"
@@ -10636,7 +11481,7 @@ function AdvanceRulingCalc() {
   );
 }
 
-function CustomsDutyCalc() {
+function CustomsDutyCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [assessableValue, setAssessableValue] = useState("");
   const [exchangeRate, setExchangeRate] = useState("");
   const [productCategory, setProductCategory] = useState<"Electronics" | "Mobile Phones" | "Machinery" | "Raw Materials" | "Luxury Goods" | "Food Products">("Electronics");
@@ -10678,6 +11523,16 @@ function CustomsDutyCalc() {
 
     setResult({ inrValue, bcd, sws, igst, totalDuty, totalLandedCost, effectiveDutyRate, bcdRate, igstRate });
   }, [assessableValue, exchangeRate, productCategory]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Assessable Value": assessableValue, "Exchange Rate": exchangeRate, "Product Category": productCategory },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Assessable Value": assessableValue, "Exchange Rate": exchangeRate, "Product Category": productCategory }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -10728,7 +11583,7 @@ function CustomsDutyCalc() {
   );
 }
 
-function PFWithdrawalCalc() {
+function PFWithdrawalCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [totalPFBalance, setTotalPFBalance] = useState("");
   const [yearsOfService, setYearsOfService] = useState("");
   const [reason, setReason] = useState<"Resignation" | "Retirement" | "Medical" | "Housing">("Resignation");
@@ -10745,6 +11600,16 @@ function PFWithdrawalCalc() {
     const formNote = taxableAmount > 0 ? "Form 15G/15H generally not applicable unless overall income is below taxable limits." : "Form 15G/15H not required for exempt withdrawal.";
     setResult({ taxableAmount, tdsDeductible, netAmount, note, formNote });
   }, [totalPFBalance, yearsOfService, reason, hasPAN]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Total Pf Balance": totalPFBalance, "Years Of Service": yearsOfService, "Reason": reason, "Has Pan": hasPAN },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Total P F Balance": totalPFBalance, "Years Of Service": yearsOfService, "Reason": reason, "Has P A N": hasPAN }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -10779,7 +11644,7 @@ function PFWithdrawalCalc() {
   );
 }
 
-function NRITaxCalc() {
+function NRITaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [indianSourceIncome, setIndianSourceIncome] = useState("");
   const [incomeType, setIncomeType] = useState<"Salary" | "Rent" | "Interest" | "Capital Gains" | "Dividend">("Salary");
   const [capitalGainNature, setCapitalGainNature] = useState<"LTCG" | "STCG">("LTCG");
@@ -10811,6 +11676,16 @@ function NRITaxCalc() {
       : "DTAA may apply based on specific treaty article and country of residence.";
     setResult({ taxLiability, effectiveRate, tdsLikelyDeducted, refundOrPayable, dtaaNote });
   }, [indianSourceIncome, incomeType, capitalGainNature, residencyStatus]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Indian Source Income": indianSourceIncome, "Income Type": incomeType, "Capital Gain Nature": capitalGainNature, "Residency Status": residencyStatus },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Indian Source Income": indianSourceIncome, "Income Type": incomeType, "Capital Gain Nature": capitalGainNature, "Residency Status": residencyStatus }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -10856,7 +11731,7 @@ function NRITaxCalc() {
   );
 }
 
-function HomeLoanTaxCalc() {
+function HomeLoanTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [loanAmount, setLoanAmount] = useState("");
   const [interestRate, setInterestRate] = useState("");
   const [tenureYears, setTenureYears] = useState("");
@@ -10902,6 +11777,16 @@ function HomeLoanTaxCalc() {
 
     setResult({ annualEMI, annualInterest, annualPrincipal, section24Deduction, section80CDeduction, section80EEDeduction, totalDeduction, taxSavingAt30, taxSavingAt20, netCostOfLoan, rentalNetImpact, rows });
   }, [loanAmount, interestRate, tenureYears, propertyType, annualRent, ownershipType, affordableHousing]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Loan Amount": loanAmount, "Interest Rate": interestRate, "Tenure Years": tenureYears, "Property Type": propertyType, "Annual Rent": annualRent, "Ownership Type": ownershipType, "Affordable Housing": affordableHousing },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Loan Amount": loanAmount, "Interest Rate": interestRate, "Tenure Years": tenureYears, "Property Type": propertyType, "Annual Rent": annualRent, "Ownership Type": ownershipType, "Affordable Housing": affordableHousing }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -10957,7 +11842,7 @@ function HomeLoanTaxCalc() {
   );
 }
 
-function ITRFormSelectorCalc() {
+function ITRFormSelectorCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [entityType, setEntityType] = useState<"Individual" | "Company" | "Firm" | "LLP" | "Trust" | "Political Party" | "AOP/BOI">("Individual");
   const [answers, setAnswers] = useState({ resident: true, salaryOnly: true, businessIncome: false, turnoverOver2Cr: false, partnerInFirm: false, foreignIncomeAssets: false, capitalGains: false, incomeOver50L: false, companyFirmLlp: false, agriOver5000: false, otherSourcesOnly: false, seniorCitizen: false, broughtForwardLosses: false, presumptiveIncome: false, exemptLtcgOnly: false });
   const toggle = (key: keyof typeof answers) => setAnswers((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -11025,6 +11910,16 @@ function ITRFormSelectorCalc() {
     ["exemptLtcgOnly", "Do you have exempt LTCG only (no other schedule)?"],
   ];
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Entity Type": entityType, "Answers": answers },
+        outputs: {  },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Entity Type": entityType, "Answers": answers }, outputs: {  } }; });
+
   return (
     <CalculatorShell
       title="ITR Form Selector & Filing Guide"
@@ -11066,7 +11961,7 @@ function ITRFormSelectorCalc() {
   );
 }
 
-function BalanceSheetAnalysisCalc() {
+function BalanceSheetAnalysisCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [cashAndBank, setCashAndBank] = useState("");
   const [shortTermInvestments, setShortTermInvestments] = useState("");
   const [receivables, setReceivables] = useState("");
@@ -11118,6 +12013,16 @@ function BalanceSheetAnalysisCalc() {
       </div>
     </div>
   );
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Cash And Bank": cashAndBank, "Short Term Investments": shortTermInvestments, "Receivables": receivables, "Inventory": inventory, "Other Current Assets": otherCurrentAssets, "Fixed Assets": fixedAssets, "Intangibles": intangibles, "Other Non Current Assets": otherNonCurrentAssets, "Short Term Debt": shortTermDebt, "Payables": payables, "Other Current Liab": otherCurrentLiab, "Long Term Debt": longTermDebt, "Other Non Current Liab": otherNonCurrentLiab, "Share Capital": shareCapital, "Reserves": reserves, "Shares Outstanding": sharesOutstanding },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Cash And Bank": cashAndBank, "Short Term Investments": shortTermInvestments, "Receivables": receivables, "Inventory": inventory, "Other Current Assets": otherCurrentAssets, "Fixed Assets": fixedAssets, "Intangibles": intangibles, "Other Non Current Assets": otherNonCurrentAssets, "Short Term Debt": shortTermDebt, "Payables": payables, "Other Current Liab": otherCurrentLiab, "Long Term Debt": longTermDebt, "Other Non Current Liab": otherNonCurrentLiab, "Share Capital": shareCapital, "Reserves": reserves, "Shares Outstanding": sharesOutstanding }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -11181,7 +12086,7 @@ function BalanceSheetAnalysisCalc() {
   );
 }
 
-function Rebate87ACalc() {
+function Rebate87ACalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [totalIncome, setTotalIncome] = useState("");
   const [regime, setRegime] = useState<"new" | "old">("new");
   const [result, setResult] = useState({ taxBeforeRebate: 0, rebateAmount: 0, taxAfterRebate: 0, cessAmount: 0, totalTax: 0, marginalReliefNote: "" });
@@ -11211,6 +12116,16 @@ function Rebate87ACalc() {
     const totalTax = taxAfterRebate + cessAmount;
     setResult({ taxBeforeRebate, rebateAmount, taxAfterRebate, cessAmount, totalTax, marginalReliefNote });
   }, [totalIncome, regime]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Total Income": totalIncome, "Regime": regime },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Total Income": totalIncome, "Regime": regime }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -11249,7 +12164,7 @@ function Rebate87ACalc() {
   );
 }
 
-function SalaryRestructureCalc() {
+function SalaryRestructureCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [currentCTC, setCurrentCTC] = useState("");
   const [currentBasicPercent, setCurrentBasicPercent] = useState("");
   const [payingRent, setPayingRent] = useState(true);
@@ -11292,6 +12207,16 @@ function SalaryRestructureCalc() {
     ];
     setResult({ currentTax, optimizedTax, monthlySaving, annualSaving, currentTaxable, optimizedTaxable, rows });
   }, [currentCTC, currentBasicPercent, payingRent, monthlyRent, cityType, hasCarLease, carLeaseAmount, hasMealVoucher, mealVoucherAmount, hasLTA, ltaAmount]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Current Ctc": currentCTC, "Current Basic Percent": currentBasicPercent, "Paying Rent": payingRent, "Monthly Rent": monthlyRent, "City Type": cityType, "Has Car Lease": hasCarLease, "Car Lease Amount": carLeaseAmount, "Has Meal Voucher": hasMealVoucher, "Meal Voucher Amount": mealVoucherAmount, "Has Lta": hasLTA, "Lta Amount": ltaAmount },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Current C T C": currentCTC, "Current Basic Percent": currentBasicPercent, "Paying Rent": payingRent, "Monthly Rent": monthlyRent, "City Type": cityType, "Has Car Lease": hasCarLease, "Car Lease Amount": carLeaseAmount, "Has Meal Voucher": hasMealVoucher, "Meal Voucher Amount": mealVoucherAmount, "Has L T A": hasLTA, "Lta Amount": ltaAmount }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -11342,7 +12267,7 @@ function SalaryRestructureCalc() {
   );
 }
 
-function InterestIncomeCalc() {
+function InterestIncomeCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [savingsAccountInterest, setSavingsAccountInterest] = useState("");
   const [fdInterest, setFdInterest] = useState("");
   const [rdInterest, setRdInterest] = useState("");
@@ -11380,6 +12305,16 @@ function InterestIncomeCalc() {
     ];
     setResult({ totalExempt, totalTaxable, estimatedTaxAt30, tdsDeducted, netInterestIncome, deductionAmount, rows });
   }, [savingsAccountInterest, fdInterest, rdInterest, nscInterest, ppfInterest, epfInterest, bondInterest, isSeniorCitizen]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Savings Account Interest": savingsAccountInterest, "Fd Interest": fdInterest, "Rd Interest": rdInterest, "Nsc Interest": nscInterest, "Ppf Interest": ppfInterest, "Epf Interest": epfInterest, "Bond Interest": bondInterest, "Is Senior Citizen": isSeniorCitizen },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Savings Account Interest": savingsAccountInterest, "Fd Interest": fdInterest, "Rd Interest": rdInterest, "Nsc Interest": nscInterest, "Ppf Interest": ppfInterest, "Epf Interest": epfInterest, "Bond Interest": bondInterest, "Is Senior Citizen": isSeniorCitizen }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell
@@ -11420,7 +12355,7 @@ function InterestIncomeCalc() {
   );
 }
 
-function LTCGMutualFundCalc() {
+function LTCGMutualFundCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   type MfRow = { fundName: string; investedAmount: string; redemptionAmount: string; investmentDate: string; redemptionDate: string; fundType: "Equity" | "Debt" | "Hybrid"; hybridOrientation: "Equity-oriented" | "Debt-oriented" };
   const makeRow = (): MfRow => ({ fundName: "", investedAmount: "100000", redemptionAmount: "120000", investmentDate: "2024-01-01", redemptionDate: "2026-01-01", fundType: "Equity", hybridOrientation: "Equity-oriented" });
   const [redemptions, setRedemptions] = useState<MfRow[]>([makeRow(), makeRow()]);
@@ -11472,6 +12407,16 @@ function LTCGMutualFundCalc() {
   const updateRow = (index: number, key: keyof MfRow, value: string) => setRedemptions((prev) => prev.map((row, i) => (i === index ? { ...row, [key]: value } : row)));
   const addRow = () => setRedemptions((prev) => (prev.length >= 5 ? prev : [...prev, makeRow()]));
 
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Redemptions": redemptions },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Redemptions": redemptions }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
+
   return (
     <CalculatorShell
       title="Mutual Fund Capital Gains Calculator"
@@ -11515,7 +12460,7 @@ function LTCGMutualFundCalc() {
   );
 }
 
-function ProfessionalTaxCalc() {
+function ProfessionalTaxCalc({ dataRef }: { dataRef?: CalcDataRef }) {
   const [monthlyGrossSalary, setMonthlyGrossSalary] = useState("");
   const [state, setState] = useState<"Maharashtra" | "Karnataka" | "West Bengal" | "Tamil Nadu" | "Andhra Pradesh" | "Telangana" | "Gujarat" | "Delhi">("Maharashtra");
   const [result, setResult] = useState({ monthlyPT: 0, annualPT: 0, specialMonthAmount: 0, section16Deduction: 0, taxSavingAt30: 0, note: "" });
@@ -11561,6 +12506,16 @@ function ProfessionalTaxCalc() {
     const taxSavingAt30 = annualPT * 0.3;
     setResult({ monthlyPT, annualPT, specialMonthAmount, section16Deduction, taxSavingAt30, note });
   }, [monthlyGrossSalary, state]);
+
+  useEffect(() => {
+    if (dataRef) {
+      dataRef.current = {
+        inputs: { "Monthly Gross Salary": monthlyGrossSalary, "State": state },
+        outputs: { ...result },
+      };
+    }
+  });
+  useEffect(() => { if (dataRef) dataRef.current = { inputs: { "Monthly Gross Salary": monthlyGrossSalary, "State": state }, outputs: { ...(typeof result === "object" && result ? result : {}) } }; });
 
   return (
     <CalculatorShell

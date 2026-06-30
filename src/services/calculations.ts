@@ -1,6 +1,12 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import type { CalculationRecord } from "@/data/workspace";
 
+function parseJson(v: any): Record<string, any> | null {
+  if (!v) return null;
+  if (typeof v === "object") return v;
+  try { return JSON.parse(v); } catch { return null; }
+}
+
 function mapRowToCalculation(r: any): CalculationRecord {
   return {
     id: r.id,
@@ -9,6 +15,8 @@ function mapRowToCalculation(r: any): CalculationRecord {
     subtitle: r.subtitle ?? "",
     savedAt: r.saved_at ?? r.created_at ?? "",
     owner: r.owner ?? r.user_id ?? "",
+    inputs: parseJson(r.input_data) ?? parseJson(r.input) ?? null,
+    outputs: parseJson(r.output_data) ?? parseJson(r.result) ?? null,
   };
 }
 
@@ -40,6 +48,8 @@ export async function createCalculation(input: Omit<CalculationRecord, "id">): P
     user_id: userId,
     owner: userId,
     saved_at: new Date().toISOString(),
+    input_data: input.inputs ? JSON.stringify(input.inputs) : null,
+    output_data: input.outputs ? JSON.stringify(input.outputs) : null,
   };
 
   const { data, error } = await supabase!.from("calculations").insert(payload).select().single();

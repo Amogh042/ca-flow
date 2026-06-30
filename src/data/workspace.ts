@@ -83,6 +83,8 @@ export type CalculationRecord = {
   subtitle: string;
   savedAt: string;
   owner: string;
+  inputs?: Record<string, any> | null;
+  outputs?: Record<string, any> | null;
 };
 
 export type ReportRecord = {
