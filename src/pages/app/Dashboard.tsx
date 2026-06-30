@@ -25,9 +25,18 @@ export default function Dashboard() {
   const filings = filingsQuery.data ?? [];
 
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="text-sm" style={{ color: "var(--text-tertiary)" }}>Loading...</div>
+      </div>
+    );
+  }
+
   const showOnboarding = !onboardingDismissed && shouldShowOnboarding(clients.length, filings.length, 0);
 
-  if (showOnboarding && !loading) {
+  if (showOnboarding) {
     return (
       <div className="max-w-7xl mx-auto space-y-8 py-4">
         <OnboardingGuide onDismiss={() => setOnboardingDismissed(true)} />
@@ -57,12 +66,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      {loading && (
-        <div className="py-2">
-          <div className="rounded-md bg-white/5 p-3 text-sm text-secondary">Loading dashboard…</div>
-        </div>
-      )}
-
       {/* Greeting */}
       <section>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
