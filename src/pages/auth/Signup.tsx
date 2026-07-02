@@ -40,6 +40,9 @@ export default function Signup() {
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/dashboard",
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
     if (error) toast({ title: "Google sign up failed", description: error.message });

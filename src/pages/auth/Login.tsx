@@ -42,6 +42,9 @@ export default function Login() {
       provider: "google",
       options: {
         redirectTo: window.location.origin + "/dashboard",
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
     if (error) toast({ title: "Google sign in failed", description: error.message });
