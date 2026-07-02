@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { checkForUpdates } from "@/lib/checkForUpdates";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -34,7 +35,12 @@ const LazyFallback = (
   </div>
 );
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <WorkspaceProvider>
@@ -74,6 +80,7 @@ const App = () => (
       </WorkspaceProvider>
     </AuthProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;
