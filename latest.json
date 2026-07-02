@@ -1,0 +1,11 @@
+{
+  "version": "0.1.2",
+  "notes": "Testing auto-update mechanism",
+  "pub_date": "2026-07-02T06:15:00Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZmc0bXVHNVh3Z0tTK3ptV25talV1bWFGNnMwSVMvU2tDU1l0K09IWS9xaWFOUTJKT2ptdEZ4dGtobENkVUtSRUEzQ2p5NXdJakJiSWhnblBTR0FnYk1qRG9TS1NnVUFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyOTg1NjU2CWZpbGU6Q0EtZmxvdy5hcHAudGFyLmd6CktCMlNZeXB6Y3YxME1OU2lHSlF3bGJYV3hnOHRnbmFxQXU0ck5qZUdQNHFSVC8xQzlPaXBrMVNRbmRuMWxQSGorc09oU3Q0djV2TjVOUUZ3TWJPRERnPT0K",
+      "url": "https://github.com/Amogh042/calcos-workspace/releases/download/v0.1.2/CA-flow.app.tar.gz"
+    }
+  }
+}
