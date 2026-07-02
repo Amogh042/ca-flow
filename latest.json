@@ -1,11 +1,11 @@
 {
-  "version": "0.1.5",
+  "version": "0.1.6",
   "notes": "New release",
-  "pub_date": "2026-07-02T10:54:28Z",
+  "pub_date": "2026-07-02T11:09:15Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZmc0bXVHNVh3Z0grUno3TkptL0tDVGlGNjZsN25GdEs2TkEyUXp1V3hBaUxKQTZKV1pvRG1iUVdwRm9QSU11NFAyWXFYSmd0UkppWnJkNGxMNnRRQ3Q3ZmtIK3N5Y1FZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyOTg5NjY4CWZpbGU6Q0EtZmxvdy5hcHAudGFyLmd6Ci9leWk5ZUNka3VwZUQrYXFRRTc5bWFDQi9hNjF4b3Q2clpxR3E4d1phQW5sUC9LOXlMYzFHRmlGM1d2NW9LZFA4VGkvUVZZSFlZZ0pRWDh2RngxbkFnPT0K",
-      "url": "https://github.com/Amogh042/calcos-workspace/releases/download/v0.1.5/CA-flow.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUZmc0bXVHNVh3Z0hqSDNBY1dKYUczWWxBUDJJRzViUWE1ejZsZkczdjRlOVVzN2lDNy9RaG5Id1pOV1I2c2xjNmY4eVJGQTl1MDE5ZEpJR2RXQTVyTi80QXNzY3JvV2dnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyOTkwNTU1CWZpbGU6Q0EtZmxvdy5hcHAudGFyLmd6CnN0QmdVcVJpczNYMkNheloxWjB4ZU5CT203MzZBVlFERjhkU09Vc3F1OHU3RVM0MTl4QVlzZnVRem1iUkZtd1hyNCt1YStzbWZlejc4ODN1bzQ4bENnPT0K",
+      "url": "https://github.com/Amogh042/calcos-workspace/releases/download/v0.1.6/CA-flow.app.tar.gz"
     }
   }
 }
