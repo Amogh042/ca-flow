@@ -18,6 +18,14 @@ data['version'] = '$VERSION'
 json.dump(data, open('src-tauri/tauri.conf.json', 'w'), indent=2)
 "
 
+# Keep the Rust package version in sync (first 'version = ...' is [package])
+python3 -c "
+import re
+content = open('src-tauri/Cargo.toml').read()
+content = re.sub(r'version = \"[^\"]*\"', 'version = \"$VERSION\"', content, count=1)
+open('src-tauri/Cargo.toml', 'w').write(content)
+"
+
 echo "✅ Version updated to $VERSION"
 echo "🔨 Building app (you'll be asked for your signing password)..."
 

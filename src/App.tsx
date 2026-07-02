@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { AppLayout } from "@/components/app/AppLayout";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
@@ -35,14 +35,25 @@ const LazyFallback = (
   </div>
 );
 
-const App = () => {
-  useEffect(() => {
-    checkForUpdates();
-  }, []);
+// Fires the updater exactly once, only after the user is signed in,
+// so the native confirm dialog never overlaps the login screen.
+function UpdateChecker() {
+  const { user, loading } = useAuth();
 
+  useEffect(() => {
+    if (user && !loading) {
+      checkForUpdates();
+    }
+  }, [user, loading]);
+
+  return null;
+}
+
+const App = () => {
   return (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <UpdateChecker />
       <WorkspaceProvider>
         <TooltipProvider>
           <Toaster />
