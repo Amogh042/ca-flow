@@ -94,7 +94,9 @@ export const Sidebar = React.memo(function Sidebar() {
   );
   const { user } = useAuth();
   const { data: planData } = usePlan();
-  const planLabel = planData?.plan === "pro" ? "Pro" : planData?.plan === "firm" ? "Firm" : "Free";
+  const planLabel = planData?.viaTeam
+    ? "Firm (Team)"
+    : planData?.plan === "pro" ? "Pro" : planData?.plan === "firm" ? "Firm" : "Free";
   const planExpiry = planData?.expiresAt
     ? new Date(planData.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
     : null;
@@ -184,7 +186,7 @@ export const Sidebar = React.memo(function Sidebar() {
                   <span className={cn(
                     "text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0",
                     planLabel === "Pro" ? "bg-primary/15 text-primary" :
-                    planLabel === "Firm" ? "bg-gradient-orange text-white" :
+                    (planLabel === "Firm" || planLabel === "Firm (Team)") ? "bg-gradient-orange text-white" :
                     "bg-white/10 text-secondary"
                   )}>{planLabel}</span>
                 </>

@@ -5,8 +5,7 @@
       "name": "calcos-dev",
       "runtimeExecutable": "/opt/homebrew/bin/npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 8080,
-      "autoPort": true
+      "port": 8081
     }
   ]
 }

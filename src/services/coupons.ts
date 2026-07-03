@@ -29,6 +29,7 @@ export type UserPlan = {
   expiresAt?: string;
   isActive?: boolean;
   expired?: boolean;
+  viaTeam?: boolean;
 };
 
 export async function validateCoupon(code: string): Promise<ValidateResult> {
@@ -122,19 +123,60 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (error || !data) return { plan: "free" };
+  const ownPlanActive = !error && data && data.plan !== "free" &&
+    !(data.expires_at && new Date(data.expires_at) < new Date());
 
-  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+  if (ownPlanActive) {
+    return {
+      plan: data.plan,
+      couponCode: data.coupon_code ?? undefined,
+      startedAt: data.started_at ?? undefined,
+      expiresAt: data.expires_at ?? undefined,
+      isActive: data.is_active,
+    };
+  }
+
+  // No active plan of their own — check if this user belongs to a team
+  // whose owner has an active Firm plan.
+  const { data: userData } = await supabase!.auth.getUser();
+  const userEmail = userData?.user?.email;
+
+  if (userEmail) {
+    const { data: membership } = await supabase!
+      .from("team_members")
+      .select("team_id, teams!inner(owner_id)")
+      .eq("email", userEmail)
+      .limit(1)
+      .maybeSingle();
+
+    const ownerId = (membership as any)?.teams?.owner_id;
+
+    if (ownerId) {
+      const { data: ownerPlan } = await supabase!
+        .from("user_plans")
+        .select("*")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+
+      const ownerPlanActive = ownerPlan && ownerPlan.plan === "firm" &&
+        !(ownerPlan.expires_at && new Date(ownerPlan.expires_at) < new Date());
+
+      if (ownerPlanActive) {
+        return {
+          plan: "firm",
+          expiresAt: ownerPlan.expires_at ?? undefined,
+          isActive: true,
+          viaTeam: true,
+        };
+      }
+    }
+  }
+
+  if (data && data.expires_at && new Date(data.expires_at) < new Date()) {
     return { plan: "free", expired: true };
   }
 
-  return {
-    plan: data.plan,
-    couponCode: data.coupon_code ?? undefined,
-    startedAt: data.started_at ?? undefined,
-    expiresAt: data.expires_at ?? undefined,
-    isActive: data.is_active,
-  };
+  return { plan: "free" };
 }
 
 export async function getUserRedemptions(userId: string) {
