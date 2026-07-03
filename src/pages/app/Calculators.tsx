@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
 import { ChevronRight, Search, Receipt, Landmark, TrendingDown, BarChart3, Briefcase, ShieldCheck, DollarSign, Building2, LineChart, FileText } from "lucide-react";
 import { CalcCard, CalcMeta } from "@/components/calc/CalcCard";
+import { usePlan } from "@/hooks/usePlan";
 
 const categoryMeta: Record<string, { title: string; subtitle: string; calcs: CalcMeta[] }> = {
   tax: {
@@ -167,6 +168,8 @@ const categoryMeta: Record<string, { title: string; subtitle: string; calcs: Cal
 export default function Calculators() {
   const { category = "tax" } = useParams();
   const [query, setQuery] = useState("");
+  const { data: planData } = usePlan();
+  const isFree = planData?.plan === "free";
 
   const meta = categoryMeta[category] ?? { title: "Calculators", subtitle: "Coming soon", calcs: [] };
 
@@ -201,7 +204,7 @@ export default function Calculators() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((c) => <CalcCard key={c.slug} calc={c} />)}
+        {filtered.map((c) => <CalcCard key={c.slug} calc={c} locked={isFree} />)}
       </div>
 
       {filtered.length === 0 && (

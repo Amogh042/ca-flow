@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import {
   LayoutDashboard, Users, CalendarCheck,
   Calculator, Settings, UsersRound,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Lock,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
@@ -36,13 +36,14 @@ const SectionHeader = ({ children, collapsed }: { children: string; collapsed?: 
 );
 
 const NavItem = ({
-  to, label, icon: Icon, glow, collapsed,
+  to, label, icon: Icon, glow, collapsed, suffix,
 }: {
   to: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   glow?: boolean;
   collapsed?: boolean;
+  suffix?: React.ReactNode;
 }) => {
   const link = (
     <NavLink
@@ -70,6 +71,7 @@ const NavItem = ({
             )}
           </div>
           {!collapsed && <span className="flex-1 truncate">{label}</span>}
+          {!collapsed && suffix}
         </>
       )}
     </NavLink>
@@ -137,7 +139,14 @@ export const Sidebar = React.memo(function Sidebar() {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto scrollbar-thin pb-3">
           <SectionHeader collapsed={collapsed}>Workspace</SectionHeader>
-          {navItems.map((i) => <NavItem key={i.to} {...i} collapsed={collapsed} />)}
+          {navItems.map((i) => (
+            <NavItem
+              key={i.to}
+              {...i}
+              collapsed={collapsed}
+              suffix={i.to === "/calculators" && planData?.plan === "free" ? <Lock className="h-3 w-3 text-secondary shrink-0" /> : undefined}
+            />
+          ))}
           {planData?.plan === "firm" && (
             <NavItem to="/team" label="Team" icon={UsersRound} collapsed={collapsed} />
           )}

@@ -63,6 +63,22 @@ export async function createClient(input: NewClientInput): Promise<ClientRecord>
     }
     ownerVal = userData.user.id;
 
+    const { data: planRow } = await supabase!
+      .from("user_plans")
+      .select("plan")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+    const userPlan = planRow?.plan ?? "free";
+    if (userPlan === "free") {
+      const { count } = await supabase!
+        .from("clients")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userData.user.id);
+      if ((count ?? 0) >= 1) {
+        throw new Error("Free plan is limited to 1 client. Upgrade to add more.");
+      }
+    }
+
     const payload = {
       name: input.name,
       entity_type: input.entityType,

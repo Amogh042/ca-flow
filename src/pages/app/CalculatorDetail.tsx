@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Calculator, Check, ChevronRight, RotateCcw, Save } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Calculator, Check, ChevronRight, Lock, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useCreateCalculation } from "@/hooks/useCalculations";
 import { useCreateActivity } from "@/hooks/useActivities";
+import { usePlan } from "@/hooks/usePlan";
 
 const FY = ["FY 2026-27", "FY 2025-26", "FY 2024-25", "FY 2023-24"];
 const AGE = ["Below 60", "60-80", "Above 80"];
@@ -606,10 +607,44 @@ function SaveToClient({ calcSlug, calcName, dataRef }: { calcSlug: string; calcN
 
 export default function CalculatorDetail() {
   const { slug = "income-tax" } = useParams();
+  const navigate = useNavigate();
+  const { data: planData } = usePlan();
+  const isFree = planData?.plan === "free";
   const CalcComponent = CALC_REGISTRY[slug];
   const title = titleMap[slug] ?? slug.replace(/-/g, " ");
   const category = categoryMap[slug] ?? "tax";
   const calcDataRef = useRef<{ inputs: Record<string, any>; outputs: Record<string, any> }>({ inputs: {}, outputs: {} });
+
+  if (isFree) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <nav className="flex items-center gap-2 text-xs text-secondary">
+          <Link to="/dashboard" className="hover:text-[var(--text-primary)]">Home</Link>
+          <ChevronRight className="h-3 w-3" />
+          <Link to="/calculators" className="hover:text-[var(--text-primary)]">Calculators</Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="text-[var(--text-primary)] capitalize">{title}</span>
+        </nav>
+        <div className="card-surface p-12 text-center max-w-lg mx-auto">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 grid place-items-center mx-auto mb-4">
+            <Lock className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">Calculator Locked</h2>
+          <p className="mt-2 text-sm text-secondary leading-relaxed">
+            Upgrade to <span className="text-primary font-semibold">Pro</span> or <span className="font-semibold" style={{ color: "var(--text-primary)" }}>Firm</span> to unlock all {Object.keys(CALC_REGISTRY).length}+ calculators.
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <button onClick={() => navigate("/settings")} className="px-5 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all">
+              Upgrade Now
+            </button>
+            <button onClick={() => navigate("/calculators")} className="px-5 h-10 rounded-pill border border-white/10 text-sm font-medium text-secondary hover:text-[var(--text-primary)] transition-colors">
+              Back to Calculators
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

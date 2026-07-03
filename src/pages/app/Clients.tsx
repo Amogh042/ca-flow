@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Search, Users, X } from "lucide-react";
+import { Lock, Plus, Search, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients, useCreateClient } from "@/hooks/useClients";
 import { useCreateFiling } from "@/hooks/useFilings";
 import { useCreateWorkflow } from "@/hooks/useWorkflows";
 import { useCreateActivity } from "@/hooks/useActivities";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/hooks/usePlan";
 import { toast } from "@/hooks/use-toast";
 import { getRiskLabel, type ClientRecord } from "@/data/workspace";
 import ClientForm from "@/components/ClientForm";
@@ -25,6 +26,8 @@ export default function Clients() {
   const clientsQuery = useClients();
   const createClient = useCreateClient();
   const createActivity = useCreateActivity();
+  const { data: planData } = usePlan();
+  const isFree = planData?.plan === "free";
   const createFilingMut = useCreateFiling();
   const createWorkflow = useCreateWorkflow();
 
@@ -45,6 +48,7 @@ export default function Clients() {
   if (clientsQuery.error) return <div className="max-w-7xl mx-auto py-8 text-red-400">Failed to load clients.</div>;
 
   const clients = clientsQuery.data ?? [];
+  const atFreeLimit = isFree && clients.length >= 1;
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   function handleCreateTask(e: React.FormEvent) {
@@ -131,12 +135,34 @@ export default function Clients() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
         <button
-          onClick={() => setShowAddDrawer(true)}
-          className="px-4 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all flex items-center gap-2"
+          onClick={() => !atFreeLimit && setShowAddDrawer(true)}
+          disabled={atFreeLimit}
+          className={cn(
+            "px-4 h-10 rounded-pill text-sm font-semibold transition-all flex items-center gap-2",
+            atFreeLimit
+              ? "bg-white/10 text-secondary cursor-not-allowed"
+              : "bg-gradient-orange text-white glow-orange hover:glow-orange-strong"
+          )}
         >
-          <Plus className="h-4 w-4" /> Add Client
+          {atFreeLimit ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          Add Client
         </button>
       </div>
+
+      {atFreeLimit && (
+        <div className="card-surface p-4 flex items-center gap-4 border border-primary/20">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+            <Lock className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">Client limit reached</div>
+            <div className="text-xs text-secondary mt-0.5">Free plan allows 1 client. Upgrade to add unlimited clients.</div>
+          </div>
+          <button onClick={() => navigate("/settings")} className="px-4 h-9 rounded-pill bg-gradient-orange text-white text-xs font-semibold glow-orange hover:glow-orange-strong transition-all shrink-0">
+            Upgrade
+          </button>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative max-w-md">
@@ -156,7 +182,7 @@ export default function Clients() {
           <div className="text-lg font-semibold text-[var(--text-primary)]">
             {clients.length === 0 ? "No clients yet" : "No clients match your search"}
           </div>
-          {clients.length === 0 && (
+          {clients.length === 0 && !atFreeLimit && (
             <div className="mt-4">
               <button onClick={() => setShowAddDrawer(true)} className="px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all flex items-center gap-2 mx-auto">
                 <Plus className="h-4 w-4" /> Add Client

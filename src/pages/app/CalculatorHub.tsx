@@ -1,9 +1,10 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Receipt, Landmark, TrendingDown, BarChart3, Briefcase,
-  ShieldCheck, DollarSign, Building2, LineChart, FileText,
+  ShieldCheck, DollarSign, Building2, LineChart, FileText, Lock,
 } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
+import { usePlan } from "@/hooks/usePlan";
 
 const categories: {
   slug: string;
@@ -26,6 +27,9 @@ const categories: {
 
 export default function CalculatorHub() {
   const totalCount = categories.reduce((sum, c) => sum + c.count, 0);
+  const { data: planData } = usePlan();
+  const isFree = planData?.plan === "free";
+  const navigate = useNavigate();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -37,20 +41,38 @@ export default function CalculatorHub() {
         </p>
       </div>
 
+      {isFree && (
+        <div className="card-surface p-5 flex items-center gap-4 border border-primary/20">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+            <Lock className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">Calculators are locked on the Free plan</div>
+            <div className="text-xs text-secondary mt-0.5">Upgrade to Pro or Firm to unlock all {totalCount} calculators.</div>
+          </div>
+          <button onClick={() => navigate("/settings")} className="px-4 h-9 rounded-pill bg-gradient-orange text-white text-xs font-semibold glow-orange hover:glow-orange-strong transition-all shrink-0">
+            Upgrade
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((cat) => (
           <Link
             key={cat.slug}
             to={`/calculators/${cat.slug}`}
-            className="card-surface p-5 group"
+            className="card-surface p-5 group relative"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
                 <cat.icon className="h-5 w-5 text-primary" />
               </div>
-              <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-white/5 text-secondary">
-                {cat.count}
-              </span>
+              <div className="flex items-center gap-2">
+                {isFree && <Lock className="h-3.5 w-3.5 text-secondary" />}
+                <span className="text-xs font-medium px-2 py-0.5 rounded-md bg-white/5 text-secondary">
+                  {cat.count}
+                </span>
+              </div>
             </div>
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">{cat.name}</h3>
             <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
