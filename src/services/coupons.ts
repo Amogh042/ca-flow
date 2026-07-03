@@ -118,48 +118,44 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
   if (!isSupabaseConfigured()) return { plan: "free" };
 
   try {
-    const { data, error } = await supabase!
+    const { data: ownPlan } = await supabase!
       .from("user_plans")
       .select("*")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (error) {
-      console.error("getUserPlan: error fetching own plan:", error);
+    if (ownPlan && ownPlan.plan !== "free") {
+      const isExpired = ownPlan.expires_at &&
+        new Date(ownPlan.expires_at) < new Date();
+      if (!isExpired) {
+        return {
+          plan: ownPlan.plan,
+          couponCode: ownPlan.coupon_code ?? undefined,
+          startedAt: ownPlan.started_at ?? undefined,
+          expiresAt: ownPlan.expires_at ?? undefined,
+          isActive: ownPlan.is_active,
+        };
+      }
     }
 
-    const ownPlanActive = !error && data && data.plan !== "free" &&
-      !(data.expires_at && new Date(data.expires_at) < new Date());
+    const { data: { user } } = await supabase!.auth.getUser();
+    const userEmail = user?.email;
 
-    if (ownPlanActive) {
-      return {
-        plan: data.plan,
-        couponCode: data.coupon_code ?? undefined,
-        startedAt: data.started_at ?? undefined,
-        expiresAt: data.expires_at ?? undefined,
-        isActive: data.is_active,
-      };
-    }
+    console.log("getUserPlan: checking team access for email:", userEmail);
 
-    // No active plan of their own — check if this user belongs to a team
-    // whose owner has an active Firm plan.
-    try {
-      const { data: userData } = await supabase!.auth.getUser();
-      const userEmail = userData?.user?.email;
+    if (userEmail) {
+      const { data: teamData, error: teamError } = await supabase!
+        .from("team_members")
+        .select("team_id, teams(owner_id)")
+        .eq("email", userEmail)
+        .maybeSingle();
 
-      if (userEmail) {
-        const { data: membership, error: memberError } = await supabase!
-          .from("team_members")
-          .select("team_id, teams!inner(owner_id)")
-          .eq("email", userEmail)
-          .limit(1)
-          .maybeSingle();
+      console.log("getUserPlan: team membership lookup:", teamData, teamError);
 
-        if (memberError) {
-          console.error("getUserPlan: error fetching team membership:", memberError);
-        }
+      if (teamData) {
+        const ownerId = (teamData as any).teams?.owner_id;
 
-        const ownerId = (membership as any)?.teams?.owner_id;
+        console.log("getUserPlan: found team owner_id:", ownerId);
 
         if (ownerId) {
           const { data: ownerPlan, error: ownerPlanError } = await supabase!
@@ -168,35 +164,28 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
             .eq("user_id", ownerId)
             .maybeSingle();
 
-          if (ownerPlanError) {
-            console.error("getUserPlan: error fetching owner plan:", ownerPlanError);
-          }
+          console.log("getUserPlan: owner plan:", ownerPlan, ownerPlanError);
 
-          const ownerPlanActive = ownerPlan && ownerPlan.plan === "firm" &&
-            !(ownerPlan.expires_at && new Date(ownerPlan.expires_at) < new Date());
+          if (ownerPlan && ownerPlan.plan === "firm") {
+            const ownerExpired = ownerPlan.expires_at &&
+              new Date(ownerPlan.expires_at) < new Date();
 
-          if (ownerPlanActive) {
-            return {
-              plan: "firm",
-              expiresAt: ownerPlan.expires_at ?? undefined,
-              isActive: true,
-              viaTeam: true,
-            };
+            if (!ownerExpired) {
+              return {
+                plan: "firm",
+                expiresAt: ownerPlan.expires_at ?? undefined,
+                isActive: true,
+                viaTeam: true,
+              };
+            }
           }
         }
       }
-    } catch (teamErr) {
-      console.error("getUserPlan: team membership check failed:", teamErr);
-    }
-
-    if (data && data.expires_at && new Date(data.expires_at) < new Date()) {
-      return { plan: "free", expired: true };
     }
 
     return { plan: "free" };
   } catch (err) {
-    console.error("getUserPlan failed entirely:", err);
-    // Always return something — never let this hang or reject forever.
+    console.error("getUserPlan failed:", err);
     return { plan: "free" };
   }
 }
