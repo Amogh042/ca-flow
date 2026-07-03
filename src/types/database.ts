@@ -21,6 +21,7 @@ export type FilingStatus = "filed" | "in_review" | "in_progress" | "pending" | "
 // Clients
 export type DBClient = {
   id: string;
+  user_id?: string | null;
   name: string;
   entity_type: string;
   service_line: string;
@@ -48,6 +49,7 @@ export type DBClientInsert = Omit<DBClient, "id" | "created_at" | "updated_at">;
 // Filings
 export type DBFiling = {
   id: string;
+  user_id?: string | null;
   client_id: string;
   title: string;
   due_date?: string | null;
@@ -64,6 +66,7 @@ export type DBFilingInsert = Omit<DBFiling, "id" | "created_at" | "updated_at">;
 // Documents
 export type DBDocument = {
   id: string;
+  user_id?: string | null;
   client_id: string;
   name: string;
   type: string;
@@ -98,6 +101,7 @@ export type DBDocumentInsert = Omit<DBDocument, "id" | "created_at" | "updated_a
 // Activities / timeline
 export type DBActivity = {
   id: string;
+  user_id?: string | null;
   client_id?: string | null;
   title: string;
   detail: string;
@@ -112,6 +116,7 @@ export type DBActivityInsert = Omit<DBActivity, "id" | "created_at">;
 // Reports
 export type DBReport = {
   id: string;
+  user_id?: string | null;
   client_id: string;
   title: string;
   type: string;
@@ -147,6 +152,7 @@ export type DBCalculationInsert = Omit<DBCalculation, "id" | "created_at" | "upd
 // Workflows (lightweight representation)
 export type DBWorkflow = {
   id: string;
+  user_id?: string | null;
   title: string;
   client_id?: string | null;
   type?: string | null;
@@ -167,6 +173,7 @@ export type DocumentRequestStatus = "requested" | "reminded" | "received" | "ver
 
 export type DBDocumentRequest = {
   id: string;
+  user_id?: string | null;
   client_id: string;
   title: string;
   description?: string | null;

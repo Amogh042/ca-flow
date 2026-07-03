@@ -21,6 +21,7 @@ const Calculators = lazy(() => import("@/pages/app/Calculators"));
 const CalculatorDetail = lazy(() => import("@/pages/app/CalculatorDetail"));
 const CalculatorHub = lazy(() => import("@/pages/app/CalculatorHub"));
 const Settings = lazy(() => import("@/pages/app/Settings"));
+const Team = lazy(() => import("@/pages/app/Team"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => {
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/clients/:id" element={<ClientDetails />} />
                   <Route path="/compliance" element={<Compliance />} />
+                  <Route path="/team" element={<Team />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
 

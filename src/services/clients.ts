@@ -68,6 +68,7 @@ export async function createClient(input: NewClientInput): Promise<ClientRecord>
       entity_type: input.entityType,
       service_line: input.serviceLine,
       owner: ownerVal,
+      user_id: userData.user.id,
       created_by: userData.user.id,
       health: input.health,
       country: input.country || null,
@@ -130,8 +131,15 @@ export async function deleteClient(id: string): Promise<void> {
 // Small helper to create an activity associated with client changes (optional)
 export async function createActivity(activity: ActivityRecord): Promise<void> {
   if (!isSupabaseConfigured()) return;
+  let userId: string | null = null;
+  try {
+    const { data: userData } = await supabase!.auth.getUser();
+    userId = userData?.user?.id ?? null;
+  } catch (_) {}
+
   const payload: Partial<DBActivity> = {
     id: activity.id,
+    user_id: userId,
     client_id: activity.clientId || null,
     title: activity.title,
     detail: activity.detail,

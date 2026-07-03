@@ -51,9 +51,15 @@ export async function processDocument(documentId: string): Promise<void> {
 
     if (updateErr) throw updateErr;
 
-    // add an activity entry noting extraction completion
+    let userId: string | null = null;
+    try {
+      const { data: userData } = await supabase!.auth.getUser();
+      userId = userData?.user?.id ?? null;
+    } catch (_) {}
+
     const activity: Partial<DBActivity> = {
       id: `act-${Date.now()}`,
+      user_id: userId,
       client_id: row.client_id,
       title: "Document extracted",
       detail: `Extraction finished for ${fileName}`,
@@ -69,8 +75,14 @@ export async function processDocument(documentId: string): Promise<void> {
       await supabase!.from<DBDocument>("documents").update({ status: "failed" }).eq("id", documentId);
     } catch (_) {}
     try {
+      let failUserId: string | null = null;
+      try {
+        const { data: ud } = await supabase!.auth.getUser();
+        failUserId = ud?.user?.id ?? null;
+      } catch (_) {}
       await supabase!.from<DBActivity>("activities").insert({
         id: `act-${Date.now()}`,
+        user_id: failUserId,
         client_id: null,
         title: "Document processing failed",
         detail: `Processing failed for document ${documentId}: ${err?.message || "unknown"}`,

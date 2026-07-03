@@ -98,10 +98,10 @@ export async function createDocument(input: Omit<DocumentRecord, "id" | "updated
 
       const payload: DBDocumentInsert = {
         client_id: input.clientId,
+        user_id: userId || null,
         name: input.name || file.name,
         type: input.type || file.type || "file",
         period: input.period || null,
-        // mark uploaded; background worker will move to processing/extracted
         status: input.status || "uploaded",
         source: input.source || "upload",
         uploaded_by: userId || null,
@@ -119,9 +119,9 @@ export async function createDocument(input: Omit<DocumentRecord, "id" | "updated
       return row;
     }
 
-    // No file: just insert metadata row
     const payload: DBDocumentInsert = {
       client_id: input.clientId,
+      user_id: userId || null,
       name: input.name,
       type: input.type,
       period: input.period,

@@ -29,10 +29,12 @@ export async function createReport(input: Omit<ReportRecord, "id" | "updatedAt">
   try {
     // ensure authenticated; RLS policies commonly require a session
     let ownerVal: string | null | undefined = input.owner;
+    let userId: string | null = null;
     try {
       const { data: userData } = await supabase!.auth.getUser();
       if (!userData?.user) throw new Error("Authentication required to create reports");
-      if (!ownerVal && userData.user?.id) ownerVal = userData.user.id;
+      userId = userData.user.id;
+      if (!ownerVal) ownerVal = userId;
     } catch (e) {
       throw new Error("Authentication required to create reports");
     }
@@ -44,6 +46,7 @@ export async function createReport(input: Omit<ReportRecord, "id" | "updatedAt">
       period: input.period,
       status: input.status,
       owner: ownerVal || null,
+      user_id: userId,
       updated_at: new Date().toISOString(),
     };
 

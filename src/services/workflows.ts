@@ -42,8 +42,15 @@ export async function createWorkflow(input: Omit<Workflow, "id">): Promise<Workf
     return { id: `wf-local-${Date.now()}`, ...input } as Workflow;
   }
 
+  let userId: string | null = null;
+  try {
+    const { data: userData } = await supabase!.auth.getUser();
+    if (userData?.user?.id) userId = userData.user.id;
+  } catch (_) {}
+
   const payload: DBWorkflowInsert = {
     title: input.title,
+    user_id: userId,
     client_id: input.client || null,
     type: input.type || null,
     assignee: input.assignee || null,

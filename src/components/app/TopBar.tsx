@@ -1,20 +1,38 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, Bell, Command } from "lucide-react";
 import { SearchModal } from "./SearchModal";
 import { useFilings } from "@/hooks/useFilings";
 import { useClients } from "@/hooks/useClients";
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/hooks/useNotifications";
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
 
 export const TopBar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const filingsQuery = useFilings();
   const clientsQuery = useClients();
   const filings = filingsQuery.data ?? [];
   const clients = clientsQuery.data ?? [];
   const clientLookup = new Map(clients.map((c) => [c.id, c]));
+
+  const { data: notifications } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const unreadCount = (notifications ?? []).filter((n) => !n.isRead).length;
 
   const now = new Date();
   const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -26,6 +44,8 @@ export const TopBar = () => {
     })
     .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
     .slice(0, 5);
+
+  const hasIndicator = unreadCount > 0 || upcoming.length > 0;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -46,6 +66,12 @@ export const TopBar = () => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [bellOpen]);
+
+  function handleNotificationClick(n: { id: string; isRead: boolean }) {
+    if (!n.isRead) markRead.mutate(n.id);
+    setBellOpen(false);
+    navigate("/compliance");
+  }
 
   return (
     <>
@@ -70,13 +96,54 @@ export const TopBar = () => {
               className="relative h-8 w-8 rounded-lg grid place-items-center transition-colors glass-button"
             >
               <Bell className="h-4 w-4" />
-              {upcoming.length > 0 && (
+              {hasIndicator && (
                 <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+              )}
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold grid place-items-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
               )}
             </button>
 
             {bellOpen && (
               <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-white/10 bg-[var(--drawer-bg,#1a1a2e)] shadow-xl z-50 overflow-hidden">
+                {/* Notifications section */}
+                {(notifications ?? []).length > 0 && (
+                  <>
+                    <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                      <div className="text-sm font-semibold text-[var(--text-primary)]">Notifications</div>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllRead.mutate()}
+                          className="text-[10px] text-primary hover:underline"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="divide-y divide-white/[0.04] max-h-48 overflow-y-auto">
+                      {(notifications ?? []).slice(0, 5).map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          className="w-full text-left px-4 py-3 hover:bg-white/[0.03] transition-colors"
+                        >
+                          <div className="flex items-start gap-2">
+                            {!n.isRead && <span className="mt-1.5 h-2 w-2 rounded-full bg-primary shrink-0" />}
+                            <div className={!n.isRead ? "" : "ml-4"}>
+                              <div className="text-sm font-medium text-[var(--text-primary)]">{n.title}</div>
+                              {n.description && <div className="text-xs text-secondary mt-0.5 line-clamp-2">{n.description}</div>}
+                              <div className="text-[10px] text-tertiary mt-1">{timeAgo(n.createdAt)}</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Upcoming deadlines section */}
                 <div className="px-4 py-3 border-b border-white/[0.06]">
                   <div className="text-sm font-semibold text-[var(--text-primary)]">Upcoming Deadlines</div>
                 </div>

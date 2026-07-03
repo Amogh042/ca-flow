@@ -58,8 +58,15 @@ export async function createDocumentRequest(input: Omit<DocumentRequest, "id" | 
     return { id: `dr-local-${Date.now()}`, ...input } as DocumentRequest;
   }
 
+  let userId: string | null = null;
+  try {
+    const { data: userData } = await supabase!.auth.getUser();
+    userId = userData?.user?.id ?? null;
+  } catch (_) {}
+
   const payload: DBDocumentRequestInsert = {
     client_id: input.clientId,
+    user_id: userId,
     title: input.title,
     description: input.description || null,
     due_date: toISOTimestampOrNull(input.dueDate),

@@ -518,7 +518,7 @@ function AccountTab() {
           </div>
 
           {/* Firm */}
-          <div className={cn("p-5 rounded-xl border-2", activePlan === "firm" ? "border-primary/50 bg-primary/5" : "border-white/10")}>
+          <div className={cn("relative p-5 rounded-xl border-2 overflow-hidden", activePlan === "firm" ? "border-primary/50 bg-primary/5" : "border-white/10 bg-gradient-to-br from-primary/5 to-warning/5")}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-[var(--text-primary)]">Firm</span>
               {activePlan === "firm" && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">ACTIVE</span>}

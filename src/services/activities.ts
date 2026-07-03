@@ -26,15 +26,16 @@ export async function createActivity(activity: ActivityRecord): Promise<void> {
   if (!isSupabaseConfigured()) return;
   try {
     let actorVal = activity.actor;
+    let userId: string | null = null;
     try {
       const { data: userData } = await supabase!.auth.getUser();
-      if (!actorVal && userData?.user?.id) actorVal = userData.user.id;
-    } catch (_) {
-      // ignore
-    }
+      userId = userData?.user?.id ?? null;
+      if (!actorVal && userId) actorVal = userId;
+    } catch (_) {}
 
     const payload: DBActivityInsert | Partial<DBActivity> = {
       id: activity.id,
+      user_id: userId,
       client_id: activity.clientId || null,
       title: activity.title,
       detail: activity.detail,

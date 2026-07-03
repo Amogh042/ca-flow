@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import React, { useState } from "react";
 import {
   LayoutDashboard, Users, CalendarCheck,
-  Calculator, Settings,
+  Calculator, Settings, UsersRound,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -138,6 +138,9 @@ export const Sidebar = React.memo(function Sidebar() {
         <nav className="flex-1 overflow-y-auto scrollbar-thin pb-3">
           <SectionHeader collapsed={collapsed}>Workspace</SectionHeader>
           {navItems.map((i) => <NavItem key={i.to} {...i} collapsed={collapsed} />)}
+          {planData?.plan === "firm" && (
+            <NavItem to="/team" label="Team" icon={UsersRound} collapsed={collapsed} />
+          )}
         </nav>
 
         {/* Bottom section */}

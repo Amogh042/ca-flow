@@ -42,10 +42,12 @@ export async function createFiling(input: Omit<Filing, "id">): Promise<Filing> {
   try {
     // Ensure caller is authenticated; RLS policies often require an auth session
     let ownerVal: string | null | undefined = input.owner;
+    let userId: string | null = null;
     try {
       const { data: userData } = await supabase!.auth.getUser();
       if (!userData?.user) throw new Error("Authentication required to create filings");
-      if (!ownerVal && userData.user?.id) ownerVal = userData.user.id;
+      userId = userData.user.id;
+      if (!ownerVal) ownerVal = userId;
     } catch (e) {
       throw new Error("Authentication required to create filings");
     }
@@ -55,6 +57,7 @@ export async function createFiling(input: Omit<Filing, "id">): Promise<Filing> {
       title: input.title,
       due_date: toISOTimestampOrNull(input.dueDate),
       owner: ownerVal || null,
+      user_id: userId,
       status: input.status,
       entity: input.entity || null,
       blocker: input.blocker || null,
