@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { Users, X, Plus, Crown, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Users, X, Plus, Crown, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
-import { useTeam, useTeamMembers, useCreateTeam, useAddTeamMember, useRemoveTeamMember } from "@/hooks/useTeam";
+import { useEnsureTeam, useTeamMembers, useAddTeamMember, useRemoveTeamMember } from "@/hooks/useTeam";
 import { toast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter,
@@ -20,25 +20,17 @@ function formatDate(dateStr?: string | null) {
 export default function Team() {
   const { user } = useAuth();
   const { data: planData } = usePlan();
-  const teamQuery = useTeam();
+  const isFirm = planData?.plan === "firm";
+  const teamQuery = useEnsureTeam(isFirm);
   const team = teamQuery.data;
   const membersQuery = useTeamMembers(team?.id);
   const members = membersQuery.data ?? [];
-  const createTeam = useCreateTeam();
   const addMember = useAddTeamMember();
   const removeMember = useRemoveTeamMember();
 
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
-
-  const isFirm = planData?.plan === "firm";
-
-  useEffect(() => {
-    if (isFirm && !teamQuery.isLoading && !team) {
-      createTeam.mutate("My Firm");
-    }
-  }, [isFirm, teamQuery.isLoading, team]);
 
   if (!isFirm) {
     return (
@@ -59,6 +51,24 @@ export default function Team() {
     return (
       <div className="max-w-3xl mx-auto py-16 flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+      </div>
+    );
+  }
+
+  if (teamQuery.isError || !team) {
+    return (
+      <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
+        <AlertTriangle className="h-12 w-12 mx-auto text-red-400" />
+        <h2 className="text-xl font-semibold text-[var(--text-primary)]">Couldn't set up your team</h2>
+        <p className="text-sm text-secondary">
+          {(teamQuery.error as any)?.message || "Something went wrong loading your team. Please try again."}
+        </p>
+        <button
+          onClick={() => teamQuery.refetch()}
+          className="px-4 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all"
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -91,7 +101,6 @@ export default function Team() {
       setError("Maximum 10 members reached. Contact us for larger teams.");
       return;
     }
-    if (!team) return;
     addMember.mutate({ teamId: team.id, email: trimmed }, {
       onSuccess() {
         toast({ title: "Member added", description: trimmed });

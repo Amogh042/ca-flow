@@ -13,6 +13,20 @@ export function useTeam() {
   });
 }
 
+// Like useTeam, but atomically creates the team record if the user
+// doesn't have one yet (e.g. first Team page visit after a Firm
+// coupon redemption never went through the manual createTeam flow).
+export function useEnsureTeam(enabled: boolean) {
+  const { user } = useAuth();
+  return useQuery<Team>({
+    queryKey: ["team", user?.id],
+    queryFn: () => teamsService.getOrCreateTeam(user!.id),
+    staleTime: 60_000,
+    enabled: enabled && !!user?.id,
+    retry: 1,
+  });
+}
+
 export function useTeamMembers(teamId?: string) {
   return useQuery<TeamMember[]>({
     queryKey: ["team-members", teamId],

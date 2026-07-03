@@ -11,6 +11,7 @@ export function usePlan() {
     staleTime: 60000,
     enabled: !!user?.id,
     placeholderData: { plan: "free" },
+    retry: 1,
   });
 }
 

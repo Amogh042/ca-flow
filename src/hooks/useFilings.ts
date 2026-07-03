@@ -11,6 +11,7 @@ export function useFilings() {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     placeholderData: [],
+    retry: 1,
   });
 }
 

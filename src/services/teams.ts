@@ -80,6 +80,28 @@ export async function createTeam(name: string): Promise<Team> {
   return mapTeam(data as DBTeam);
 }
 
+export async function getOrCreateTeam(ownerId: string): Promise<Team> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase not configured");
+
+  const { data: existing, error: fetchError } = await supabase!
+    .from("teams")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+  if (existing) return mapTeam(existing as DBTeam);
+
+  const { data: created, error: createError } = await supabase!
+    .from("teams")
+    .insert({ owner_id: ownerId, name: "My Firm" })
+    .select()
+    .single();
+
+  if (createError) throw createError;
+  return mapTeam(created as DBTeam);
+}
+
 export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
   if (!isSupabaseConfigured() || !teamId) return [];
   const { data, error } = await supabase!
