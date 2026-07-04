@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, getVisibleUserIds } from "./supabaseClient";
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import type { CalculationRecord } from "@/data/workspace";
 
 function parseJson(v: any): Record<string, any> | null {
@@ -22,10 +22,7 @@ function mapRowToCalculation(r: any): CalculationRecord {
 
 export async function fetchCalculations(): Promise<CalculationRecord[]> {
   if (!isSupabaseConfigured()) return [];
-  const userIds = await getVisibleUserIds();
-  let query = supabase!.from("calculations").select("*").order("created_at", { ascending: false });
-  if (userIds.length > 0) query = query.in("user_id", userIds);
-  const { data, error } = await query;
+  const { data, error } = await supabase!.from("calculations").select("*").order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapRowToCalculation);
 }

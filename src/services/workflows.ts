@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured, getVisibleUserIds } from "./supabaseClient";
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import type { DBWorkflow, DBWorkflowInsert } from "@/types/database";
 import { toISOTimestampOrNull } from "@/lib/date";
 
@@ -32,10 +32,7 @@ function mapRowToWorkflow(r: DBWorkflow): Workflow {
 
 export async function fetchWorkflows(): Promise<Workflow[]> {
   if (!isSupabaseConfigured()) return [];
-  const userIds = await getVisibleUserIds();
-  let query = supabase!.from<DBWorkflow>("workflows").select("*").order("created_at", { ascending: false });
-  if (userIds.length > 0) query = query.in("user_id", userIds);
-  const { data, error } = await query;
+  const { data, error } = await supabase!.from<DBWorkflow>("workflows").select("*").order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []).map(mapRowToWorkflow);
 }
