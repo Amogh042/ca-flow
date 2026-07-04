@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Edit2, Trash2, CheckCircle, Plus, X, Calculator, MoreVertical, Download, Check } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Plus, X, Calculator, MoreVertical, Download, Check, ChevronRight } from "lucide-react";
 import { useClients, useUpdateClient, useDeleteClient } from "@/hooks/useClients";
 import { useFilingsByClient, useUpdateFiling, useCreateFiling } from "@/hooks/useFilings";
 import { useWorkflows, useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow } from "@/hooks/useWorkflows";
 import { useCalculations, useDeleteCalculations } from "@/hooks/useCalculations";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTeam, useTeamMembers } from "@/hooks/useTeam";
 import ClientForm from "@/components/ClientForm";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
@@ -33,6 +34,8 @@ export default function ClientDetails() {
   const deleteWorkflow = useDeleteWorkflow();
   const deleteCalcs = useDeleteCalculations();
   const { user } = useAuth();
+  const teamQuery = useTeam();
+  const teamMembersQuery = useTeamMembers(teamQuery.data?.id);
 
   const clients = clientsQuery.data ?? [];
   const client = clients.find((c) => c.id === id);
@@ -54,11 +57,21 @@ export default function ClientDetails() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskNotes, setTaskNotes] = useState("");
+  const [taskAssignee, setTaskAssignee] = useState("");
 
   // Filing form state
   const [filingTitle, setFilingTitle] = useState("");
   const [filingType, setFilingType] = useState("GST Return");
   const [filingDueDate, setFilingDueDate] = useState("");
+  const [filingAssignee, setFilingAssignee] = useState("");
+
+  const ownerEmail = user?.email ?? "";
+  const ownerName = user?.user_metadata?.full_name || ownerEmail.split("@")[0] || "";
+  const teamMembers = teamMembersQuery.data ?? [];
+  const assigneeOptions = [
+    { value: ownerName, label: ownerName + " (You)" },
+    ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({ value: m.email, label: m.email })),
+  ];
 
   useEffect(() => {
     if (!calcMenuOpen) return;
@@ -233,10 +246,11 @@ export default function ClientDetails() {
       dueDate: taskDueDate,
       status: "pending",
       type: taskNotes.trim() || undefined,
+      assignee: taskAssignee || ownerName,
     }, {
       onSuccess() {
         toast({ title: "Task created", description: taskTitle.trim() });
-        setTaskTitle(""); setTaskDueDate(""); setTaskNotes("");
+        setTaskTitle(""); setTaskDueDate(""); setTaskNotes(""); setTaskAssignee("");
         setShowTaskForm(false);
       },
     });
@@ -249,13 +263,13 @@ export default function ClientDetails() {
       clientId: id!,
       title: filingTitle.trim(),
       dueDate: filingDueDate,
-      owner: user?.user_metadata?.full_name || "Unassigned",
+      owner: filingAssignee || ownerName || "Unassigned",
       status: "pending",
       entity: filingType,
     }, {
       onSuccess() {
         toast({ title: "Filing created", description: filingTitle.trim() });
-        setFilingTitle(""); setFilingDueDate(""); setFilingType("GST Return");
+        setFilingTitle(""); setFilingDueDate(""); setFilingType("GST Return"); setFilingAssignee("");
         setShowFilingForm(false);
       },
     });
@@ -374,6 +388,11 @@ export default function ClientDetails() {
               </div>
               <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required placeholder="Task title" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
               <input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
+              {assigneeOptions.length > 1 && (
+                <select value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
+                  {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              )}
               <textarea value={taskNotes} onChange={(e) => setTaskNotes(e.target.value)} placeholder="Notes (optional)" rows={2} className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none" />
               <button type="submit" disabled={createWorkflow.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
                 {createWorkflow.status === "pending" ? "Creating…" : "Create Task"}
@@ -399,6 +418,7 @@ export default function ClientDetails() {
                     <div className="text-xs text-secondary mt-0.5">
                       {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "No due date"}
                       {task.type && ` · ${task.type}`}
+                      {task.assignee && ` · ${task.assignee}`}
                     </div>
                   </div>
                   <button onClick={() => deleteWorkflow.mutate(task.id)} className="h-7 w-7 grid place-items-center rounded-md hover:bg-white/5 text-secondary shrink-0">
@@ -432,6 +452,11 @@ export default function ClientDetails() {
                 {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
               <input type="date" value={filingDueDate} onChange={(e) => setFilingDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
+              {assigneeOptions.length > 1 && (
+                <select value={filingAssignee} onChange={(e) => setFilingAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
+                  {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              )}
               <button type="submit" disabled={createFilingMut.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
                 {createFilingMut.status === "pending" ? "Creating…" : "Create Filing"}
               </button>
@@ -555,14 +580,20 @@ export default function ClientDetails() {
           ) : (
             calculations.map((calc) => {
               const isSelected = selectedIds.includes(calc.id);
+              const calcSlug = calc.subtitle || calc.title.toLowerCase().replace(/\s+/g, "-");
               return (
                 <div
                   key={calc.id}
-                  onClick={() => selectMode && toggleCalcSelection(calc.id)}
+                  onClick={() => {
+                    if (selectMode) {
+                      toggleCalcSelection(calc.id);
+                    } else {
+                      navigate(`/calculators/${calcSlug}`, { state: { savedCalc: calc } });
+                    }
+                  }}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors",
-                    selectMode ? "cursor-pointer" : "",
-                    isSelected ? "border-primary/30 bg-primary/5" : "border-white/[0.06] bg-white/[0.02]"
+                    "flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors cursor-pointer",
+                    isSelected ? "border-primary/30 bg-primary/5" : "border-white/[0.06] bg-white/[0.02] hover:border-primary/20"
                   )}
                 >
                   {selectMode && (
@@ -583,6 +614,7 @@ export default function ClientDetails() {
                       Saved: {calc.savedAt || "—"}
                     </div>
                   </div>
+                  {!selectMode && <ChevronRight className="h-4 w-4 text-tertiary shrink-0" />}
                 </div>
               );
             })

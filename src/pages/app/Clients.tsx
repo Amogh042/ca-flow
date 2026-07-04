@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Lock, Plus, Search, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients, useCreateClient } from "@/hooks/useClients";
@@ -8,6 +8,7 @@ import { useCreateWorkflow } from "@/hooks/useWorkflows";
 import { useCreateActivity } from "@/hooks/useActivities";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
+import { useTeam, useTeamMembers } from "@/hooks/useTeam";
 import { toast } from "@/hooks/use-toast";
 import { getRiskLabel, type ClientRecord } from "@/data/workspace";
 import ClientForm from "@/components/ClientForm";
@@ -30,6 +31,8 @@ export default function Clients() {
   const isFree = planData?.plan === "free";
   const createFilingMut = useCreateFiling();
   const createWorkflow = useCreateWorkflow();
+  const teamQuery = useTeam();
+  const teamMembersQuery = useTeamMembers(teamQuery.data?.id);
 
   const [search, setSearch] = useState("");
   const [showAddDrawer, setShowAddDrawer] = useState(false);
@@ -40,9 +43,17 @@ export default function Clients() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
   const [taskNotes, setTaskNotes] = useState("");
+  const [taskAssignee, setTaskAssignee] = useState("");
   const [filingTitle, setFilingTitle] = useState("");
   const [filingType, setFilingType] = useState("GST Return");
   const [filingDueDate, setFilingDueDate] = useState("");
+  const [filingAssignee, setFilingAssignee] = useState("");
+
+  const teamMembers = teamMembersQuery.data ?? [];
+  const assigneeOptions = [
+    { value: ownerName, label: ownerName + " (You)" },
+    ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({ value: m.email, label: m.email })),
+  ];
 
   if (clientsQuery.isLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
   if (clientsQuery.error) return <div className="max-w-7xl mx-auto py-8 text-red-400">Failed to load clients.</div>;
@@ -60,10 +71,11 @@ export default function Clients() {
       dueDate: taskDueDate,
       status: "pending",
       type: taskNotes.trim() || undefined,
+      assignee: taskAssignee || ownerName,
     }, {
       onSuccess() {
         toast({ title: "Task created", description: taskTitle.trim() });
-        setTaskTitle(""); setTaskDueDate(""); setTaskNotes("");
+        setTaskTitle(""); setTaskDueDate(""); setTaskNotes(""); setTaskAssignee("");
         setTaskClientId(null);
       },
     });
@@ -76,13 +88,13 @@ export default function Clients() {
       clientId: filingClientId,
       title: filingTitle.trim(),
       dueDate: filingDueDate,
-      owner: ownerName || "Unassigned",
+      owner: filingAssignee || ownerName || "Unassigned",
       status: "pending",
       entity: filingType,
     }, {
       onSuccess() {
         toast({ title: "Filing created", description: filingTitle.trim() });
-        setFilingTitle(""); setFilingDueDate(""); setFilingType("GST Return");
+        setFilingTitle(""); setFilingDueDate(""); setFilingType("GST Return"); setFilingAssignee("");
         setFilingClientId(null);
       },
     });
@@ -195,16 +207,14 @@ export default function Clients() {
           {filtered.map((client) => (
             <div
               key={client.id}
-              className="card-surface p-4"
+              className="card-surface p-4 cursor-pointer hover:border-primary/30 transition-colors"
+              onClick={() => navigate(`/clients/${client.id}`)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <Link
-                    to={`/clients/${client.id}`}
-                    className="text-base font-semibold text-[var(--text-primary)] hover:text-primary transition-colors"
-                  >
+                  <div className="text-base font-semibold text-[var(--text-primary)]">
                     {client.name}
-                  </Link>
+                  </div>
                   <div className="mt-1 text-sm text-secondary">
                     {client.entityType} · {client.serviceLine}
                   </div>
@@ -224,7 +234,7 @@ export default function Clients() {
                   </span>
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => { setTaskClientId(client.id); setFilingClientId(null); }}
                   className="text-xs px-3 py-1.5 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary transition-colors"
@@ -250,6 +260,11 @@ export default function Clients() {
                   </div>
                   <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required placeholder="Task title" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
                   <input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
+                  {assigneeOptions.length > 1 && (
+                    <select value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
+                      {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  )}
                   <textarea value={taskNotes} onChange={(e) => setTaskNotes(e.target.value)} placeholder="Notes (optional)" rows={2} className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none" />
                   <button type="submit" disabled={createWorkflow.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
                     {createWorkflow.status === "pending" ? "Creating…" : "Create Task"}
@@ -269,6 +284,11 @@ export default function Clients() {
                     {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                   <input type="date" value={filingDueDate} onChange={(e) => setFilingDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
+                  {assigneeOptions.length > 1 && (
+                    <select value={filingAssignee} onChange={(e) => setFilingAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
+                      {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  )}
                   <button type="submit" disabled={createFilingMut.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
                     {createFilingMut.status === "pending" ? "Creating…" : "Create Filing"}
                   </button>

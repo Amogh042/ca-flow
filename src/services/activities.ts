@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { supabase, isSupabaseConfigured, getVisibleUserIds } from "./supabaseClient";
 import type { ActivityRecord } from "@/data/workspace";
 import type { DBActivity, DBActivityInsert } from "@/types/database";
 import { toISOTimestampOrNull } from "@/lib/date";
@@ -17,7 +17,10 @@ function mapRowToActivity(r: DBActivity): ActivityRecord {
 
 export async function fetchActivities(): Promise<ActivityRecord[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data, error } = await supabase!.from<DBActivity>("activities").select("*").order("created_at", { ascending: false }).limit(50);
+  const userIds = await getVisibleUserIds();
+  let query = supabase!.from<DBActivity>("activities").select("*").order("created_at", { ascending: false }).limit(50);
+  if (userIds.length > 0) query = query.in("user_id", userIds);
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(mapRowToActivity);
 }

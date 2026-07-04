@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { supabase, isSupabaseConfigured, getVisibleUserIds } from "./supabaseClient";
 import type { Filing } from "@/data/workspace";
 import type { DBFiling } from "@/types/database";
 import { toISOTimestampOrNull } from "@/lib/date";
@@ -18,7 +18,10 @@ function mapRowToFiling(r: DBFiling): Filing {
 
 export async function fetchFilings(): Promise<Filing[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data, error } = await supabase!.from<DBFiling>("filings").select("*").order("due_date", { ascending: true });
+  const userIds = await getVisibleUserIds();
+  let query = supabase!.from<DBFiling>("filings").select("*").order("due_date", { ascending: true });
+  if (userIds.length > 0) query = query.in("user_id", userIds);
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(mapRowToFiling);
 }

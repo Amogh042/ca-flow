@@ -15,6 +15,36 @@ export function isSupabaseConfigured(): boolean {
   return !!supabase;
 }
 
-// TODO: Add helper that wires realtime subscriptions for each table.
-// Example (later):
-// supabase.channel('public:clients').on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, payload => { ... })
+/**
+ * Returns the list of user_ids whose data the current user should see.
+ * Always includes the current user; also includes the team owner if
+ * the current user is a team member (inheriting Firm plan).
+ */
+export async function getVisibleUserIds(): Promise<string[]> {
+  if (!supabase) return [];
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const ids = [user.id];
+
+  try {
+    const email = user.email;
+    if (!email) return ids;
+
+    const { data: membership } = await supabase
+      .from("team_members")
+      .select("team_id, teams(owner_id)")
+      .eq("email", email)
+      .maybeSingle();
+
+    const ownerId = (membership as any)?.teams?.owner_id;
+    if (ownerId && ownerId !== user.id) {
+      ids.push(ownerId);
+    }
+  } catch {
+    // team lookup failed — fall back to own data only
+  }
+
+  return ids;
+}

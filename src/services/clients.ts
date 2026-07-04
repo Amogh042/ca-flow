@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { supabase, isSupabaseConfigured, getVisibleUserIds } from "./supabaseClient";
 import type {
   ClientRecord,
   ActivityRecord,
@@ -36,7 +36,10 @@ function mapRowToClient(r: DBClient): ClientRecord {
 
 export async function fetchClients(): Promise<ClientRecord[]> {
   if (!isSupabaseConfigured()) return [];
-  const { data, error } = await supabase!.from<DBClient>("clients").select("*").order("name", { ascending: true });
+  const userIds = await getVisibleUserIds();
+  let query = supabase!.from<DBClient>("clients").select("*").order("name", { ascending: true });
+  if (userIds.length > 0) query = query.in("user_id", userIds);
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(mapRowToClient);
 }

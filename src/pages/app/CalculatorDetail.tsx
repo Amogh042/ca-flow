@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
-import { Calculator, Check, ChevronRight, Lock, RotateCcw, Save } from "lucide-react";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import { Calculator, Check, ChevronRight, ChevronDown, Lock, RotateCcw, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
 import { useCreateCalculation } from "@/hooks/useCalculations";
@@ -605,9 +605,61 @@ function SaveToClient({ calcSlug, calcName, dataRef }: { calcSlug: string; calcN
   );
 }
 
+function SavedValuesPanel({ inputs, outputs }: { inputs?: Record<string, any> | null; outputs?: Record<string, any> | null }) {
+  const [expanded, setExpanded] = useState(true);
+  const inputEntries = inputs ? Object.entries(inputs).filter(([, v]) => v !== "" && v != null) : [];
+  const outputEntries = outputs ? Object.entries(outputs).filter(([, v]) => v !== "" && v != null) : [];
+  if (inputEntries.length === 0 && outputEntries.length === 0) return null;
+
+  return (
+    <div className="card-surface border border-primary/20 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-[var(--text-primary)]"
+      >
+        <span>Saved Values</span>
+        <ChevronDown className={cn("h-4 w-4 text-secondary transition-transform", expanded && "rotate-180")} />
+      </button>
+      {expanded && (
+        <div className="px-5 pb-4 space-y-3">
+          {inputEntries.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-tertiary font-semibold mb-1.5">Inputs</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {inputEntries.map(([k, v]) => (
+                  <div key={k} className="flex justify-between text-xs">
+                    <span className="text-secondary">{k}</span>
+                    <span className="text-[var(--text-primary)] font-medium">{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {outputEntries.length > 0 && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-tertiary font-semibold mb-1.5">Results</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {outputEntries.map(([k, v]) => (
+                  <div key={k} className="flex justify-between text-xs">
+                    <span className="text-secondary">{k}</span>
+                    <span className="text-emerald-400 font-medium">{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-tertiary">Re-enter these values below to restore your previous calculation.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CalculatorDetail() {
   const { slug = "income-tax" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const savedCalc = (location.state as any)?.savedCalc;
   const { data: planData } = usePlan();
   const isFree = planData?.plan === "free";
   const CalcComponent = CALC_REGISTRY[slug];
@@ -657,6 +709,8 @@ export default function CalculatorDetail() {
       </nav>
 
       {CalcComponent && <SaveToClient calcSlug={slug} calcName={title} dataRef={calcDataRef} />}
+
+      {savedCalc && <SavedValuesPanel inputs={savedCalc.inputs} outputs={savedCalc.outputs} />}
 
       {CalcComponent ? <CalcComponent dataRef={calcDataRef} /> : <ComingSoonCard slug={slug} />}
     </div>
