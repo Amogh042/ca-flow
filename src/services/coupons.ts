@@ -61,7 +61,9 @@ export async function validateCoupon(code: string): Promise<ValidateResult> {
 
 export async function redeemCoupon(code: string, userId: string): Promise<RedeemResult> {
   const validation = await validateCoupon(code);
-  if (!validation.valid) return validation;
+  if (validation.valid === false) {
+    return { valid: false, error: validation.error };
+  }
 
   const coupon = validation.coupon;
 
