@@ -30,7 +30,8 @@ export default function Team() {
   const { user } = useAuth();
   const { data: planData } = usePlan();
   const isFirm = planData?.plan === "firm";
-  const teamQuery = useEnsureTeam(isFirm);
+  const isTeamMember = planData?.viaTeam === true;
+  const teamQuery = useEnsureTeam(isFirm && !isTeamMember);
   const team = teamQuery.data;
   const membersQuery = useTeamMembers(team?.id);
   const members = membersQuery.data ?? [];
@@ -51,6 +52,18 @@ export default function Team() {
           <a href="https://ca-flow.in/pricing" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
             ca-flow.in/pricing
           </a>
+        </p>
+      </div>
+    );
+  }
+
+  if (isTeamMember) {
+    return (
+      <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
+        <Users className="h-12 w-12 mx-auto text-primary" />
+        <h2 className="text-xl font-semibold text-[var(--text-primary)]">You're a team member</h2>
+        <p className="text-sm text-secondary">
+          You have Firm-level access through your team owner's plan. Only the team owner can manage members.
         </p>
       </div>
     );
