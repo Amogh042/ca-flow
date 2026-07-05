@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { getUserPlan } from "./coupons";
 import type {
   ClientRecord,
   ActivityRecord,
@@ -63,13 +64,8 @@ export async function createClient(input: NewClientInput): Promise<ClientRecord>
     }
     ownerVal = userData.user.id;
 
-    const { data: planRow } = await supabase!
-      .from("user_plans")
-      .select("plan")
-      .eq("user_id", userData.user.id)
-      .maybeSingle();
-    const userPlan = planRow?.plan ?? "free";
-    if (userPlan === "free") {
+    const planInfo = await getUserPlan(userData.user.id);
+    if (planInfo.plan === "free") {
       const { count } = await supabase!
         .from("clients")
         .select("id", { count: "exact", head: true })
