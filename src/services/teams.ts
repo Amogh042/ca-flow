@@ -10,6 +10,7 @@ export type Team = {
 export type TeamMember = {
   id: string;
   teamId: string;
+  name?: string | null;
   email: string;
   userId?: string | null;
   role: "owner" | "member";
@@ -27,6 +28,7 @@ type DBTeam = {
 type DBTeamMember = {
   id: string;
   team_id: string;
+  name?: string | null;
   email: string;
   user_id?: string | null;
   role: "owner" | "member";
@@ -42,6 +44,7 @@ function mapMember(r: DBTeamMember): TeamMember {
   return {
     id: r.id,
     teamId: r.team_id,
+    name: r.name,
     email: r.email,
     userId: r.user_id,
     role: r.role,
@@ -114,12 +117,12 @@ export async function fetchTeamMembers(teamId: string): Promise<TeamMember[]> {
   return (data || []).map((r: any) => mapMember(r as DBTeamMember));
 }
 
-export async function addTeamMember(teamId: string, email: string): Promise<TeamMember> {
+export async function addTeamMember(teamId: string, email: string, name?: string): Promise<TeamMember> {
   if (!isSupabaseConfigured()) throw new Error("Supabase not configured");
 
   const { data, error } = await supabase!
     .from("team_members")
-    .insert({ team_id: teamId, email, role: "member" })
+    .insert({ team_id: teamId, email, name: name || null, role: "member" })
     .select()
     .single();
 

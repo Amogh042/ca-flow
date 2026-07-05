@@ -38,6 +38,7 @@ export default function Team() {
   const addMember = useAddTeamMember();
   const removeMember = useRemoveTeamMember();
 
+  const [memberName, setMemberName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
@@ -97,8 +98,9 @@ export default function Team() {
   }
 
   const ownerEmail = user?.email ?? "";
+  const ownerDisplayName = user?.user_metadata?.full_name || ownerEmail.split("@")[0] || "";
   const allMembers = [
-    { id: "__owner__", email: ownerEmail, role: "owner" as const, joinedAt: team?.createdAt ?? null, teamId: team?.id ?? "", invitedAt: team?.createdAt },
+    { id: "__owner__", name: ownerDisplayName, email: ownerEmail, role: "owner" as const, joinedAt: team?.createdAt ?? null, teamId: team?.id ?? "", invitedAt: team?.createdAt },
     ...members.filter((m) => m.role !== "owner"),
   ];
   const memberCount = allMembers.length;
@@ -124,10 +126,11 @@ export default function Team() {
       setError("Maximum 10 members reached. Contact us for larger teams.");
       return;
     }
-    addMember.mutate({ teamId: team.id, email: trimmed }, {
+    addMember.mutate({ teamId: team.id, email: trimmed, name: memberName.trim() || undefined }, {
       onSuccess() {
-        toast({ title: "Member added", description: trimmed });
+        toast({ title: "Member added", description: memberName.trim() || trimmed });
         setEmail("");
+        setMemberName("");
       },
       onError(err: any) {
         setError(err?.message || "Failed to add member");
@@ -163,22 +166,30 @@ export default function Team() {
       {/* Add member */}
       <div className="card-surface p-5 space-y-3">
         <h3 className="text-sm font-semibold text-[var(--text-primary)]">Add team member</h3>
-        <form onSubmit={handleAdd} className="flex gap-2">
-          <input
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); setError(""); }}
-            placeholder="colleague@example.com"
-            type="email"
-            className="glass-input flex-1 h-10 px-3 text-sm"
-          />
-          <button
-            type="submit"
-            disabled={addMember.status === "pending"}
-            className="flex items-center gap-2 px-4 h-10 rounded-lg text-sm font-medium bg-gradient-orange text-white glow-orange transition-all disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" />
-            Add Member
-          </button>
+        <form onSubmit={handleAdd} className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              value={memberName}
+              onChange={(e) => setMemberName(e.target.value)}
+              placeholder="Name"
+              className="glass-input w-40 h-10 px-3 text-sm"
+            />
+            <input
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+              placeholder="colleague@example.com"
+              type="email"
+              className="glass-input flex-1 h-10 px-3 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={addMember.status === "pending"}
+              className="flex items-center gap-2 px-4 h-10 rounded-lg text-sm font-medium bg-gradient-orange text-white glow-orange transition-all disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add
+            </button>
+          </div>
         </form>
         {error && <p className="text-xs text-red-400">{error}</p>}
         <p className="text-xs text-tertiary">
@@ -195,12 +206,12 @@ export default function Team() {
           {allMembers.map((m) => (
             <div key={m.id} className="group flex items-center gap-3 px-5 py-3">
               <div className="h-8 w-8 rounded-full grid place-items-center text-xs font-bold text-white bg-gradient-orange shrink-0">
-                {m.email.charAt(0).toUpperCase()}
+                {(m.name || m.email).charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-[var(--text-primary)] truncate">{m.email}</div>
+                <div className="text-sm font-medium text-[var(--text-primary)] truncate">{m.name || m.email}</div>
                 <div className="text-xs text-secondary mt-0.5">
-                  Joined {formatDate(m.joinedAt || m.invitedAt)}
+                  {m.name ? `${m.email} · ` : ""}Joined {formatDate(m.joinedAt || m.invitedAt)}
                 </div>
               </div>
               <span className={cn(

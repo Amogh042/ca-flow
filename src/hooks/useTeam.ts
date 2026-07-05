@@ -50,8 +50,8 @@ export function useCreateTeam() {
 export function useAddTeamMember() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ teamId, email }: { teamId: string; email: string }) =>
-      teamsService.addTeamMember(teamId, email),
+    mutationFn: ({ teamId, email, name }: { teamId: string; email: string; name?: string }) =>
+      teamsService.addTeamMember(teamId, email, name),
     onSuccess() {
       qc.invalidateQueries({ queryKey: ["team-members"] });
     },

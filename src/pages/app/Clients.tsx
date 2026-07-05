@@ -53,7 +53,10 @@ export default function Clients() {
   const teamMembers = teamMembersQuery.data ?? [];
   const assigneeOptions = [
     { value: ownerName, label: ownerName + " (You)" },
-    ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({ value: m.email, label: m.email })),
+    ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({
+      value: m.name || m.email,
+      label: m.name || m.email,
+    })),
   ];
 
   if (clientsQuery.isLoading || planLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;

@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { Edit2, Trash2, CheckCircle, Plus, X, Calculator, MoreVertical, Download, Check, ChevronRight } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, X, Calculator, MoreVertical, Download, Check, ChevronRight } from "lucide-react";
 import { useClients, useUpdateClient, useDeleteClient } from "@/hooks/useClients";
-import { useFilingsByClient, useUpdateFiling, useCreateFiling } from "@/hooks/useFilings";
-import { useWorkflows, useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow } from "@/hooks/useWorkflows";
+import { useFilingsByClient, useUpdateFiling } from "@/hooks/useFilings";
+import { useWorkflows, useUpdateWorkflow, useDeleteWorkflow } from "@/hooks/useWorkflows";
 import { useCalculations, useDeleteCalculations } from "@/hooks/useCalculations";
-import { useAuth } from "@/contexts/AuthContext";
-import { useTeam, useTeamMembers } from "@/hooks/useTeam";
 import ClientForm from "@/components/ClientForm";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
@@ -28,14 +26,9 @@ export default function ClientDetails() {
   const calculationsQuery = useCalculations();
 
   const updateFiling = useUpdateFiling();
-  const createFilingMut = useCreateFiling();
-  const createWorkflow = useCreateWorkflow();
   const updateWorkflow = useUpdateWorkflow();
   const deleteWorkflow = useDeleteWorkflow();
   const deleteCalcs = useDeleteCalculations();
-  const { user } = useAuth();
-  const teamQuery = useTeam();
-  const teamMembersQuery = useTeamMembers(teamQuery.data?.id);
 
   const clients = clientsQuery.data ?? [];
   const client = clients.find((c) => c.id === id);
@@ -43,8 +36,6 @@ export default function ClientDetails() {
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("tasks");
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [showFilingForm, setShowFilingForm] = useState(false);
 
   // Calculations select mode
   const [selectMode, setSelectMode] = useState(false);
@@ -52,26 +43,6 @@ export default function ClientDetails() {
   const [calcMenuOpen, setCalcMenuOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const calcMenuRef = useRef<HTMLDivElement>(null);
-
-  // Task form state
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDueDate, setTaskDueDate] = useState("");
-  const [taskNotes, setTaskNotes] = useState("");
-  const [taskAssignee, setTaskAssignee] = useState("");
-
-  // Filing form state
-  const [filingTitle, setFilingTitle] = useState("");
-  const [filingType, setFilingType] = useState("GST Return");
-  const [filingDueDate, setFilingDueDate] = useState("");
-  const [filingAssignee, setFilingAssignee] = useState("");
-
-  const ownerEmail = user?.email ?? "";
-  const ownerName = user?.user_metadata?.full_name || ownerEmail.split("@")[0] || "";
-  const teamMembers = teamMembersQuery.data ?? [];
-  const assigneeOptions = [
-    { value: ownerName, label: ownerName + " (You)" },
-    ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({ value: m.email, label: m.email })),
-  ];
 
   useEffect(() => {
     if (!calcMenuOpen) return;
@@ -237,44 +208,6 @@ export default function ClientDetails() {
     });
   }
 
-  function handleCreateTask(e: React.FormEvent) {
-    e.preventDefault();
-    if (!taskTitle.trim() || !taskDueDate) return;
-    createWorkflow.mutate({
-      title: taskTitle.trim(),
-      client: id,
-      dueDate: taskDueDate,
-      status: "pending",
-      type: taskNotes.trim() || undefined,
-      assignee: taskAssignee || ownerName,
-    }, {
-      onSuccess() {
-        toast({ title: "Task created", description: taskTitle.trim() });
-        setTaskTitle(""); setTaskDueDate(""); setTaskNotes(""); setTaskAssignee("");
-        setShowTaskForm(false);
-      },
-    });
-  }
-
-  function handleCreateFiling(e: React.FormEvent) {
-    e.preventDefault();
-    if (!filingTitle.trim() || !filingDueDate) return;
-    createFilingMut.mutate({
-      clientId: id!,
-      title: filingTitle.trim(),
-      dueDate: filingDueDate,
-      owner: filingAssignee || ownerName || "Unassigned",
-      status: "pending",
-      entity: filingType,
-    }, {
-      onSuccess() {
-        toast({ title: "Filing created", description: filingTitle.trim() });
-        setFilingTitle(""); setFilingDueDate(""); setFilingType("GST Return"); setFilingAssignee("");
-        setShowFilingForm(false);
-      },
-    });
-  }
-
   const today = new Date();
 
   const tabs: { id: DetailTab; label: string }[] = [
@@ -372,36 +305,8 @@ export default function ClientDetails() {
       {/* Tab Content */}
       {activeTab === "tasks" && (
         <div className="card-surface p-5 space-y-3">
-          {!showTaskForm && (
-            <button
-              onClick={() => setShowTaskForm(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-orange text-white glow-orange transition-all"
-            >
-              <Plus className="h-4 w-4" /> Create Task
-            </button>
-          )}
-          {showTaskForm && (
-            <form onSubmit={handleCreateTask} className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-[var(--text-primary)]">New Task</span>
-                <button type="button" onClick={() => setShowTaskForm(false)} className="text-secondary"><X className="h-4 w-4" /></button>
-              </div>
-              <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required placeholder="Task title" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
-              <input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
-              {assigneeOptions.length > 1 && (
-                <select value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                  {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )}
-              <textarea value={taskNotes} onChange={(e) => setTaskNotes(e.target.value)} placeholder="Notes (optional)" rows={2} className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none" />
-              <button type="submit" disabled={createWorkflow.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
-                {createWorkflow.status === "pending" ? "Creating…" : "Create Task"}
-              </button>
-            </form>
-          )}
-
-          {clientTasks.length === 0 && !showTaskForm ? (
-            <div className="text-center py-8 text-sm text-secondary">No tasks yet. Create one above.</div>
+          {clientTasks.length === 0 ? (
+            <div className="text-center py-8 text-sm text-secondary">No tasks for this client.</div>
           ) : (
             clientTasks.map((task) => {
               const overdue = task.dueDate && task.status !== "done" && new Date(task.dueDate) < today;
@@ -433,38 +338,8 @@ export default function ClientDetails() {
 
       {activeTab === "filings" && (
         <div className="card-surface p-5 space-y-3">
-          {!showFilingForm && (
-            <button
-              onClick={() => setShowFilingForm(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-orange text-white glow-orange transition-all"
-            >
-              <Plus className="h-4 w-4" /> Create Filing
-            </button>
-          )}
-          {showFilingForm && (
-            <form onSubmit={handleCreateFiling} className="p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-[var(--text-primary)]">New Filing</span>
-                <button type="button" onClick={() => setShowFilingForm(false)} className="text-secondary"><X className="h-4 w-4" /></button>
-              </div>
-              <input value={filingTitle} onChange={(e) => setFilingTitle(e.target.value)} required placeholder="e.g. GSTR-3B April 2026" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
-              <select value={filingType} onChange={(e) => setFilingType(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <input type="date" value={filingDueDate} onChange={(e) => setFilingDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
-              {assigneeOptions.length > 1 && (
-                <select value={filingAssignee} onChange={(e) => setFilingAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                  {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              )}
-              <button type="submit" disabled={createFilingMut.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
-                {createFilingMut.status === "pending" ? "Creating…" : "Create Filing"}
-              </button>
-            </form>
-          )}
-
-          {selectedFilings.length === 0 && !showFilingForm ? (
-            <div className="text-center py-8 text-sm text-secondary">No filings yet. Create one above.</div>
+          {selectedFilings.length === 0 ? (
+            <div className="text-center py-8 text-sm text-secondary">No filings for this client.</div>
           ) : (
             selectedFilings.map((f) => {
               const overdue = f.status !== "filed" && f.dueDate && new Date(f.dueDate) < today;
