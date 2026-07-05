@@ -588,7 +588,7 @@ export default function ClientDetails() {
                     if (selectMode) {
                       toggleCalcSelection(calc.id);
                     } else {
-                      navigate(`/calculators/${calcSlug}`, { state: { savedCalc: calc } });
+                      navigate(`/calculator/${calcSlug}`, { state: { savedCalc: calc } });
                     }
                   }}
                   className={cn(
