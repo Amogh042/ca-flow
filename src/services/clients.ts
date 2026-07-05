@@ -73,6 +73,13 @@ export async function createClient(input: NewClientInput): Promise<ClientRecord>
       if ((count ?? 0) >= 1) {
         throw new Error("Free plan is limited to 1 client. Upgrade to add more.");
       }
+    } else if (planInfo.plan === "firm") {
+      const { count } = await supabase!
+        .from("clients")
+        .select("id", { count: "exact", head: true });
+      if ((count ?? 0) >= 10) {
+        throw new Error("Firm plan allows 10 clients.");
+      }
     }
 
     const payload = {

@@ -27,8 +27,9 @@ export default function Clients() {
   const clientsQuery = useClients();
   const createClient = useCreateClient();
   const createActivity = useCreateActivity();
-  const { data: planData } = usePlan();
-  const isFree = planData?.plan === "free";
+  const planQuery = usePlan();
+  const planData = planQuery.data;
+  const planLoading = planQuery.isFetching && planData?.plan === "free";
   const createFilingMut = useCreateFiling();
   const createWorkflow = useCreateWorkflow();
   const teamQuery = useTeam();
@@ -55,11 +56,17 @@ export default function Clients() {
     ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({ value: m.email, label: m.email })),
   ];
 
-  if (clientsQuery.isLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
+  if (clientsQuery.isLoading || planLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
   if (clientsQuery.error) return <div className="max-w-7xl mx-auto py-8 text-red-400">Failed to load clients.</div>;
 
   const clients = clientsQuery.data ?? [];
-  const atFreeLimit = isFree && clients.length >= 1;
+  const userPlan = planData?.plan ?? "free";
+  const clientLimit = userPlan === "free" ? 1 : userPlan === "firm" ? 10 : Infinity;
+  const atLimit = clients.length >= clientLimit;
+  const limitBannerText =
+    userPlan === "free" ? "Free plan allows 1 client. Upgrade to add more."
+    : userPlan === "firm" ? "Firm plan allows 10 clients."
+    : "";
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
   function handleCreateTask(e: React.FormEvent) {
@@ -147,32 +154,34 @@ export default function Clients() {
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
         <button
-          onClick={() => !atFreeLimit && setShowAddDrawer(true)}
-          disabled={atFreeLimit}
+          onClick={() => !atLimit && setShowAddDrawer(true)}
+          disabled={atLimit}
           className={cn(
             "px-4 h-10 rounded-pill text-sm font-semibold transition-all flex items-center gap-2",
-            atFreeLimit
+            atLimit
               ? "bg-white/10 text-secondary cursor-not-allowed"
               : "bg-gradient-orange text-white glow-orange hover:glow-orange-strong"
           )}
         >
-          {atFreeLimit ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          {atLimit ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           Add Client
         </button>
       </div>
 
-      {atFreeLimit && (
+      {atLimit && (
         <div className="card-surface p-4 flex items-center gap-4 border border-primary/20">
           <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center shrink-0">
             <Lock className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-[var(--text-primary)]">Client limit reached</div>
-            <div className="text-xs text-secondary mt-0.5">Free plan allows 1 client. Upgrade to add unlimited clients.</div>
+            <div className="text-xs text-secondary mt-0.5">{limitBannerText}</div>
           </div>
-          <button onClick={() => navigate("/settings")} className="px-4 h-9 rounded-pill bg-gradient-orange text-white text-xs font-semibold glow-orange hover:glow-orange-strong transition-all shrink-0">
-            Upgrade
-          </button>
+          {userPlan === "free" && (
+            <button onClick={() => navigate("/settings")} className="px-4 h-9 rounded-pill bg-gradient-orange text-white text-xs font-semibold glow-orange hover:glow-orange-strong transition-all shrink-0">
+              Upgrade
+            </button>
+          )}
         </div>
       )}
 
@@ -194,7 +203,7 @@ export default function Clients() {
           <div className="text-lg font-semibold text-[var(--text-primary)]">
             {clients.length === 0 ? "No clients yet" : "No clients match your search"}
           </div>
-          {clients.length === 0 && !atFreeLimit && (
+          {clients.length === 0 && !atLimit && (
             <div className="mt-4">
               <button onClick={() => setShowAddDrawer(true)} className="px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all flex items-center gap-2 mx-auto">
                 <Plus className="h-4 w-4" /> Add Client
