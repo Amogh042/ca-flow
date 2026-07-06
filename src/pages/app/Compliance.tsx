@@ -5,7 +5,6 @@ import { useFilings, useCreateFiling, useUpdateFiling } from "@/hooks/useFilings
 import { useWorkflows, useCreateWorkflow, useUpdateWorkflow, useDeleteWorkflow } from "@/hooks/useWorkflows";
 import { useClients } from "@/hooks/useClients";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePlan } from "@/hooks/usePlan";
 import { useTeam, useTeamMembers } from "@/hooks/useTeam";
 import { createNotification } from "@/services/notifications";
 import { toast } from "@/hooks/use-toast";
@@ -18,11 +17,16 @@ function formatDate(dateStr: string) {
 export default function Compliance() {
   const { user } = useAuth();
   const ownerName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
-  const { data: planData } = usePlan();
   const { data: team } = useTeam();
   const { data: teamMembers } = useTeamMembers(team?.id);
-  const isFirm = planData?.plan === "firm";
-  const assigneeOptions = isFirm && teamMembers ? teamMembers.map((m) => m.email) : [];
+  const hasTeam = !!(team?.id && teamMembers && teamMembers.length > 0);
+  const assigneeOptions = hasTeam
+    ? teamMembers.filter((m) => m.role !== "owner").map((m) => ({
+        value: m.name || m.email,
+        label: m.name || m.email,
+        email: m.email,
+      }))
+    : [];
   const filingsQuery = useFilings();
   const createFiling = useCreateFiling();
   const updateFiling = useUpdateFiling();
@@ -77,9 +81,10 @@ export default function Compliance() {
       blocker: fNotes.trim() || undefined,
     }, {
       onSuccess() {
-        if (fAssignee && assigneeOptions.includes(fAssignee)) {
+        const matchedMember = assigneeOptions.find((o) => o.value === fAssignee);
+        if (matchedMember) {
           createNotification({
-            userEmail: fAssignee,
+            userEmail: matchedMember.email,
             title: "New filing assigned to you",
             description: `${fTitle.trim()}${clientName ? ` for ${clientName}` : ""}`,
             type: "assignment",
@@ -106,9 +111,10 @@ export default function Compliance() {
       type: tNotes.trim() || undefined,
     }, {
       onSuccess() {
-        if (tAssignee && assigneeOptions.includes(tAssignee)) {
+        const matchedMember = assigneeOptions.find((o) => o.value === tAssignee);
+        if (matchedMember) {
           createNotification({
-            userEmail: tAssignee,
+            userEmail: matchedMember.email,
             title: "New task assigned to you",
             description: `${tTitle.trim()}${clientName ? ` for ${clientName}` : ""}`,
             type: "assignment",
@@ -313,18 +319,15 @@ export default function Compliance() {
                 <label className="block text-xs font-medium text-secondary mb-1">Due Date *</label>
                 <input type="date" value={tDueDate} onChange={(e) => setTDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-secondary mb-1">Assignee{isFirm ? "" : " (optional)"}</label>
-                {isFirm && assigneeOptions.length > 0 ? (
+              {assigneeOptions.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
                   <select value={tAssignee} onChange={(e) => setTAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    <option value="">— Unassigned —</option>
-                    <option value={user?.email ?? ""}>{user?.email} (you)</option>
-                    {assigneeOptions.map((email) => <option key={email} value={email}>{email}</option>)}
+                    <option value={ownerName}>{ownerName} (You)</option>
+                    {assigneeOptions.map((o) => <option key={o.email} value={o.value}>{o.label}</option>)}
                   </select>
-                ) : (
-                  <input value={tAssignee} onChange={(e) => setTAssignee(e.target.value)} placeholder="Name or email" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
-                )}
-              </div>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-secondary mb-1">Notes (optional)</label>
                 <textarea value={tNotes} onChange={(e) => setTNotes(e.target.value)} rows={3} placeholder="Optional notes…" className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none" />
@@ -370,18 +373,15 @@ export default function Compliance() {
                 <label className="block text-xs font-medium text-secondary mb-1">Due Date *</label>
                 <input type="date" value={fDueDate} onChange={(e) => setFDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-secondary mb-1">Assignee{isFirm ? "" : " (optional)"}</label>
-                {isFirm && assigneeOptions.length > 0 ? (
+              {assigneeOptions.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
                   <select value={fAssignee} onChange={(e) => setFAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    <option value="">— Unassigned —</option>
-                    <option value={user?.email ?? ""}>{user?.email} (you)</option>
-                    {assigneeOptions.map((email) => <option key={email} value={email}>{email}</option>)}
+                    <option value={ownerName}>{ownerName} (You)</option>
+                    {assigneeOptions.map((o) => <option key={o.email} value={o.value}>{o.label}</option>)}
                   </select>
-                ) : (
-                  <input value={fAssignee} onChange={(e) => setFAssignee(e.target.value)} placeholder="Name or email" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
-                )}
-              </div>
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-medium text-secondary mb-1">Notes (optional)</label>
                 <textarea value={fNotes} onChange={(e) => setFNotes(e.target.value)} rows={3} placeholder="Optional notes…" className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none" />

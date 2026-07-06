@@ -51,7 +51,7 @@ export type DBFiling = {
   id: string;
   user_id?: string | null;
   client_id: string;
-  title: string;
+  name: string;
   due_date?: string | null;
   owner?: string | null;
   status: FilingStatus;
