@@ -21,11 +21,13 @@ export default function Compliance() {
   const { data: teamMembers } = useTeamMembers(team?.id);
   const hasTeam = !!(team?.id && teamMembers && teamMembers.length > 0);
   const assigneeOptions = hasTeam
-    ? teamMembers.filter((m) => m.role !== "owner").map((m) => ({
-        value: m.name || m.email,
-        label: m.name || m.email,
-        email: m.email,
-      }))
+    ? teamMembers
+        .filter((m) => m.role !== "owner" && m.userId)
+        .map((m) => ({
+          value: m.userId!,
+          label: m.name || m.email,
+          email: m.email,
+        }))
     : [];
   const filingsQuery = useFilings();
   const createFiling = useCreateFiling();
@@ -69,7 +71,7 @@ export default function Compliance() {
   function handleCreateFiling(e: React.FormEvent) {
     e.preventDefault();
     if (!fTitle.trim() || !fDueDate) return;
-    const assignee = fAssignee.trim() || ownerName || "Unassigned";
+    const assignee = fAssignee || user?.id || undefined;
     const clientName = clientLookup.get(fClientId)?.name ?? "";
     createFiling.mutate({
       clientId: fClientId,
@@ -100,7 +102,7 @@ export default function Compliance() {
   function handleCreateTask(e: React.FormEvent) {
     e.preventDefault();
     if (!tTitle.trim() || !tDueDate) return;
-    const assignee = tAssignee.trim() || undefined;
+    const assignee = tAssignee || user?.id || undefined;
     const clientName = clientLookup.get(tClientId)?.name ?? "";
     createWorkflow.mutate({
       title: tTitle.trim(),
@@ -323,7 +325,7 @@ export default function Compliance() {
                 <div>
                   <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
                   <select value={tAssignee} onChange={(e) => setTAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    <option value={ownerName}>{ownerName} (You)</option>
+                    <option value={user?.id ?? ""}>{ownerName} (You)</option>
                     {assigneeOptions.map((o) => <option key={o.email} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
@@ -377,7 +379,7 @@ export default function Compliance() {
                 <div>
                   <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
                   <select value={fAssignee} onChange={(e) => setFAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    <option value={ownerName}>{ownerName} (You)</option>
+                    <option value={user?.id ?? ""}>{ownerName} (You)</option>
                     {assigneeOptions.map((o) => <option key={o.email} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>

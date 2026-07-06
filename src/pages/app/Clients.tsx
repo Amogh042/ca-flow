@@ -52,11 +52,13 @@ export default function Clients() {
 
   const teamMembers = teamMembersQuery.data ?? [];
   const assigneeOptions = [
-    { value: ownerName, label: ownerName + " (You)" },
-    ...teamMembers.filter((m) => m.role !== "owner").map((m) => ({
-      value: m.name || m.email,
-      label: m.name || m.email,
-    })),
+    { value: user?.id ?? "", label: ownerName + " (You)" },
+    ...teamMembers
+      .filter((m) => m.role !== "owner" && m.userId)
+      .map((m) => ({
+        value: m.userId!,
+        label: m.name || m.email,
+      })),
   ];
 
   if (clientsQuery.isLoading || planLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
@@ -81,7 +83,7 @@ export default function Clients() {
       dueDate: taskDueDate,
       status: "pending",
       type: taskNotes.trim() || undefined,
-      assignee: taskAssignee || ownerName,
+      assignee: taskAssignee || user?.id || undefined,
     }, {
       onSuccess() {
         toast({ title: "Task created", description: taskTitle.trim() });
@@ -98,7 +100,7 @@ export default function Clients() {
       clientId: filingClientId,
       title: filingTitle.trim(),
       dueDate: filingDueDate,
-      owner: filingAssignee || ownerName || "Unassigned",
+      owner: filingAssignee || user?.id || undefined,
       status: "pending",
       entity: filingType,
     }, {
