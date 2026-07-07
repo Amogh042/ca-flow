@@ -51,6 +51,7 @@ export default function Clients() {
   const [filingAssignee, setFilingAssignee] = useState("");
 
   const teamMembers = teamMembersQuery.data ?? [];
+  const hasTeam = !!teamQuery.data?.id;
   const assigneeOptions = [
     { value: user?.id ?? "", label: ownerName + " (You)" },
     ...teamMembers
@@ -274,8 +275,9 @@ export default function Clients() {
                   </div>
                   <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required placeholder="Task title" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
                   <input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
-                  {assigneeOptions.length > 1 && (
+                  {hasTeam && (
                     <select value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
+                      <option value="">Select assignee</option>
                       {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   )}
@@ -298,8 +300,9 @@ export default function Clients() {
                     {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                   <input type="date" value={filingDueDate} onChange={(e) => setFilingDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
-                  {assigneeOptions.length > 1 && (
+                  {hasTeam && (
                     <select value={filingAssignee} onChange={(e) => setFilingAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
+                      <option value="">Select assignee</option>
                       {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   )}

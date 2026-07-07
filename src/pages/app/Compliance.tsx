@@ -19,15 +19,18 @@ export default function Compliance() {
   const ownerName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const { data: team } = useTeam();
   const { data: teamMembers } = useTeamMembers(team?.id);
-  const hasTeam = !!(team?.id && teamMembers && teamMembers.length > 0);
-  const assigneeOptions = hasTeam
-    ? teamMembers
-        .filter((m) => m.role !== "owner" && m.userId)
-        .map((m) => ({
-          value: m.userId!,
-          label: m.name || m.email,
-          email: m.email,
-        }))
+  const hasTeam = !!team?.id;
+  const assigneeOptions: { value: string; label: string; email: string }[] = hasTeam
+    ? [
+        { value: user?.id ?? "", label: ownerName + " (You)", email: user?.email ?? "" },
+        ...(teamMembers ?? [])
+          .filter((m) => m.role !== "owner" && m.userId)
+          .map((m) => ({
+            value: m.userId!,
+            label: m.name || m.email,
+            email: m.email,
+          })),
+      ]
     : [];
   const filingsQuery = useFilings();
   const createFiling = useCreateFiling();
@@ -321,11 +324,11 @@ export default function Compliance() {
                 <label className="block text-xs font-medium text-secondary mb-1">Due Date *</label>
                 <input type="date" value={tDueDate} onChange={(e) => setTDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
               </div>
-              {assigneeOptions.length > 0 && (
+              {hasTeam && (
                 <div>
                   <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
                   <select value={tAssignee} onChange={(e) => setTAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    <option value={user?.id ?? ""}>{ownerName} (You)</option>
+                    <option value="">Select assignee</option>
                     {assigneeOptions.map((o) => <option key={o.email} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
@@ -375,11 +378,11 @@ export default function Compliance() {
                 <label className="block text-xs font-medium text-secondary mb-1">Due Date *</label>
                 <input type="date" value={fDueDate} onChange={(e) => setFDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
               </div>
-              {assigneeOptions.length > 0 && (
+              {hasTeam && (
                 <div>
                   <label className="block text-xs font-medium text-secondary mb-1">Assignee</label>
                   <select value={fAssignee} onChange={(e) => setFAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    <option value={user?.id ?? ""}>{ownerName} (You)</option>
+                    <option value="">Select assignee</option>
                     {assigneeOptions.map((o) => <option key={o.email} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
