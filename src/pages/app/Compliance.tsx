@@ -21,6 +21,9 @@ export default function Compliance() {
   const { data: teamMembers } = useTeamMembers(team?.id);
   const hasTeam = !!team?.id;
   const membersList = teamMembers ?? [];
+  console.log("DEBUG TEAM:", JSON.stringify(team, null, 2));
+  console.log("DEBUG MEMBERS:", JSON.stringify(membersList, null, 2));
+  console.log("DEBUG hasTeam:", hasTeam, "user.id:", user?.id, "user.email:", user?.email);
   const assigneeOptions: { value: string; label: string; email: string }[] = hasTeam
     ? [
         { value: user?.email ?? "", label: ownerName + " (You)", email: user?.email ?? "" },
@@ -33,6 +36,7 @@ export default function Compliance() {
           })),
       ]
     : [];
+  console.log("DEBUG ASSIGNEE OPTIONS:", JSON.stringify(assigneeOptions, null, 2));
   const filingsQuery = useFilings();
   const createFiling = useCreateFiling();
   const updateFiling = useUpdateFiling();
