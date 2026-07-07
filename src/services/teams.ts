@@ -57,15 +57,32 @@ export async function fetchTeam(): Promise<Team | null> {
   if (!isSupabaseConfigured()) return null;
   const { data: userData } = await supabase!.auth.getUser();
   if (!userData?.user) return null;
+  const userId = userData.user.id;
 
-  const { data, error } = await supabase!
+  const { data: owned, error: ownedErr } = await supabase!
     .from("teams")
     .select("*")
-    .eq("owner_id", userData.user.id)
+    .eq("owner_id", userId)
     .maybeSingle();
 
-  if (error || !data) return null;
-  return mapTeam(data as DBTeam);
+  if (!ownedErr && owned) return mapTeam(owned as DBTeam);
+
+  const { data: membership, error: memErr } = await supabase!
+    .from("team_members")
+    .select("team_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (memErr || !membership) return null;
+
+  const { data: team, error: teamErr } = await supabase!
+    .from("teams")
+    .select("*")
+    .eq("id", membership.team_id)
+    .maybeSingle();
+
+  if (teamErr || !team) return null;
+  return mapTeam(team as DBTeam);
 }
 
 export async function createTeam(name: string): Promise<Team> {

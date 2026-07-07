@@ -7,7 +7,7 @@ function mapRowToFiling(r: DBFiling): Filing {
   return {
     id: r.id,
     clientId: r.client_id,
-    title: r.name,
+    title: r.title,
     dueDate: r.due_date,
     owner: r.owner,
     status: r.status,
@@ -54,7 +54,7 @@ export async function createFiling(input: Omit<Filing, "id">): Promise<Filing> {
 
     const payload = {
       client_id: input.clientId,
-      name: input.title,
+      title: input.title,
       due_date: toISOTimestampOrNull(input.dueDate),
       owner: ownerVal || null,
       user_id: userId,
@@ -80,7 +80,7 @@ export async function updateFiling(id: string, patch: Partial<Filing>): Promise<
   if (!isSupabaseConfigured()) throw new Error("Supabase not configured");
 
   const payload: Partial<DBFiling> = {};
-  if (patch.title !== undefined) payload.name = patch.title;
+  if (patch.title !== undefined) payload.title = patch.title;
   if (patch.dueDate !== undefined) payload.due_date = toISOTimestampOrNull(patch.dueDate);
   if (patch.owner !== undefined) payload.owner = patch.owner;
   if (patch.status !== undefined) payload.status = patch.status;

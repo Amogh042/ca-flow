@@ -50,8 +50,10 @@ export type DBClientInsert = Omit<DBClient, "id" | "created_at" | "updated_at">;
 export type DBFiling = {
   id: string;
   user_id?: string | null;
+  workspace_id?: string | null;
   client_id: string;
-  name: string;
+  filing_type?: string | null;
+  title: string;
   due_date?: string | null;
   owner?: string | null;
   status: FilingStatus;
