@@ -51,16 +51,16 @@ export type DBFiling = {
   id: string;
   user_id?: string | null;
   workspace_id?: string | null;
-  client_id: string;
-  filing_type?: string | null;
-  title: string;
+  filing_type: string;
+  status?: string | null;
   due_date?: string | null;
+  created_at?: string | null;
+  client_id?: string | null;
   owner?: string | null;
-  status: FilingStatus;
   entity?: string | null;
   blocker?: string | null;
-  created_at?: string | null;
   updated_at?: string | null;
+  title?: string | null;
 };
 
 export type DBFilingInsert = Omit<DBFiling, "id" | "created_at" | "updated_at">;

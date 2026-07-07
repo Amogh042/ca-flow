@@ -6,11 +6,11 @@ import { toISOTimestampOrNull } from "@/lib/date";
 function mapRowToFiling(r: DBFiling): Filing {
   return {
     id: r.id,
-    clientId: r.client_id,
-    title: r.title,
-    dueDate: r.due_date,
-    owner: r.owner,
-    status: r.status,
+    clientId: r.client_id ?? "",
+    title: r.title ?? "",
+    dueDate: r.due_date ?? "",
+    owner: r.owner ?? "",
+    status: (r.status as Filing["status"]) ?? "pending",
     entity: r.entity ?? "",
     blocker: r.blocker ?? undefined,
   };
@@ -54,11 +54,12 @@ export async function createFiling(input: Omit<Filing, "id">): Promise<Filing> {
 
     const payload = {
       client_id: input.clientId,
-      title: input.title,
-      due_date: toISOTimestampOrNull(input.dueDate),
+      title: input.title || null,
+      filing_type: input.entity || "Other",
+      due_date: input.dueDate || null,
       owner: ownerVal || null,
       user_id: userId,
-      status: input.status,
+      status: input.status || "pending",
       entity: input.entity || null,
       blocker: input.blocker || null,
     };
@@ -81,7 +82,7 @@ export async function updateFiling(id: string, patch: Partial<Filing>): Promise<
 
   const payload: Partial<DBFiling> = {};
   if (patch.title !== undefined) payload.title = patch.title;
-  if (patch.dueDate !== undefined) payload.due_date = toISOTimestampOrNull(patch.dueDate);
+  if (patch.dueDate !== undefined) payload.due_date = patch.dueDate || null;
   if (patch.owner !== undefined) payload.owner = patch.owner;
   if (patch.status !== undefined) payload.status = patch.status;
   if (patch.entity !== undefined) payload.entity = patch.entity;

@@ -20,13 +20,14 @@ export default function Compliance() {
   const { data: team } = useTeam();
   const { data: teamMembers } = useTeamMembers(team?.id);
   const hasTeam = !!team?.id;
+  const membersList = teamMembers ?? [];
   const assigneeOptions: { value: string; label: string; email: string }[] = hasTeam
     ? [
-        { value: user?.id ?? "", label: ownerName + " (You)", email: user?.email ?? "" },
-        ...(teamMembers ?? [])
-          .filter((m) => m.role !== "owner" && m.userId)
+        { value: user?.email ?? "", label: ownerName + " (You)", email: user?.email ?? "" },
+        ...membersList
+          .filter((m) => m.role !== "owner")
           .map((m) => ({
-            value: m.userId!,
+            value: m.email,
             label: m.name || m.email,
             email: m.email,
           })),
@@ -71,16 +72,23 @@ export default function Compliance() {
     setTTitle(""); setTClientId(""); setTDueDate(""); setTNotes(""); setTAssignee("");
   }
 
+  function resolveOwnerUuid(email: string): string | undefined {
+    if (!email) return user?.id;
+    if (email === user?.email) return user?.id;
+    const member = membersList.find((m) => m.email === email);
+    return member?.userId ?? user?.id;
+  }
+
   function handleCreateFiling(e: React.FormEvent) {
     e.preventDefault();
     if (!fTitle.trim() || !fDueDate) return;
-    const assignee = fAssignee || user?.id || undefined;
+    const ownerUuid = resolveOwnerUuid(fAssignee);
     const clientName = clientLookup.get(fClientId)?.name ?? "";
     createFiling.mutate({
       clientId: fClientId,
       title: fTitle.trim(),
       dueDate: fDueDate,
-      owner: assignee,
+      owner: ownerUuid,
       status: "pending",
       entity: fType,
       blocker: fNotes.trim() || undefined,
@@ -105,7 +113,7 @@ export default function Compliance() {
   function handleCreateTask(e: React.FormEvent) {
     e.preventDefault();
     if (!tTitle.trim() || !tDueDate) return;
-    const assignee = tAssignee || user?.id || undefined;
+    const assignee = tAssignee || undefined;
     const clientName = clientLookup.get(tClientId)?.name ?? "";
     createWorkflow.mutate({
       title: tTitle.trim(),

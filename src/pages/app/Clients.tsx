@@ -53,11 +53,11 @@ export default function Clients() {
   const teamMembers = teamMembersQuery.data ?? [];
   const hasTeam = !!teamQuery.data?.id;
   const assigneeOptions = [
-    { value: user?.id ?? "", label: ownerName + " (You)" },
+    { value: user?.email ?? "", label: ownerName + " (You)" },
     ...teamMembers
-      .filter((m) => m.role !== "owner" && m.userId)
+      .filter((m) => m.role !== "owner")
       .map((m) => ({
-        value: m.userId!,
+        value: m.email,
         label: m.name || m.email,
       })),
   ];
@@ -84,7 +84,7 @@ export default function Clients() {
       dueDate: taskDueDate,
       status: "pending",
       type: taskNotes.trim() || undefined,
-      assignee: taskAssignee || user?.id || undefined,
+      assignee: taskAssignee || undefined,
     }, {
       onSuccess() {
         toast({ title: "Task created", description: taskTitle.trim() });
@@ -94,6 +94,13 @@ export default function Clients() {
     });
   }
 
+  function resolveOwnerUuid(email: string): string | undefined {
+    if (!email) return user?.id;
+    if (email === user?.email) return user?.id;
+    const member = teamMembers.find((m) => m.email === email);
+    return member?.userId ?? user?.id;
+  }
+
   function handleCreateFiling(e: React.FormEvent) {
     e.preventDefault();
     if (!filingTitle.trim() || !filingDueDate || !filingClientId) return;
@@ -101,7 +108,7 @@ export default function Clients() {
       clientId: filingClientId,
       title: filingTitle.trim(),
       dueDate: filingDueDate,
-      owner: filingAssignee || user?.id || undefined,
+      owner: resolveOwnerUuid(filingAssignee),
       status: "pending",
       entity: filingType,
     }, {
