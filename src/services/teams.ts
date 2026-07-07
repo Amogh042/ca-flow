@@ -58,31 +58,37 @@ export async function fetchTeam(): Promise<Team | null> {
   const { data: userData } = await supabase!.auth.getUser();
   if (!userData?.user) return null;
   const userId = userData.user.id;
+  const userEmail = userData.user.email;
 
-  const { data: owned, error: ownedErr } = await supabase!
+  // 1. Check if user is a member of a team (by email, since user_id may not be stamped)
+  if (userEmail) {
+    const { data: membership } = await supabase!
+      .from("team_members")
+      .select("team_id")
+      .eq("email", userEmail)
+      .maybeSingle();
+
+    if (membership) {
+      const { data: team } = await supabase!
+        .from("teams")
+        .select("*")
+        .eq("id", membership.team_id)
+        .maybeSingle();
+
+      if (team) return mapTeam(team as DBTeam);
+    }
+  }
+
+  // 2. Check if user owns a team
+  const { data: owned } = await supabase!
     .from("teams")
     .select("*")
     .eq("owner_id", userId)
     .maybeSingle();
 
-  if (!ownedErr && owned) return mapTeam(owned as DBTeam);
+  if (owned) return mapTeam(owned as DBTeam);
 
-  const { data: membership, error: memErr } = await supabase!
-    .from("team_members")
-    .select("team_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (memErr || !membership) return null;
-
-  const { data: team, error: teamErr } = await supabase!
-    .from("teams")
-    .select("*")
-    .eq("id", membership.team_id)
-    .maybeSingle();
-
-  if (teamErr || !team) return null;
-  return mapTeam(team as DBTeam);
+  return null;
 }
 
 export async function createTeam(name: string): Promise<Team> {
