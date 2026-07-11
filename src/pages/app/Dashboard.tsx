@@ -14,22 +14,13 @@ function getGreeting() {
   return "Good evening";
 }
 
-// TEMP DEBUG: JSON.stringify on a native Error yields "{}" since
-// message/stack aren't enumerable — pull them out explicitly.
-function describeError(err: unknown) {
-  if (err instanceof Error) {
-    return JSON.stringify({ name: err.name, message: err.message, stack: err.stack, ...err }, null, 2);
-  }
-  return JSON.stringify(err, null, 2);
-}
-
 export default function Dashboard() {
   const greeting = getGreeting();
   const { user } = useAuth();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
   const clientsQuery = useClients();
   const filingsQuery = useFilings();
-  const { isLoading: planLoading, error: planError } = usePlan();
+  usePlan();
 
   const clients = clientsQuery.data ?? [];
   const filings = filingsQuery.data ?? [];
@@ -38,30 +29,10 @@ export default function Dashboard() {
 
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  // TEMP DEBUG: surface the actual error instead of a generic spinner.
-  if (planError) {
+  if (clientsQuery.error || filingsQuery.error) {
     return (
-      <div style={{ padding: 40, color: "red" }}>
-        <h3>Plan Error</h3>
-        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{describeError(planError)}</pre>
-      </div>
-    );
-  }
-
-  if (clientsQuery.error) {
-    return (
-      <div style={{ padding: 40, color: "red" }}>
-        <h3>Clients Error</h3>
-        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{describeError(clientsQuery.error)}</pre>
-      </div>
-    );
-  }
-
-  if (filingsQuery.error) {
-    return (
-      <div style={{ padding: 40, color: "red" }}>
-        <h3>Filings Error</h3>
-        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{describeError(filingsQuery.error)}</pre>
+      <div className="max-w-7xl mx-auto py-16 text-center">
+        <p className="text-sm text-secondary">Something went wrong loading your data. Please refresh the page.</p>
       </div>
     );
   }
