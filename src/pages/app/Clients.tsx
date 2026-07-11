@@ -4,11 +4,9 @@ import { Lock, Plus, Search, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients, useCreateClient } from "@/hooks/useClients";
 import { useCreateFiling } from "@/hooks/useFilings";
-import { useCreateWorkflow } from "@/hooks/useWorkflows";
 import { useCreateActivity } from "@/hooks/useActivities";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
-import { useTeam, useTeamMembers } from "@/hooks/useTeam";
 import { toast } from "@/hooks/use-toast";
 import { getRiskLabel, type ClientRecord } from "@/data/workspace";
 import ClientForm from "@/components/ClientForm";
@@ -31,36 +29,9 @@ export default function Clients() {
   const planData = planQuery.data;
   const planLoading = planQuery.isFetching && planData?.plan === "free";
   const createFilingMut = useCreateFiling();
-  const createWorkflow = useCreateWorkflow();
-  const teamQuery = useTeam();
-  const teamMembersQuery = useTeamMembers(teamQuery.data?.id);
 
   const [search, setSearch] = useState("");
   const [showAddDrawer, setShowAddDrawer] = useState(false);
-
-  // Inline task/filing drawers
-  const [taskClientId, setTaskClientId] = useState<string | null>(null);
-  const [filingClientId, setFilingClientId] = useState<string | null>(null);
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDueDate, setTaskDueDate] = useState("");
-  const [taskNotes, setTaskNotes] = useState("");
-  const [taskAssignee, setTaskAssignee] = useState("");
-  const [filingTitle, setFilingTitle] = useState("");
-  const [filingType, setFilingType] = useState("GST Return");
-  const [filingDueDate, setFilingDueDate] = useState("");
-  const [filingAssignee, setFilingAssignee] = useState("");
-
-  const teamMembers = teamMembersQuery.data ?? [];
-  const hasTeam = !!teamQuery.data?.id;
-  const assigneeOptions = [
-    { value: user?.email ?? "", label: ownerName + " (You)" },
-    ...teamMembers
-      .filter((m) => m.role !== "owner")
-      .map((m) => ({
-        value: m.email,
-        label: m.name || m.email,
-      })),
-  ];
 
   if (clientsQuery.isLoading || planLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
   if (clientsQuery.error) return <div className="max-w-7xl mx-auto py-8 text-red-400">Failed to load clients.</div>;
@@ -74,51 +45,6 @@ export default function Clients() {
     : userPlan === "firm" ? "Firm plan allows 10 clients."
     : "";
   const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
-
-  function handleCreateTask(e: React.FormEvent) {
-    e.preventDefault();
-    if (!taskTitle.trim() || !taskDueDate || !taskClientId) return;
-    createWorkflow.mutate({
-      title: taskTitle.trim(),
-      client: taskClientId,
-      dueDate: taskDueDate,
-      status: "pending",
-      type: taskNotes.trim() || undefined,
-      assignee: taskAssignee || undefined,
-    }, {
-      onSuccess() {
-        toast({ title: "Task created", description: taskTitle.trim() });
-        setTaskTitle(""); setTaskDueDate(""); setTaskNotes(""); setTaskAssignee("");
-        setTaskClientId(null);
-      },
-    });
-  }
-
-  function resolveOwnerUuid(email: string): string | undefined {
-    if (!email) return user?.id;
-    if (email === user?.email) return user?.id;
-    const member = teamMembers.find((m) => m.email === email);
-    return member?.userId ?? user?.id;
-  }
-
-  function handleCreateFiling(e: React.FormEvent) {
-    e.preventDefault();
-    if (!filingTitle.trim() || !filingDueDate || !filingClientId) return;
-    createFilingMut.mutate({
-      clientId: filingClientId,
-      title: filingTitle.trim(),
-      dueDate: filingDueDate,
-      owner: resolveOwnerUuid(filingAssignee),
-      status: "pending",
-      entity: filingType,
-    }, {
-      onSuccess() {
-        toast({ title: "Filing created", description: filingTitle.trim() });
-        setFilingTitle(""); setFilingDueDate(""); setFilingType("GST Return"); setFilingAssignee("");
-        setFilingClientId(null);
-      },
-    });
-  }
 
   function saveNewClient(values: any) {
     const payload: NewClientInput = {
@@ -225,101 +151,47 @@ export default function Clients() {
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((client) => (
-            <div
-              key={client.id}
-              className="card-surface p-4 cursor-pointer hover:border-primary/30 transition-colors"
-              onClick={() => navigate(`/clients/${client.id}`)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="text-base font-semibold text-[var(--text-primary)]">
+        <div className="space-y-2">
+          {filtered.map((client) => {
+            const initials = client.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+            return (
+              <div
+                key={client.id}
+                onClick={() => navigate(`/clients/${client.id}`)}
+                className="flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01]"
+                style={{
+                  background: "rgba(255, 251, 242, 0.55)",
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                  border: "1px solid rgba(255, 255, 255, 0.7)",
+                  borderRadius: 12,
+                  padding: "16px 20px",
+                  boxShadow: "0 2px 8px rgba(90, 50, 10, 0.06)",
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-9 w-9 rounded-full grid place-items-center text-xs font-bold text-white bg-gradient-orange shrink-0">
+                    {initials}
+                  </div>
+                  <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
                     {client.name}
-                  </div>
-                  <div className="mt-1 text-sm text-secondary">
-                    {client.entityType} · {client.serviceLine}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize",
-                      client.health === "high"
-                        ? "bg-red-500/15 text-red-300"
-                        : client.health === "medium"
-                          ? "bg-amber-500/15 text-amber-300"
-                          : "bg-emerald-500/15 text-emerald-300",
-                    )}
-                  >
-                    {getRiskLabel(client.health)}
                   </span>
                 </div>
-              </div>
-              <div className="mt-3 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={() => { setTaskClientId(client.id); setFilingClientId(null); }}
-                  className="text-xs px-3 py-1.5 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary transition-colors"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Create Task
-                </button>
-                <button
-                  onClick={() => { setFilingClientId(client.id); setTaskClientId(null); }}
-                  className="text-xs px-3 py-1.5 rounded-md border border-white/10 hover:border-primary/40 hover:text-primary transition-colors"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  Add Filing
-                </button>
-              </div>
-
-              {/* Inline Task Form */}
-              {taskClientId === client.id && (
-                <form onSubmit={handleCreateTask} className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">New Task for {client.name}</span>
-                    <button type="button" onClick={() => setTaskClientId(null)} className="text-secondary"><X className="h-4 w-4" /></button>
-                  </div>
-                  <input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} required placeholder="Task title" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
-                  <input type="date" value={taskDueDate} onChange={(e) => setTaskDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
-                  {hasTeam && (
-                    <select value={taskAssignee} onChange={(e) => setTaskAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                      <option value="">Select assignee</option>
-                      {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize shrink-0",
+                    client.health === "high"
+                      ? "bg-red-500/15 text-red-300"
+                      : client.health === "medium"
+                        ? "bg-amber-500/15 text-amber-300"
+                        : "bg-emerald-500/15 text-emerald-300",
                   )}
-                  <textarea value={taskNotes} onChange={(e) => setTaskNotes(e.target.value)} placeholder="Notes (optional)" rows={2} className="w-full px-3 py-2 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none resize-none" />
-                  <button type="submit" disabled={createWorkflow.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
-                    {createWorkflow.status === "pending" ? "Creating…" : "Create Task"}
-                  </button>
-                </form>
-              )}
-
-              {/* Inline Filing Form */}
-              {filingClientId === client.id && (
-                <form onSubmit={handleCreateFiling} className="mt-3 p-4 rounded-xl border border-primary/30 bg-primary/5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[var(--text-primary)]">New Filing for {client.name}</span>
-                    <button type="button" onClick={() => setFilingClientId(null)} className="text-secondary"><X className="h-4 w-4" /></button>
-                  </div>
-                  <input value={filingTitle} onChange={(e) => setFilingTitle(e.target.value)} required placeholder="e.g. GSTR-3B April 2026" className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:border-primary/60 outline-none" />
-                  <select value={filingType} onChange={(e) => setFilingType(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                    {["GST Return", "TDS Return", "Advance Tax", "ITR", "ROC Filing", "PT Return", "Other"].map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  <input type="date" value={filingDueDate} onChange={(e) => setFilingDueDate(e.target.value)} required className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none" />
-                  {hasTeam && (
-                    <select value={filingAssignee} onChange={(e) => setFilingAssignee(e.target.value)} className="w-full h-10 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-[var(--text-primary)] focus:border-primary/60 outline-none">
-                      <option value="">Select assignee</option>
-                      {assigneeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  )}
-                  <button type="submit" disabled={createFilingMut.status === "pending"} className="w-full h-10 rounded-lg bg-gradient-orange text-white text-sm font-semibold disabled:opacity-50">
-                    {createFilingMut.status === "pending" ? "Creating…" : "Create Filing"}
-                  </button>
-                </form>
-              )}
-            </div>
-          ))}
+                >
+                  {getRiskLabel(client.health)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
