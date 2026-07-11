@@ -68,8 +68,8 @@
 
   .light {
     --bg-base: #FBF3E4;
-    --bg-surface: #f5ede0;
-    --bg-elevated: #EFE0C4;
+    --bg-surface: #FFFBF2;
+    --bg-elevated: #FFF9EE;
     --bg-input: rgba(31, 26, 20, 0.04);
     --border-color: rgba(31, 26, 20, 0.08);
     --text-primary: #1F1A14;
@@ -84,19 +84,19 @@
     --color-success: #16a34a;
     --color-warning: #d97706;
     --color-error: #dc2626;
-    --sidebar-bg: #F5EDD9;
+    --sidebar-bg: #FFFBF2;
     --topbar-bg: rgba(251, 243, 228, 0.97);
     --overlay-bg: rgba(0, 0, 0, 0.40);
-    --drawer-bg: #f5ede0;
+    --drawer-bg: #FFFBF2;
     --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.05);
     --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.09);
 
     --background: 251 243 228;
     --foreground: 31 26 20;
-    --card: 245 237 224;
+    --card: 255 251 242;
     --card-foreground: 31 26 20;
-    --surface-elevated: 239 224 196;
-    --popover: 245 237 224;
+    --surface-elevated: 255 249 238;
+    --popover: 255 251 242;
     --popover-foreground: 31 26 20;
     --primary: 194 80 20;
     --primary-foreground: 255 255 255;
@@ -111,10 +111,10 @@
     --success: 22 163 74;
     --warning: 217 119 6;
     --border: 31 26 20;
-    --input: 245 237 224;
+    --input: 255 251 242;
     --ring: 194 80 20;
 
-    --sidebar-background: 245 237 217;
+    --sidebar-background: 255 251 242;
     --sidebar-foreground: 31 26 20;
     --sidebar-primary: 194 80 20;
     --sidebar-primary-foreground: 255 255 255;
