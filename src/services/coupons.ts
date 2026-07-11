@@ -143,7 +143,6 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
     const { data: { user } } = await supabase!.auth.getUser();
     const userEmail = user?.email;
 
-    console.log("getUserPlan: checking team access for email:", userEmail);
 
     if (userEmail) {
       const { data: teamData, error: teamError } = await supabase!
@@ -152,12 +151,10 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
         .eq("email", userEmail)
         .maybeSingle();
 
-      console.log("getUserPlan: team membership lookup:", teamData, teamError);
 
       if (teamData) {
         const ownerId = (teamData as any).teams?.owner_id;
 
-        console.log("getUserPlan: found team owner_id:", ownerId);
 
         if (ownerId) {
           const { data: ownerPlan, error: ownerPlanError } = await supabase!
@@ -166,7 +163,6 @@ export async function getUserPlan(userId: string): Promise<UserPlan> {
             .eq("user_id", ownerId)
             .maybeSingle();
 
-          console.log("getUserPlan: owner plan:", ownerPlan, ownerPlanError);
 
           if (ownerPlan && ownerPlan.plan === "firm") {
             const ownerExpired = ownerPlan.expires_at &&
