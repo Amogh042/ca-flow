@@ -8,6 +8,7 @@ export type Workflow = {
   client?: string;
   type?: string;
   assignee?: string;
+  createdBy?: string;
   dueDate?: string;
   status: "pending" | "in-progress" | "done" | "blocked";
   priority?: "high" | "medium" | "low";
@@ -22,6 +23,7 @@ function mapRowToWorkflow(r: DBWorkflow): Workflow {
     client: r.client_id ?? undefined,
     type: r.type ?? undefined,
     assignee: r.assignee ?? undefined,
+    createdBy: r.user_id ?? undefined,
     dueDate: r.due_date ?? undefined,
     status: r.status,
     priority: r.priority ?? undefined,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, CheckCircle2, Search, X, Trash2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFilings, useCreateFiling, useUpdateFiling } from "@/hooks/useFilings";
@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeam, useTeamMembers } from "@/hooks/useTeam";
 import { createNotification } from "@/services/notifications";
 import { toast } from "@/hooks/use-toast";
+import type { Filing } from "@/data/workspace";
+import type { Workflow } from "@/services/workflows";
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr);
@@ -33,6 +35,27 @@ export default function Compliance() {
           })),
       ]
     : [];
+  const isTeamOwner = !!team && team.ownerId === user?.id;
+  const isTeamMember = !!team && !isTeamOwner;
+
+  const resolveNameByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (user?.id) map.set(user.id, ownerName || user.email || "You");
+    for (const m of membersList) {
+      if (m.userId) map.set(m.userId, m.name || m.email);
+    }
+    return (uid?: string) => uid ? (map.get(uid) ?? uid.slice(0, 8)) : "—";
+  }, [user, ownerName, membersList]);
+
+  const resolveNameByEmail = useMemo(() => {
+    const map = new Map<string, string>();
+    if (user?.email) map.set(user.email, ownerName || user.email);
+    for (const m of membersList) {
+      map.set(m.email, m.name || m.email);
+    }
+    return (email?: string) => email ? (map.get(email) ?? email) : "—";
+  }, [user, ownerName, membersList]);
+
   const filingsQuery = useFilings();
   const createFiling = useCreateFiling();
   const updateFiling = useUpdateFiling();
@@ -95,11 +118,12 @@ export default function Compliance() {
     }, {
       onSuccess() {
         const matchedMember = assigneeOptions.find((o) => o.value === fAssignee);
-        if (matchedMember) {
+        if (matchedMember && matchedMember.email !== user?.email) {
+          const duePart = fDueDate ? `, due ${formatDate(fDueDate)}` : "";
           createNotification({
             userEmail: matchedMember.email,
             title: "New filing assigned to you",
-            description: `${fTitle.trim()}${clientName ? ` for ${clientName}` : ""}`,
+            description: `${ownerName} assigned you a filing: ${fTitle.trim()}${clientName ? ` for ${clientName}` : ""}${duePart}`,
             type: "assignment",
           });
         }
@@ -125,11 +149,12 @@ export default function Compliance() {
     }, {
       onSuccess() {
         const matchedMember = assigneeOptions.find((o) => o.value === tAssignee);
-        if (matchedMember) {
+        if (matchedMember && matchedMember.email !== user?.email) {
+          const duePart = tDueDate ? `, due ${formatDate(tDueDate)}` : "";
           createNotification({
             userEmail: matchedMember.email,
             title: "New task assigned to you",
-            description: `${tTitle.trim()}${clientName ? ` for ${clientName}` : ""}`,
+            description: `${ownerName} assigned you a task: ${tTitle.trim()}${clientName ? ` for ${clientName}` : ""}${duePart}`,
             type: "assignment",
           });
         }
@@ -145,9 +170,30 @@ export default function Compliance() {
 
   const now = new Date();
   const q = search.toLowerCase();
+  const currentUserId = user?.id;
+  const currentUserEmail = user?.email;
+
+  function isFilingVisible(f: Filing): boolean {
+    if (isTeamOwner) return true;
+    if (isTeamMember) {
+      return f.owner === currentUserId;
+    }
+    return f.createdBy === currentUserId || f.owner === currentUserId;
+  }
+
+  function isTaskVisible(t: Workflow): boolean {
+    if (isTeamOwner) return true;
+    if (isTeamMember) {
+      if (t.assignee && t.assignee === currentUserEmail) return true;
+      if (!t.assignee && t.createdBy === currentUserId) return true;
+      return false;
+    }
+    return t.createdBy === currentUserId;
+  }
 
   // Tasks
   const allTasks = (workflowsQuery.data ?? [])
+    .filter(isTaskVisible)
     .map((t) => {
       const overdue = t.dueDate && t.status !== "done" && new Date(t.dueDate) < now;
       return { ...t, overdue };
@@ -161,6 +207,7 @@ export default function Compliance() {
 
   // Filings
   const allFilings = (filingsQuery.data ?? [])
+    .filter(isFilingVisible)
     .map((f) => {
       const isOverdue = f.status !== "filed" && f.dueDate && new Date(f.dueDate) < now;
       return { ...f, isOverdue };
@@ -230,6 +277,12 @@ export default function Compliance() {
                       <div className="text-xs text-secondary mt-0.5">
                         {clientName && <span>{clientName} · </span>}
                         {task.dueDate ? formatDate(task.dueDate) : "No due date"}
+                        {isTeamOwner && task.createdBy && (
+                          <span> · Created by {resolveNameByUserId(task.createdBy)}</span>
+                        )}
+                        {isTeamOwner && task.assignee && (
+                          <span> · Assigned to {resolveNameByEmail(task.assignee)}</span>
+                        )}
                       </div>
                     </div>
                     <button
@@ -276,6 +329,12 @@ export default function Compliance() {
                         {clientName && <span>{clientName} · </span>}
                         {f.entity && <span className="text-[var(--text-tertiary)]">{f.entity} · </span>}
                         {f.dueDate ? formatDate(f.dueDate) : "No due date"}
+                        {isTeamOwner && f.createdBy && (
+                          <span> · Created by {resolveNameByUserId(f.createdBy)}</span>
+                        )}
+                        {isTeamOwner && f.owner && (
+                          <span> · Assigned to {resolveNameByUserId(f.owner)}</span>
+                        )}
                       </div>
                     </div>
                     <span className={cn(

@@ -10,6 +10,7 @@ function mapRowToFiling(r: DBFiling): Filing {
     title: r.title ?? "",
     dueDate: r.due_date ?? "",
     owner: r.owner ?? "",
+    createdBy: r.user_id ?? undefined,
     status: (r.status as Filing["status"]) ?? "pending",
     entity: r.entity ?? "",
     blocker: r.blocker ?? undefined,

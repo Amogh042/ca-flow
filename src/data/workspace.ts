@@ -7,6 +7,7 @@ export type Filing = {
   title: string;
   dueDate: string;
   owner: string;
+  createdBy?: string;
   status: FilingStatus;
   entity: string;
   blocker?: string;
