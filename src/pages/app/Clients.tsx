@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Plus, Search, Users, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Filter, Lock, Plus, Users, X } from "lucide-react";
 import { useClients, useCreateClient } from "@/hooks/useClients";
 import { useCreateFiling } from "@/hooks/useFilings";
 import { useCreateActivity } from "@/hooks/useActivities";
@@ -12,6 +11,11 @@ import { getRiskLabel, type ClientRecord } from "@/data/workspace";
 import ClientForm from "@/components/ClientForm";
 import { filingTemplates } from "@/data/filingTemplates";
 import { generateFilingsForClient } from "@/services/autoFilings";
+
+const AVATAR_COLORS = [
+  "#5B8C3E", "#C25014", "#8B6F47", "#6B7C5E", "#A0522D",
+  "#4A7C59", "#7B6544", "#9B4F3A", "#5C7A3D", "#8C6B3A",
+];
 
 type NewClientInput = Omit<
   ClientRecord,
@@ -30,7 +34,6 @@ export default function Clients() {
   const planLoading = planQuery.isFetching && planData?.plan === "free";
   const createFilingMut = useCreateFiling();
 
-  const [search, setSearch] = useState("");
   const [showAddDrawer, setShowAddDrawer] = useState(false);
 
   if (clientsQuery.isLoading || planLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
@@ -44,7 +47,17 @@ export default function Clients() {
     userPlan === "free" ? "Free plan allows 1 client. Upgrade to add more."
     : userPlan === "firm" ? "Firm plan allows 10 clients."
     : "";
-  const filtered = clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+  const needAttention = clients.filter((c) => c.health === "high" || c.health === "medium").length;
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const displayClients = statusFilter
+    ? clients.filter((c) => {
+        if (statusFilter === "healthy") return c.health === "low";
+        if (statusFilter === "attention") return c.health === "high";
+        if (statusFilter === "watch") return c.health === "medium";
+        return true;
+      })
+    : clients;
 
   function saveNewClient(values: any) {
     const payload: NewClientInput = {
@@ -88,24 +101,88 @@ export default function Clients() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-        <button
-          onClick={() => !atLimit && setShowAddDrawer(true)}
-          disabled={atLimit}
-          className={cn(
-            "px-4 h-10 rounded-pill text-sm font-semibold transition-all flex items-center gap-2",
-            atLimit
-              ? "bg-white/10 text-secondary cursor-not-allowed"
-              : "bg-gradient-orange text-white glow-orange hover:glow-orange-strong"
-          )}
-        >
-          {atLimit ? <Lock className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          Add Client
-        </button>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 style={{ fontFamily: "'Instrument Serif', 'Georgia', serif", fontSize: 36, fontWeight: 400, lineHeight: 1.1, color: "var(--text-primary)" }}>
+            Clients
+          </h1>
+          <p className="mt-1" style={{ fontSize: 13, color: "rgba(31,26,20,0.45)" }}>
+            {clients.length} active{needAttention > 0 ? ` · ${needAttention} need attention` : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              border: "1px solid rgba(31,26,20,0.15)",
+              background: "transparent",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "var(--text-primary)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Filter
+          </button>
+          <button
+            onClick={() => !atLimit && setShowAddDrawer(true)}
+            disabled={atLimit}
+            style={{
+              padding: "8px 18px",
+              borderRadius: 8,
+              border: "none",
+              background: atLimit ? "rgba(31,26,20,0.15)" : "rgba(31,26,20,0.85)",
+              fontSize: 13,
+              fontWeight: 600,
+              color: atLimit ? "rgba(31,26,20,0.4)" : "#fff",
+              cursor: atLimit ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {atLimit ? <Lock className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            New client
+          </button>
+        </div>
       </div>
+
+      {/* Filter chips */}
+      {filterOpen && (
+        <div className="flex items-center gap-2">
+          {[
+            { key: null, label: "All" },
+            { key: "healthy", label: "Healthy" },
+            { key: "watch", label: "Watch closely" },
+            { key: "attention", label: "Attention needed" },
+          ].map((f) => (
+            <button
+              key={f.key ?? "all"}
+              onClick={() => setStatusFilter(f.key)}
+              style={{
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid rgba(31,26,20,0.1)",
+                background: statusFilter === f.key ? "rgba(31,26,20,0.08)" : "transparent",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "var(--text-primary)",
+                cursor: "pointer",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {atLimit && (
         <div className="card-surface p-4 flex items-center gap-4 border border-primary/20">
@@ -124,68 +201,128 @@ export default function Clients() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-tertiary" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by client name..."
-          className="glass-input w-full h-10 pl-9 pr-3 text-sm"
-        />
-      </div>
-
-      {/* Client List */}
-      {filtered.length === 0 ? (
-        <div className="card-surface p-12 text-center">
-          <Users className="h-10 w-10 mx-auto mb-3 text-secondary" />
-          <div className="text-lg font-semibold text-[var(--text-primary)]">
-            {clients.length === 0 ? "No clients yet" : "No clients match your search"}
-          </div>
-          {clients.length === 0 && !atLimit && (
+      {/* Client Table */}
+      {displayClients.length === 0 && clients.length === 0 ? (
+        <div
+          style={{
+            background: "rgba(255, 251, 242, 0.5)",
+            border: "1px solid rgba(31, 26, 20, 0.08)",
+            borderRadius: 12,
+            padding: "48px 24px",
+            textAlign: "center",
+          }}
+        >
+          <Users className="h-10 w-10 mx-auto mb-3" style={{ color: "rgba(31,26,20,0.3)" }} />
+          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>No clients yet</div>
+          {!atLimit && (
             <div className="mt-4">
-              <button onClick={() => setShowAddDrawer(true)} className="px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all flex items-center gap-2 mx-auto">
-                <Plus className="h-4 w-4" /> Add Client
+              <button
+                onClick={() => setShowAddDrawer(true)}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "rgba(31,26,20,0.85)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Plus className="h-3.5 w-3.5" /> New client
               </button>
             </div>
           )}
         </div>
+      ) : displayClients.length === 0 ? (
+        <div
+          style={{
+            background: "rgba(255, 251, 242, 0.5)",
+            border: "1px solid rgba(31, 26, 20, 0.08)",
+            borderRadius: 12,
+            padding: "48px 24px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 14, color: "rgba(31,26,20,0.5)" }}>No clients match your search</div>
+        </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((client) => {
+        <div
+          style={{
+            background: "rgba(255, 251, 242, 0.5)",
+            border: "1px solid rgba(31, 26, 20, 0.08)",
+            borderRadius: 12,
+            overflow: "hidden",
+          }}
+        >
+          {/* Table header */}
+          <div
+            className="flex items-center justify-between"
+            style={{
+              padding: "11px 20px",
+              borderBottom: "1px solid rgba(31, 26, 20, 0.06)",
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "rgba(31,26,20,0.45)", textTransform: "uppercase" }}>
+              Client
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "rgba(31,26,20,0.45)", textTransform: "uppercase" }}>
+              Status
+            </span>
+          </div>
+
+          {/* Client rows */}
+          {displayClients.map((client, idx) => {
             const initials = client.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+            const colorIdx = client.name.charCodeAt(0) % AVATAR_COLORS.length;
+            const isLast = idx === displayClients.length - 1;
+
             return (
               <div
                 key={client.id}
                 onClick={() => navigate(`/clients/${client.id}`)}
-                className="flex items-center justify-between cursor-pointer transition-all hover:scale-[1.01]"
+                className="flex items-center justify-between cursor-pointer transition-colors"
                 style={{
-                  background: "rgba(255, 251, 242, 0.55)",
-                  backdropFilter: "blur(18px)",
-                  WebkitBackdropFilter: "blur(18px)",
-                  border: "1px solid rgba(255, 255, 255, 0.7)",
-                  borderRadius: 12,
-                  padding: "16px 20px",
-                  boxShadow: "0 2px 8px rgba(90, 50, 10, 0.06)",
+                  padding: "14px 20px",
+                  borderBottom: isLast ? "none" : "1px solid rgba(31, 26, 20, 0.06)",
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(31,26,20,0.02)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-9 w-9 rounded-full grid place-items-center text-xs font-bold text-white bg-gradient-orange shrink-0">
+                  <div
+                    className="shrink-0 grid place-items-center rounded-full"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      background: AVATAR_COLORS[colorIdx],
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "#fff",
+                    }}
+                  >
                     {initials}
                   </div>
-                  <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  <span className="truncate" style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>
                     {client.name}
                   </span>
                 </div>
                 <span
-                  className={cn(
-                    "rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize shrink-0",
-                    client.health === "high"
-                      ? "bg-red-500/15 text-red-300"
+                  className="shrink-0"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    ...(client.health === "high"
+                      ? { background: "rgba(220,38,38,0.08)", color: "#b91c1c" }
                       : client.health === "medium"
-                        ? "bg-amber-500/15 text-amber-300"
-                        : "bg-emerald-500/15 text-emerald-300",
-                  )}
+                        ? { background: "rgba(217,119,6,0.08)", color: "#b45309" }
+                        : { background: "rgba(22,163,74,0.08)", color: "#15803d" }),
+                  }}
                 >
                   {getRiskLabel(client.health)}
                 </span>
