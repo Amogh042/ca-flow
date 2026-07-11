@@ -14,13 +14,22 @@ function getGreeting() {
   return "Good evening";
 }
 
+// TEMP DEBUG: JSON.stringify on a native Error yields "{}" since
+// message/stack aren't enumerable — pull them out explicitly.
+function describeError(err: unknown) {
+  if (err instanceof Error) {
+    return JSON.stringify({ name: err.name, message: err.message, stack: err.stack, ...err }, null, 2);
+  }
+  return JSON.stringify(err, null, 2);
+}
+
 export default function Dashboard() {
   const greeting = getGreeting();
   const { user } = useAuth();
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
   const clientsQuery = useClients();
   const filingsQuery = useFilings();
-  usePlan();
+  const { isLoading: planLoading, error: planError } = usePlan();
 
   const clients = clientsQuery.data ?? [];
   const filings = filingsQuery.data ?? [];
@@ -29,12 +38,43 @@ export default function Dashboard() {
 
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
+  // TEMP DEBUG: surface the actual error instead of a generic spinner.
+  if (planError) {
+    return (
+      <div style={{ padding: 40, color: "red" }}>
+        <h3>Plan Error</h3>
+        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{describeError(planError)}</pre>
+      </div>
+    );
+  }
+
+  if (clientsQuery.error) {
+    return (
+      <div style={{ padding: 40, color: "red" }}>
+        <h3>Clients Error</h3>
+        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{describeError(clientsQuery.error)}</pre>
+      </div>
+    );
+  }
+
+  if (filingsQuery.error) {
+    return (
+      <div style={{ padding: 40, color: "red" }}>
+        <h3>Filings Error</h3>
+        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{describeError(filingsQuery.error)}</pre>
+      </div>
+    );
+  }
+
   if (!dataSettled) {
     return (
       <div style={{ padding: 40 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "40vh" }}>
           <div style={{ width: 24, height: 24, border: "2px solid var(--border-color)", borderTopColor: "var(--color-primary)", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
         </div>
+        <p style={{ textAlign: "center", fontSize: 12, opacity: 0.6 }}>
+          planLoading: {String(planLoading)}, clientsFetching: {String(clientsQuery.isFetching)}, filingsFetching: {String(filingsQuery.isFetching)}
+        </p>
       </div>
     );
   }

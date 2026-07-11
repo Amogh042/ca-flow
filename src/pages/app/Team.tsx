@@ -17,6 +17,15 @@ function formatDate(dateStr?: string | null) {
   return new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// TEMP DEBUG: JSON.stringify on a native Error yields "{}" since
+// message/stack aren't enumerable — pull them out explicitly.
+function describeError(err: unknown) {
+  if (err instanceof Error) {
+    return JSON.stringify({ name: err.name, message: err.message, stack: err.stack, ...err }, null, 2);
+  }
+  return JSON.stringify(err, null, 2);
+}
+
 export default function Team() {
   const { user } = useAuth();
   const { data: planData } = usePlan();
@@ -74,7 +83,10 @@ export default function Team() {
       <div className="max-w-3xl mx-auto py-16 text-center space-y-4">
         <AlertTriangle className="h-12 w-12 mx-auto text-red-400" />
         <h2 className="text-xl font-semibold text-[var(--text-primary)]">Couldn't set up your team</h2>
-        <p className="text-sm text-secondary">Something went wrong. Please try again.</p>
+        {/* TEMP DEBUG: full error dump instead of a generic message */}
+        <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, textAlign: "left" }} className="text-red-400 bg-red-500/5 rounded-lg p-4 max-w-xl mx-auto overflow-auto">
+          {teamQuery.error ? describeError(teamQuery.error) : "No team record and no error — query returned nothing."}
+        </pre>
         <button
           onClick={() => teamQuery.refetch()}
           className="px-4 h-10 rounded-pill bg-gradient-orange text-white text-sm font-semibold glow-orange hover:glow-orange-strong transition-all"
