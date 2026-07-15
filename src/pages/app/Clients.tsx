@@ -2,15 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Filter, Lock, Plus, Users, X } from "lucide-react";
 import { useClients, useCreateClient } from "@/hooks/useClients";
-import { useCreateFiling } from "@/hooks/useFilings";
 import { useCreateActivity } from "@/hooks/useActivities";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { toast } from "@/hooks/use-toast";
 import { getRiskLabel, type ClientRecord } from "@/data/workspace";
 import ClientForm from "@/components/ClientForm";
-import { filingTemplates } from "@/data/filingTemplates";
-import { generateFilingsForClient } from "@/services/autoFilings";
 
 const AVATAR_COLORS = [
   "#5B8C3E", "#C25014", "#8B6F47", "#6B7C5E", "#A0522D",
@@ -32,8 +29,6 @@ export default function Clients() {
   const planQuery = usePlan();
   const planData = planQuery.data;
   const planLoading = planQuery.isFetching && planData?.plan === "free";
-  const createFilingMut = useCreateFiling();
-
   const [showAddDrawer, setShowAddDrawer] = useState(false);
 
   if (clientsQuery.isLoading || planLoading) return <div className="max-w-7xl mx-auto py-8">Loading clients...</div>;
@@ -88,11 +83,6 @@ export default function Clients() {
           time: "Just now",
           kind: "client",
         });
-        const autoFilings = generateFilingsForClient(data, filingTemplates);
-        autoFilings.forEach((f) => createFilingMut.mutate(f));
-        if (autoFilings.length > 0) {
-          toast({ title: `Created ${autoFilings.length} compliance deadlines`, description: `Auto-generated filings for ${data.name}` });
-        }
       },
       onError(err: any) {
         toast({ title: "Create failed", description: err?.message || "Failed to create client" });
